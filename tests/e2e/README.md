@@ -18,9 +18,19 @@ Esta pasta agora cobre o estado real do repo: o starter CLI em JavaScript.
 ## Evidencia esperada
 
 - `playwright-report/index.html`
-- `test-results/**`
-- attachments com stdout/stderr por caso
-- trace habilitado pela configuracao
+- `test-results/results.json`
+- `test-results/results.xml`
+- attachments `stdout-*` e `stderr-*` por caso dentro do JSON report
+- pelo menos um attachment `trace` apontando para `trace.zip`
+
+## Gate de evidencia
+
+Os workflows de CI/DoD tratam a evidencia do Playwright como contrato:
+
+- falha se `playwright-report/index.html` nao existir
+- falha se `test-results/results.{json,xml}` nao existirem
+- falha se o JSON report perder os attachments `stdout-*` / `stderr-*`
+- falha se nenhum attachment `trace` referenciar `trace.zip`
 
 ## Nota de transicao
 

@@ -130,6 +130,218 @@ TEST(AdapterGenerationContractTest,
   EXPECT_EQ(result.generatedTokens.size(), 3U);
 }
 
+TEST(AdapterGenerationContractTest,
+     LlamaDirectoryManifestKeepsFixturePromptAndNeonContractVisible) {
+  const us4::IUS4V6Adapter *adapter = us4::FindAdapterByModel("llama-3.1-8b");
+  ASSERT_NE(adapter, nullptr);
+
+  us4::ModelAsset asset;
+  std::string error;
+  const std::filesystem::path manifestDirectory =
+      RepoRoot() / "tests" / "fixtures" / "models" / "llama-3.1-8b";
+  ASSERT_TRUE(us4::LoadModelAsset(manifestDirectory, asset, &error)) << error;
+
+  us4::RuntimeContext context(MakeProbe());
+  adapter->ConfigureRuntime(context);
+
+  const us4::GenerationResult result = adapter->Generate(
+      {.prompt = "", .maxTokens = 3, .asset = &asset}, context);
+
+  ASSERT_EQ(result.promptTokens.size(), 1U);
+  EXPECT_EQ(result.promptTokens[0], "hello");
+  EXPECT_EQ(result.family, "llama");
+  EXPECT_EQ(result.modelName, "llama-3.1-8b-fixture");
+  EXPECT_EQ(result.assetFormat, "fixture-manifest");
+  EXPECT_EQ(std::filesystem::path(result.assetPath).filename(),
+            "model.us4manifest");
+  EXPECT_EQ(result.backend, "neon");
+  EXPECT_EQ(result.backendReason, "auto-neon");
+  EXPECT_FALSE(result.fellBack);
+  EXPECT_EQ(result.weightDType, "fp16");
+  EXPECT_EQ(result.neonKernelFlavor, "fp16-lane8");
+  EXPECT_EQ(result.dequantPath, "none");
+  EXPECT_FALSE(result.kvCacheHit);
+  EXPECT_EQ(result.kvPageCount, 1U);
+  EXPECT_EQ(result.kvHotPages, 1U);
+  EXPECT_EQ(result.generatedTokens.size(), 3U);
+  EXPECT_EQ(result.text.find("gqa-error"), std::string::npos);
+}
+
+TEST(AdapterGenerationContractTest,
+     LlamaGgufAssetSurfacesLoaderAndFallbackTelemetry) {
+  const us4::IUS4V6Adapter *adapter = us4::FindAdapterByModel("llama-3.1-8b");
+  ASSERT_NE(adapter, nullptr);
+
+  us4::ModelAsset asset;
+  std::string error;
+  const std::filesystem::path ggufPath = RepoRoot() / "tests" / "fixtures" /
+                                         "models" / "llama-3.1-8b" /
+                                         "toy-llama.gguf";
+  ASSERT_TRUE(us4::LoadModelAsset(ggufPath, asset, &error)) << error;
+
+  us4::RuntimeContext context(MakeProbe());
+  adapter->ConfigureRuntime(context);
+
+  const us4::GenerationResult result =
+      adapter->Generate({.prompt = "hello",
+                         .maxTokens = 4,
+                         .asset = &asset,
+                         .requestedBackend = us4::BackendType::kMetal},
+                        context);
+
+  EXPECT_EQ(result.family, "llama");
+  EXPECT_EQ(result.modelName, "toy-llama");
+  EXPECT_EQ(result.assetFormat, "gguf");
+  EXPECT_EQ(result.assetPath, ggufPath.string());
+  EXPECT_EQ(result.backend, "neon");
+  EXPECT_EQ(result.backendReason, "requested-backend-unavailable");
+  EXPECT_TRUE(result.fellBack);
+  EXPECT_EQ(result.sharedAllocations, 0U);
+  EXPECT_EQ(result.metalDispatches, 0U);
+  EXPECT_FALSE(result.mlxPlanBuilt);
+  EXPECT_EQ(result.weightDType, "fp16");
+  EXPECT_EQ(result.neonKernelFlavor, "fp16-lane8");
+  EXPECT_EQ(result.dequantPath, "none");
+  ASSERT_EQ(result.promptTokens.size(), 1U);
+  EXPECT_EQ(result.promptTokens[0], "hello");
+  EXPECT_EQ(result.generatedTokens.size(), 4U);
+  EXPECT_EQ(result.kvPageCount, 1U);
+}
+
+TEST(AdapterGenerationContractTest,
+     RepeatedLlamaGenerateReusesPromptKvWithinSharedRuntimeContext) {
+  const us4::IUS4V6Adapter *adapter = us4::FindAdapterByModel("llama-3.1-8b");
+  ASSERT_NE(adapter, nullptr);
+
+  us4::ModelAsset asset;
+  std::string error;
+  const std::filesystem::path manifestDirectory =
+      RepoRoot() / "tests" / "fixtures" / "models" / "llama-3.1-8b";
+  ASSERT_TRUE(us4::LoadModelAsset(manifestDirectory, asset, &error)) << error;
+
+  us4::RuntimeContext context(MakeProbe());
+  adapter->ConfigureRuntime(context);
+
+  const us4::GenerationResult first = adapter->Generate(
+      {.prompt = "hello llama", .maxTokens = 3, .asset = &asset}, context);
+  const us4::GenerationResult second = adapter->Generate(
+      {.prompt = "hello llama", .maxTokens = 3, .asset = &asset}, context);
+
+  EXPECT_FALSE(first.kvCacheHit);
+  EXPECT_TRUE(second.kvCacheHit);
+  EXPECT_EQ(first.text, second.text);
+  EXPECT_EQ(first.text.find("gqa-error"), std::string::npos);
+  EXPECT_EQ(second.backend, "neon");
+  EXPECT_EQ(second.kvPageCount, 1U);
+  EXPECT_EQ(second.kvHotPages, 1U);
+  EXPECT_EQ(second.prefixCacheEntries, 1U);
+}
+
+TEST(AdapterGenerationContractTest,
+     LlamaDedicatedKvCacheStaysPartitionedByAssetSeedWithinSharedContext) {
+  const us4::IUS4V6Adapter *adapter = us4::FindAdapterByModel("llama-3.1-8b");
+  ASSERT_NE(adapter, nullptr);
+
+  us4::ModelAsset baselineAsset;
+  std::string error;
+  const std::filesystem::path manifestDirectory =
+      RepoRoot() / "tests" / "fixtures" / "models" / "llama-3.1-8b";
+  ASSERT_TRUE(us4::LoadModelAsset(manifestDirectory, baselineAsset, &error))
+      << error;
+
+  us4::ModelAsset alternateSeedAsset = baselineAsset;
+  alternateSeedAsset.seed += 7U;
+
+  us4::RuntimeContext context(MakeProbe());
+  adapter->ConfigureRuntime(context);
+
+  const us4::GenerationResult baselineFirst = adapter->Generate(
+      {.prompt = "hello llama", .maxTokens = 3, .asset = &baselineAsset},
+      context);
+  const us4::GenerationResult alternateSeed = adapter->Generate(
+      {.prompt = "hello llama", .maxTokens = 3, .asset = &alternateSeedAsset},
+      context);
+  const us4::GenerationResult alternateSeedRepeat = adapter->Generate(
+      {.prompt = "hello llama", .maxTokens = 3, .asset = &alternateSeedAsset},
+      context);
+
+  EXPECT_FALSE(baselineFirst.kvCacheHit);
+  EXPECT_FALSE(alternateSeed.kvCacheHit);
+  EXPECT_TRUE(alternateSeedRepeat.kvCacheHit);
+  EXPECT_EQ(alternateSeed.backend, "neon");
+  EXPECT_EQ(alternateSeed.kvPageCount, 2U);
+  EXPECT_EQ(alternateSeedRepeat.kvPageCount, 2U);
+  EXPECT_EQ(alternateSeedRepeat.kvHotPages, 1U);
+  EXPECT_EQ(alternateSeedRepeat.kvWarmPages, 1U);
+  EXPECT_EQ(alternateSeedRepeat.prefixCacheEntries, 2U);
+}
+
+TEST(AdapterGenerationContractTest,
+     LlamaScalarBackendKeepsFp16AssetsRunnableWithoutMatmulError) {
+  const us4::IUS4V6Adapter *adapter = us4::FindAdapterByModel("llama-3.1-8b");
+  ASSERT_NE(adapter, nullptr);
+
+  us4::ModelAsset asset;
+  std::string error;
+  const std::filesystem::path manifestDirectory =
+      RepoRoot() / "tests" / "fixtures" / "models" / "llama-3.1-8b";
+  ASSERT_TRUE(us4::LoadModelAsset(manifestDirectory, asset, &error)) << error;
+
+  us4::RuntimeContext context(MakeProbe());
+  adapter->ConfigureRuntime(context);
+
+  const us4::GenerationResult result =
+      adapter->Generate({.prompt = "hello",
+                         .maxTokens = 3,
+                         .asset = &asset,
+                         .requestedBackend = us4::BackendType::kScalarCpu},
+                        context);
+
+  EXPECT_EQ(result.backend, "scalar");
+  EXPECT_EQ(result.backendReason, "requested");
+  EXPECT_FALSE(result.fellBack);
+  EXPECT_EQ(result.weightDType, "fp16");
+  EXPECT_EQ(result.neonKernelFlavor, "none");
+  EXPECT_EQ(result.sharedAllocations, 0U);
+  EXPECT_EQ(result.metalDispatches, 0U);
+  EXPECT_EQ(result.generatedTokens.size(), 3U);
+  EXPECT_EQ(result.generatedTokens[0], "llama");
+  EXPECT_EQ(result.text.find("matmul-error"), std::string::npos);
+  EXPECT_EQ(result.kvPageCount, 1U);
+}
+
+TEST(AdapterGenerationContractTest,
+     LlamaDedicatedPathKeepsKvReuseScopedToSharedRuntimeContext) {
+  const us4::IUS4V6Adapter *adapter = us4::FindAdapterByModel("llama-3.1-8b");
+  ASSERT_NE(adapter, nullptr);
+
+  us4::ModelAsset asset;
+  std::string error;
+  const std::filesystem::path manifestDirectory =
+      RepoRoot() / "tests" / "fixtures" / "models" / "llama-3.1-8b";
+  ASSERT_TRUE(us4::LoadModelAsset(manifestDirectory, asset, &error)) << error;
+
+  us4::RuntimeContext firstContext(MakeProbe());
+  firstContext.SetMode(us4::RuntimeMode::kMicro);
+  const us4::GenerationResult first = adapter->Generate(
+      {.prompt = "hello llama", .maxTokens = 3, .asset = &asset}, firstContext);
+
+  us4::RuntimeContext secondContext(MakeProbe());
+  secondContext.SetMode(us4::RuntimeMode::kMicro);
+  const us4::GenerationResult second = adapter->Generate(
+      {.prompt = "hello llama", .maxTokens = 3, .asset = &asset},
+      secondContext);
+
+  EXPECT_FALSE(first.kvCacheHit);
+  EXPECT_FALSE(first.kvRestoredFromColdStore);
+  EXPECT_EQ(first.kvSummaryRows, 0U);
+  EXPECT_FALSE(second.kvCacheHit);
+  EXPECT_FALSE(second.kvRestoredFromColdStore);
+  EXPECT_EQ(second.kvSummaryRows, 0U);
+  EXPECT_EQ(second.kvPageCount, 1U);
+  EXPECT_EQ(second.kvHotPages, 1U);
+}
+
 TEST(AdapterGenerationContractTest, LowBitAssetsSurfaceNeonDequantIntent) {
   const us4::IUS4V6Adapter *bitnet = us4::FindAdapterByModel("bitnet-b1.58-2b");
   const us4::IUS4V6Adapter *ternary =

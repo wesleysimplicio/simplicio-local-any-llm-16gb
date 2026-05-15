@@ -46,6 +46,16 @@ void FillBFloat16Tensor(us4::Tensor &tensor, const std::vector<float> &values) {
   }
 }
 
+void FillInt8Tensor(us4::Tensor &tensor,
+                    const std::vector<std::int8_t> &values) {
+  auto *data = reinterpret_cast<std::int8_t *>(tensor.MutableData());
+  ASSERT_NE(data, nullptr);
+  ASSERT_EQ(values.size(), tensor.ElementCount());
+  for (std::size_t index = 0; index < values.size(); ++index) {
+    data[index] = values[index];
+  }
+}
+
 float QuantizeHalfValue(const float value, const bool bfloat16) {
   return bfloat16 ? us4::DecodeBFloat16(us4::EncodeBFloat16(value))
                   : us4::DecodeFloat16(us4::EncodeFloat16(value));
@@ -255,6 +265,49 @@ TEST(NeonContractTest, NeonMatmulExecutesBf16AndKeepsTailParity) {
   ASSERT_NE(scalarValues, nullptr);
   for (std::size_t index = 0; index < 18U; ++index) {
     EXPECT_NEAR(neonValues[index], scalarValues[index], 1e-2F) << index;
+  }
+}
+
+TEST(NeonContractTest, NeonMatmulExecutesInt8AndMatchesScalarReference) {
+  us4::Tensor lhs({2, 5}, us4::DType::kInt8, us4::DeviceType::kCpu);
+  us4::Tensor rhs({5, 6}, us4::DType::kInt8, us4::DeviceType::kCpu);
+  us4::Tensor neonOutput({2, 6}, us4::DType::kFloat32, us4::DeviceType::kCpu);
+  us4::Tensor scalarLhs({2, 5}, us4::DType::kFloat32, us4::DeviceType::kCpu);
+  us4::Tensor scalarRhs({5, 6}, us4::DType::kFloat32, us4::DeviceType::kCpu);
+  us4::Tensor scalarOutput({2, 6}, us4::DType::kFloat32, us4::DeviceType::kCpu);
+
+  const std::vector<std::int8_t> lhsValues = {
+      3, -2, 1, 4, -1, -3, 5, -4, 2, 1,
+  };
+  const std::vector<std::int8_t> rhsValues = {
+      1, -2, 3,  0, 2,  -1, -1, 4,  0, 2, -3, 1,  2, 1, -2,
+      3, 0,  -4, 0, -3, 1,  5,  -2, 2, 4, 0,  -1, 2, 3, -2,
+  };
+  FillInt8Tensor(lhs, lhsValues);
+  FillInt8Tensor(rhs, rhsValues);
+
+  float *scalarLhsData = scalarLhs.MutableDataAsFloat32();
+  float *scalarRhsData = scalarRhs.MutableDataAsFloat32();
+  ASSERT_NE(scalarLhsData, nullptr);
+  ASSERT_NE(scalarRhsData, nullptr);
+  for (std::size_t index = 0; index < lhsValues.size(); ++index) {
+    scalarLhsData[index] = static_cast<float>(lhsValues[index]);
+  }
+  for (std::size_t index = 0; index < rhsValues.size(); ++index) {
+    scalarRhsData[index] = static_cast<float>(rhsValues[index]);
+  }
+
+  std::string error;
+  ASSERT_TRUE(us4::NeonMatmul(lhs, rhs, neonOutput, &error)) << error;
+  ASSERT_TRUE(us4::ScalarMatmul(scalarLhs, scalarRhs, scalarOutput, &error))
+      << error;
+
+  const float *neonValues = neonOutput.DataAsFloat32();
+  const float *scalarValues = scalarOutput.DataAsFloat32();
+  ASSERT_NE(neonValues, nullptr);
+  ASSERT_NE(scalarValues, nullptr);
+  for (std::size_t index = 0; index < 12U; ++index) {
+    EXPECT_FLOAT_EQ(neonValues[index], scalarValues[index]) << index;
   }
 }
 

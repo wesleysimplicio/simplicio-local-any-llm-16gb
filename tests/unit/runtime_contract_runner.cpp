@@ -1,3 +1,4 @@
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -10,10 +11,14 @@
 
 #include "adapters/adapter_registry.h"
 #include "adapters/llama/llama_adapter.h"
+#include "adapters/llama/llama_config.h"
 #include "adapters/qwen/qwen_adapter.h"
 #include "core/backend_selector.h"
+#include "core/gqa_attention.h"
 #include "core/model_asset.h"
+#include "core/rope.h"
 #include "core/runtime_context.h"
+#include "core/tensor.h"
 #include "cpu/scalar_attention.h"
 #include "cpu/scalar_matmul.h"
 #include "kv/kv_pager.h"
@@ -100,6 +105,17 @@ bool FillHalfReferenceTensor(us4::Tensor &tensor,
     data[index] = QuantizeHalfValue(values[index], bfloat16);
   }
   return true;
+}
+
+void FillFloatTensor(us4::Tensor &tensor, const std::vector<float> &values) {
+  float *data = tensor.MutableDataAsFloat32();
+  if (data == nullptr || values.size() != tensor.ElementCount()) {
+    return;
+  }
+
+  for (std::size_t index = 0; index < values.size(); ++index) {
+    data[index] = values[index];
+  }
 }
 
 } // namespace
@@ -194,6 +210,91 @@ int main() {
   }
 
   {
+    us4::ModelAsset asset;
+    std::string error;
+    const auto manifest = RepoRoot() / "tests" / "fixtures" / "models" /
+                          "llama-3.1-8b" / "model.us4manifest";
+    ok &= Expect(us4::LoadModelAsset(manifest, asset, &error),
+                 "llama manifest should load");
+    const us4::LlamaConfig config = us4::ResolveLlamaConfig(&asset);
+    ok &= Expect(asset.metadata.contains("rope_theta"),
+                 "llama manifest should expose rope theta metadata");
+    ok &= Expect(asset.metadata.contains("rope_scale"),
+                 "llama manifest should expose rope scale metadata");
+    ok &= Expect(config.hiddenSize == 8U && config.queryHeads == 2U &&
+                     config.kvHeads == 1U && config.headDim == 4U,
+                 "llama config should resolve head topology from manifest");
+    ok &= Expect(std::abs(config.ropeTheta - 10000.0F) <= 1e-6F,
+                 "llama config should preserve rope theta");
+    ok &= Expect(config.ropeScaling == us4::RopeScalingType::kDynamic,
+                 "llama config should preserve rope scaling mode");
+    ok &= Expect(std::abs(config.ropeScale - 1.0F) <= 1e-6F,
+                 "llama config should preserve rope scale");
+
+    us4::ModelAsset invalidConfigAsset;
+    invalidConfigAsset.metadata = {
+        {"hidden_size", "10"}, {"query_heads", "0"},   {"kv_heads", "7"},
+        {"head_dim", "0"},     {"rope_theta", "0.25"}, {"rope_scaling", "YaRn"},
+        {"rope_scale", "-4"},
+    };
+    const us4::LlamaConfig normalized =
+        us4::ResolveLlamaConfig(&invalidConfigAsset);
+    ok &= Expect(normalized.hiddenSize == 10U && normalized.queryHeads == 2U &&
+                     normalized.kvHeads == 1U && normalized.headDim == 5U,
+                 "llama config should normalize invalid head metadata");
+    ok &= Expect(normalized.ropeScaling == us4::RopeScalingType::kYaRN,
+                 "llama config should parse rope scaling case-insensitively");
+    ok &= Expect(std::abs(normalized.ropeTheta - 10000.0F) <= 1e-6F &&
+                     std::abs(normalized.ropeScale - 1.0F) <= 1e-6F,
+                 "llama config should clamp invalid rope values to defaults");
+  }
+
+  {
+    us4::Tensor scalarQuery({1, 2}, us4::DType::kFloat32);
+    us4::Tensor scalarKey({2, 2}, us4::DType::kFloat32);
+    us4::Tensor scalarValue({2, 2}, us4::DType::kFloat32);
+    us4::Tensor scalarOut({1, 2}, us4::DType::kFloat32);
+    us4::Tensor gqaSingleOut({1, 2}, us4::DType::kFloat32);
+    FillFloatTensor(scalarQuery, {1.0F, 0.0F});
+    FillFloatTensor(scalarKey, {1.0F, 0.0F, 0.0F, 1.0F});
+    FillFloatTensor(scalarValue, {2.0F, 0.0F, 0.0F, 4.0F});
+    std::string attentionError;
+    ok &= Expect(us4::ScalarAttention(scalarQuery, scalarKey, scalarValue,
+                                      scalarOut, false, {}, &attentionError),
+                 "scalar attention reference should succeed");
+    ok &= Expect(us4::GqaAttention(scalarQuery, scalarKey, scalarValue, 1U, 1U,
+                                   gqaSingleOut, &attentionError),
+                 "single-head gqa should succeed");
+    const float *scalarOutData = scalarOut.DataAsFloat32();
+    const float *gqaSingleData = gqaSingleOut.DataAsFloat32();
+    ok &= Expect(std::abs(scalarOutData[0] - gqaSingleData[0]) <= 1e-5F &&
+                     std::abs(scalarOutData[1] - gqaSingleData[1]) <= 1e-5F,
+                 "single-head gqa should match scalar attention");
+
+    us4::Tensor groupedQuery({1, 4}, us4::DType::kFloat32);
+    us4::Tensor groupedKey({2, 2}, us4::DType::kFloat32);
+    us4::Tensor groupedValue({2, 2}, us4::DType::kFloat32);
+    us4::Tensor groupedOut({1, 4}, us4::DType::kFloat32);
+    FillFloatTensor(groupedQuery, {1.0F, 0.0F, 0.0F, 1.0F});
+    FillFloatTensor(groupedKey, {1.0F, 0.0F, 0.0F, 1.0F});
+    FillFloatTensor(groupedValue, {10.0F, 0.0F, 0.0F, 20.0F});
+    ok &= Expect(us4::GqaAttention(groupedQuery, groupedKey, groupedValue, 2U,
+                                   1U, groupedOut, &attentionError),
+                 "grouped-query attention should succeed");
+    const float *groupedData = groupedOut.DataAsFloat32();
+    ok &= Expect(std::abs(groupedData[0] - 6.69762F) <= 1e-4F &&
+                     std::abs(groupedData[1] - 6.60478F) <= 1e-4F &&
+                     std::abs(groupedData[2] - 3.30238F) <= 1e-4F &&
+                     std::abs(groupedData[3] - 13.3952F) <= 1e-4F,
+                 "grouped-query attention should keep golden output stable");
+    ok &=
+        Expect(!us4::GqaAttention(groupedQuery, groupedKey, groupedValue, 3U,
+                                  2U, groupedOut, &attentionError) &&
+                   attentionError == "invalid GQA head relationship",
+               "invalid grouped-query topology should fail deterministically");
+  }
+
+  {
     us4::UnifiedAllocator allocator;
     allocator.Allocate(32, false);
     const auto shared = allocator.Allocate(128, true);
@@ -269,6 +370,63 @@ int main() {
           !pool.Active(),
           "noop autorelease scope should remain inactive off apple hosts");
     }
+  }
+
+  {
+    us4::Tensor linear({1, 4}, us4::DType::kFloat32);
+    us4::Tensor dynamic({1, 4}, us4::DType::kFloat32);
+    us4::Tensor yarn({1, 4}, us4::DType::kFloat32);
+    float *linearData = linear.MutableDataAsFloat32();
+    float *dynamicData = dynamic.MutableDataAsFloat32();
+    float *yarnData = yarn.MutableDataAsFloat32();
+    linearData[0] = dynamicData[0] = yarnData[0] = 1.0F;
+    linearData[1] = dynamicData[1] = yarnData[1] = 0.0F;
+    linearData[2] = dynamicData[2] = yarnData[2] = 0.5F;
+    linearData[3] = dynamicData[3] = yarnData[3] = 0.25F;
+
+    us4::ApplyRopeInPlace(linear, 256U, 10000.0F, us4::RopeScalingType::kLinear,
+                          4.0F);
+    us4::ApplyRopeInPlace(dynamic, 256U, 10000.0F,
+                          us4::RopeScalingType::kDynamic, 4.0F);
+    us4::ApplyRopeInPlace(yarn, 256U, 10000.0F, us4::RopeScalingType::kYaRN,
+                          4.0F);
+
+    const float linearNorm0 = std::sqrt(linearData[0] * linearData[0] +
+                                        linearData[1] * linearData[1]);
+    const float dynamicNorm0 = std::sqrt(dynamicData[0] * dynamicData[0] +
+                                         dynamicData[1] * dynamicData[1]);
+    const float yarnNorm2 =
+        std::sqrt(yarnData[2] * yarnData[2] + yarnData[3] * yarnData[3]);
+    ok &= Expect(std::abs(linearNorm0 - 1.0F) <= 1e-5F,
+                 "rope linear scaling should preserve first pair norm");
+    ok &= Expect(std::abs(dynamicNorm0 - 1.0F) <= 1e-5F,
+                 "rope dynamic scaling should preserve first pair norm");
+    ok &= Expect(std::abs(yarnNorm2 - std::sqrt(0.3125F)) <= 1e-5F,
+                 "rope yarn scaling should preserve second pair norm");
+    ok &= Expect(std::abs(linearData[0] - dynamicData[0]) > 1e-5F,
+                 "rope dynamic scaling should differ from linear output");
+    ok &= Expect(std::abs(dynamicData[0] - yarnData[0]) > 1e-5F,
+                 "rope yarn scaling should differ from dynamic output");
+
+    us4::Tensor clamped({1, 4}, us4::DType::kFloat32);
+    float *clampedData = clamped.MutableDataAsFloat32();
+    clampedData[0] = 1.0F;
+    clampedData[1] = 0.0F;
+    clampedData[2] = 0.5F;
+    clampedData[3] = 0.25F;
+    us4::ApplyRopeInPlace(clamped, 8U, 0.25F, us4::RopeScalingType::kLinear,
+                          -2.0F);
+    us4::Tensor defaults({1, 4}, us4::DType::kFloat32);
+    float *defaultData = defaults.MutableDataAsFloat32();
+    defaultData[0] = 1.0F;
+    defaultData[1] = 0.0F;
+    defaultData[2] = 0.5F;
+    defaultData[3] = 0.25F;
+    us4::ApplyRopeInPlace(defaults, 8U, 10000.0F, us4::RopeScalingType::kLinear,
+                          1.0F);
+    ok &= Expect(std::abs(clampedData[0] - defaultData[0]) <= 1e-5F &&
+                     std::abs(clampedData[2] - defaultData[2]) <= 1e-5F,
+                 "rope should clamp invalid theta and scale to safe defaults");
   }
 
   {

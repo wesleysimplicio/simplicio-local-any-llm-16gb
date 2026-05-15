@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "core/tensor.h"
@@ -27,9 +28,11 @@ struct ModelAsset {
   std::vector<std::string> vocabulary;
   std::string defaultPromptToken;
   std::filesystem::path sourcePath;
+  std::unordered_map<std::string, std::string> metadata;
 };
 
 std::string_view ToString(ModelFormat format);
-bool LoadModelAsset(const std::filesystem::path& path, ModelAsset& asset, std::string* error = nullptr);
+bool LoadModelAsset(const std::filesystem::path &path, ModelAsset &asset,
+                    std::string *error = nullptr);
 
-}  // namespace us4
+} // namespace us4

@@ -12,10 +12,10 @@ enum class RopeScalingType {
   kYaRN,
 };
 
-void ApplyRopeInPlace(Tensor& tensor,
-                      std::size_t position,
-                      float theta,
+// Applies RoPE in-place over a contiguous [rows, cols] float32 tensor.
+// Each row is treated as the next token position starting at `position`.
+void ApplyRopeInPlace(Tensor &tensor, std::size_t position, float theta,
                       RopeScalingType scaling = RopeScalingType::kLinear,
                       float scale = 1.0F);
 
-}  // namespace us4
+} // namespace us4

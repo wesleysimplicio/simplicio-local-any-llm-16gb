@@ -10,16 +10,21 @@ namespace us4 {
 
 namespace {
 
-bool WriteError(std::string* error, const std::string& message) {
+bool WriteError(std::string *error, const std::string &message) {
   if (error != nullptr) {
     *error = message;
   }
   return false;
 }
 
-std::string Trim(const std::string& value) {
-  const auto begin = std::find_if_not(value.begin(), value.end(), [](unsigned char ch) { return std::isspace(ch) != 0; });
-  const auto end = std::find_if_not(value.rbegin(), value.rend(), [](unsigned char ch) { return std::isspace(ch) != 0; }).base();
+std::string Trim(const std::string &value) {
+  const auto begin =
+      std::find_if_not(value.begin(), value.end(),
+                       [](unsigned char ch) { return std::isspace(ch) != 0; });
+  const auto end =
+      std::find_if_not(value.rbegin(), value.rend(), [](unsigned char ch) {
+        return std::isspace(ch) != 0;
+      }).base();
   if (begin >= end) {
     return {};
   }
@@ -27,12 +32,13 @@ std::string Trim(const std::string& value) {
 }
 
 std::string ToLower(std::string value) {
-  std::transform(value.begin(), value.end(), value.begin(),
-                 [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+  std::transform(
+      value.begin(), value.end(), value.begin(),
+      [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
   return value;
 }
 
-DType ParseDType(const std::string& value) {
+DType ParseDType(const std::string &value) {
   const std::string normalized = ToLower(value);
   if (normalized == "fp16") {
     return DType::kFloat16;
@@ -49,7 +55,7 @@ DType ParseDType(const std::string& value) {
   return DType::kFloat32;
 }
 
-std::vector<std::string> SplitCsv(const std::string& value) {
+std::vector<std::string> SplitCsv(const std::string &value) {
   std::vector<std::string> parts;
   std::stringstream stream(value);
   std::string item;
@@ -62,7 +68,8 @@ std::vector<std::string> SplitCsv(const std::string& value) {
   return parts;
 }
 
-bool LoadFixtureManifest(const std::filesystem::path& path, ModelAsset& asset, std::string* error) {
+bool LoadFixtureManifest(const std::filesystem::path &path, ModelAsset &asset,
+                         std::string *error) {
   std::ifstream stream(path);
   if (!stream.is_open()) {
     return WriteError(error, "unable to open model manifest: " + path.string());
@@ -81,17 +88,21 @@ bool LoadFixtureManifest(const std::filesystem::path& path, ModelAsset& asset, s
       return WriteError(error, "invalid manifest line: " + trimmed);
     }
 
-    values.emplace(ToLower(Trim(trimmed.substr(0, eq))), Trim(trimmed.substr(eq + 1)));
+    values.emplace(ToLower(Trim(trimmed.substr(0, eq))),
+                   Trim(trimmed.substr(eq + 1)));
   }
 
   asset.format = ModelFormat::kFixtureManifest;
   asset.family = values["family"];
   asset.modelName = values["model_name"];
   asset.weightDType = ParseDType(values["weight_dtype"]);
-  asset.seed = values.contains("seed") ? static_cast<std::uint32_t>(std::stoul(values["seed"])) : 0U;
+  asset.seed = values.contains("seed")
+                   ? static_cast<std::uint32_t>(std::stoul(values["seed"]))
+                   : 0U;
   asset.vocabulary = SplitCsv(values["vocabulary"]);
   asset.defaultPromptToken = values["default_prompt_token"];
   asset.sourcePath = path;
+  asset.metadata = values;
 
   if (asset.family.empty() || asset.modelName.empty()) {
     return WriteError(error, "manifest must define family and model_name");
@@ -105,7 +116,7 @@ bool LoadFixtureManifest(const std::filesystem::path& path, ModelAsset& asset, s
   return true;
 }
 
-std::string InferFamilyFromStem(const std::string& stem) {
+std::string InferFamilyFromStem(const std::string &stem) {
   const std::string normalized = ToLower(stem);
   if (normalized.find("qwen") != std::string::npos) {
     return "qwen";
@@ -131,25 +142,26 @@ std::string InferFamilyFromStem(const std::string& stem) {
   return {};
 }
 
-}  // namespace
+} // namespace
 
 std::string_view ToString(const ModelFormat format) {
   switch (format) {
-    case ModelFormat::kBuiltin:
-      return "builtin";
-    case ModelFormat::kFixtureManifest:
-      return "fixture-manifest";
-    case ModelFormat::kGguf:
-      return "gguf";
-    case ModelFormat::kSafetensors:
-      return "safetensors";
-    case ModelFormat::kUnknown:
-      return "unknown";
+  case ModelFormat::kBuiltin:
+    return "builtin";
+  case ModelFormat::kFixtureManifest:
+    return "fixture-manifest";
+  case ModelFormat::kGguf:
+    return "gguf";
+  case ModelFormat::kSafetensors:
+    return "safetensors";
+  case ModelFormat::kUnknown:
+    return "unknown";
   }
   return "unknown";
 }
 
-bool LoadModelAsset(const std::filesystem::path& path, ModelAsset& asset, std::string* error) {
+bool LoadModelAsset(const std::filesystem::path &path, ModelAsset &asset,
+                    std::string *error) {
   std::filesystem::path resolved = path;
   if (std::filesystem::is_directory(path)) {
     resolved /= "model.us4manifest";
@@ -161,7 +173,8 @@ bool LoadModelAsset(const std::filesystem::path& path, ModelAsset& asset, std::s
   }
 
   if (!std::filesystem::exists(resolved)) {
-    return WriteError(error, "model asset path does not exist: " + resolved.string());
+    return WriteError(error,
+                      "model asset path does not exist: " + resolved.string());
   }
 
   asset = {};
@@ -179,7 +192,8 @@ bool LoadModelAsset(const std::filesystem::path& path, ModelAsset& asset, std::s
     return true;
   }
 
-  return WriteError(error, "unsupported model asset format: " + resolved.string());
+  return WriteError(error,
+                    "unsupported model asset format: " + resolved.string());
 }
 
-}  // namespace us4
+} // namespace us4

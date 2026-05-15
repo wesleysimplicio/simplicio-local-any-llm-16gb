@@ -16,6 +16,7 @@ add_library(us4_runtime_core
   adapters/qwen/qwen_adapter.cpp
   adapters/gemma/gemma_adapter.cpp
   adapters/kimi/kimi_moe_adapter.cpp
+  adapters/llama/llama_config.cpp
   adapters/llama/llama_adapter.cpp
   adapters/ternary/ternary_adapter.cpp
   kv/kv_pager.cpp

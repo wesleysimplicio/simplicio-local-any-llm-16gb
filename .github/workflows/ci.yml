@@ -138,6 +138,55 @@ jobs:
         if: ${{ steps.playwright-dep.outputs.available == 'true' }}
         run: npx playwright test
 
+      - name: Verify Playwright evidence contract
+        if: ${{ steps.playwright-dep.outputs.available == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f playwright-report/index.html
+          test -f test-results/results.json
+          test -f test-results/results.xml
+          node - <<'EOF'
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('test-results/results.json', 'utf8'));
+          const attachments = [];
+          const visit = (value) => {
+            if (Array.isArray(value)) {
+              value.forEach(visit);
+              return;
+            }
+            if (!value || typeof value !== 'object') {
+              return;
+            }
+            if (Array.isArray(value.attachments)) {
+              attachments.push(...value.attachments);
+            }
+            Object.values(value).forEach(visit);
+          };
+
+          visit(report);
+
+          const hasStdout = attachments.some((attachment) =>
+            typeof attachment?.name === 'string' &&
+            attachment.name.startsWith('stdout-') &&
+            typeof attachment.body === 'string'
+          );
+          const hasStderr = attachments.some((attachment) =>
+            typeof attachment?.name === 'string' &&
+            attachment.name.startsWith('stderr-') &&
+            typeof attachment.body === 'string'
+          );
+          const hasTrace = attachments.some((attachment) =>
+            attachment?.name === 'trace' &&
+            typeof attachment.path === 'string' &&
+            /(^|[\\/])trace\.zip$/.test(attachment.path)
+          );
+
+          if (!hasStdout || !hasStderr || !hasTrace) {
+            throw new Error(`Playwright evidence incomplete: stdout=${hasStdout} stderr=${hasStderr} trace=${hasTrace}`);
+          }
+          EOF
+
       - name: Skip notice when Playwright dependency is absent
         if: ${{ steps.playwright-dep.outputs.available != 'true' }}
         run: echo "Skipping Playwright execution because the repository does not yet declare a Playwright dependency."
@@ -296,11 +345,46 @@ jobs:
           test -f playwright-report/index.html
           test -f test-results/results.json
           test -f test-results/results.xml
-          trace_path="$(find test-results -name trace.zip -print -quit)"
-          if [ -z "${trace_path}" ]; then
-            echo "::error::Playwright trace.zip ausente em test-results/."
-            exit 1
-          fi
+          node - <<'EOF'
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('test-results/results.json', 'utf8'));
+          const attachments = [];
+          const visit = (value) => {
+            if (Array.isArray(value)) {
+              value.forEach(visit);
+              return;
+            }
+            if (!value || typeof value !== 'object') {
+              return;
+            }
+            if (Array.isArray(value.attachments)) {
+              attachments.push(...value.attachments);
+            }
+            Object.values(value).forEach(visit);
+          };
+
+          visit(report);
+
+          const hasStdout = attachments.some((attachment) =>
+            typeof attachment?.name === 'string' &&
+            attachment.name.startsWith('stdout-') &&
+            typeof attachment.body === 'string'
+          );
+          const hasStderr = attachments.some((attachment) =>
+            typeof attachment?.name === 'string' &&
+            attachment.name.startsWith('stderr-') &&
+            typeof attachment.body === 'string'
+          );
+          const hasTrace = attachments.some((attachment) =>
+            attachment?.name === 'trace' &&
+            typeof attachment.path === 'string' &&
+            /(^|[\\/])trace\.zip$/.test(attachment.path)
+          );
+
+          if (!hasStdout || !hasStderr || !hasTrace) {
+            throw new Error(`Playwright evidence incomplete: stdout=${hasStdout} stderr=${hasStderr} trace=${hasTrace}`);
+          }
+          EOF
 
       - name: Upload native validation artifacts
         if: always()

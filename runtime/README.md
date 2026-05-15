@@ -15,6 +15,9 @@ ahead of us.
   runtime context, and backend selection
 - `adapters/` contains a native registry plus scaffold adapters for Qwen,
   Gemma, BitNet, ternary, Llama, DeepSeek MoE, and Kimi MoE
+- `tests/fixtures/models/llama-3.1-8b/` now carries both a fixture manifest
+  directory and a toy GGUF payload so unit/E2E coverage can exercise the Llama
+  loader contract before real weights land
 - `metal/` now contains a cross-platform command queue skeleton used by native
   contracts
 - `mlx/` now contains a cross-platform bridge skeleton used by native
@@ -39,6 +42,9 @@ ahead of us.
 - `us4-cli list-models` exposes the native adapter registry
 - `run --model-path ...` can load fixture manifests and detect GGUF /
   Safetensors file types without external libraries
+- the native CLI contract can already resolve the Llama fixture directory or
+  toy GGUF path and surface backend/fallback telemetry without pretending that
+  real Llama weights are loaded yet
 - backend selection and fallback are explicit in CLI output
 - the backend contract already accepts `scalar`, `neon`, `mlx`, `metal`, and
   `ane`, with automatic fallback when a requested path is unavailable
@@ -51,7 +57,9 @@ ahead of us.
 - `RuntimeContext` now exposes acceleration services for Metal and MLX even
   before the real Apple-only backend code lands
 - the native registry already exposes dense, ternary, llama, and MoE-family
-  adapters, but they still execute through the shared scaffold path today
+  adapters; Llama now owns a dedicated scalar/NEON contract path for prompt KV,
+  RoPE-shaped rows, and GQA-flavored generation while Metal/MLX/ANE still use
+  the shared scaffold path
 - hardware probe and mode selection contracts compile and run
 - KV and MoE directories now contain contract-grade foundations, not just empty
   placeholders
@@ -66,7 +74,8 @@ ahead of us.
 - NEON / Accelerate hot paths used by generation
 - backend-specific execution beyond the selection and fallback contract
 - production KV tiering, SSD cold storage, and summarization flows
-- dedicated KV reuse for Llama and MoE paths beyond the shared dense scaffold
+- cross-context cold-store and summarization reuse for the dedicated Llama path
+- dedicated KV reuse for MoE paths beyond the shared scaffold
 - production MoE routing, expert lazy loading, and expert telemetry
 - production-capable `run`, `serve`, `bench`, and `tune` CLI flows
 - correctness fixtures and backend regression coverage
@@ -109,6 +118,27 @@ real inference yet.
 Requesting `--backend metal`, `--backend mlx`, or `--backend neon` currently
 validates selection and reporting behavior; it does not prove that generation is
 already running on those accelerated paths.
+
+## Llama vertical evidence today
+
+The repo now keeps an explicit pre-vertical contract for Llama in tests and
+fixtures:
+
+- `tests/unit/adapter_generation_contract_test.cpp` covers directory-manifest
+  loading, default prompt fallback, GGUF routing, requested-backend fallback
+  telemetry, and the dedicated Llama KV reuse boundary for the fixture assets,
+  including seed-scoped cache partitioning inside a shared `RuntimeContext`;
+- `tests/unit/model_asset_contract_test.cpp` and
+  `tests/unit/runtime_contract_runner.cpp` also keep the future
+  `ResolveLlamaConfig` seam visible by checking fixture metadata hydration plus
+  safe normalization for invalid GQA and RoPE fields before the real Sprint 07
+  loader lands;
+- `tests/e2e/us4-cli.spec.ts` covers native CLI execution against both the
+  `llama-3.1-8b/` manifest directory and `toy-llama.gguf`, including host-aware
+  assertions for `metal` request behavior;
+- these checks are evidence that adapter selection, asset detection, and
+  observability stay intact while the real Sprint 07 forward path is still
+  under construction.
 
 ## Transition rule
 

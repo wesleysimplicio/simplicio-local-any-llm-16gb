@@ -575,13 +575,35 @@ test.describe("Native CLI sprint 02 contract", () => {
     expect(failure?.stderr).toContain("Invalid --backend value");
   });
 
-  test("llama honors backend fallback semantics", async ({}, testInfo) => {
+  test("llama manifest path exposes host-aware backend semantics", async ({}, testInfo) => {
+    const fixturePath = path.join(
+      repoRoot,
+      "tests",
+      "fixtures",
+      "models",
+      "llama-3.1-8b",
+    );
+    const probeResult = await execFileAsync(
+      nativeCliPath!,
+      ["--probe", "--json"],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          NO_COLOR: "1",
+        },
+      },
+    );
+    const probe = JSON.parse(probeResult.stdout) as {
+      has_metal: boolean;
+      has_neon: boolean;
+    };
     const { stdout, stderr } = await execFileAsync(
       nativeCliPath!,
       [
         "run",
-        "--model",
-        "llama-3.1-8b",
+        "--model-path",
+        fixturePath,
         "--backend",
         "metal",
         "--prompt",
@@ -609,14 +631,93 @@ test.describe("Native CLI sprint 02 contract", () => {
     });
 
     expect(stderr.trim()).toBe("");
-    expect(JSON.parse(stdout)).toMatchObject({
+    const payload = JSON.parse(stdout) as Record<string, unknown>;
+    expect(payload).toMatchObject({
       family: "llama",
-      backend: "scalar",
-      backend_reason: "requested-backend-unavailable",
-      fallback: true,
-      shared_allocations: 0,
-      metal_dispatches: 0,
+      model: "llama-3.1-8b-fixture",
+      asset_format: "fixture-manifest",
+      asset_path: expect.stringContaining("llama-3.1-8b"),
+      prompt_tokens: ["hello"],
+      generated_tokens: expect.any(Array),
     });
+    expect((payload.generated_tokens as unknown[]).length).toBeGreaterThanOrEqual(
+      4,
+    );
+
+    if (probe.has_metal) {
+      expect(payload).toMatchObject({
+        backend: "metal",
+        backend_reason: "requested",
+        fallback: false,
+      });
+      expect(Number(payload.shared_allocations)).toBeGreaterThan(0);
+      expect(Number(payload.metal_dispatches)).toBeGreaterThan(0);
+      expect(payload.metal_queue_label).not.toBe("disabled");
+    } else {
+      expect(payload).toMatchObject({
+        backend: probe.has_neon ? "neon" : "scalar",
+        backend_reason: "requested-backend-unavailable",
+        fallback: true,
+        shared_allocations: 0,
+        metal_dispatches: 0,
+      });
+    }
+  });
+
+  test("llama gguf loader contract stays visible in native cli", async ({}, testInfo) => {
+    const ggufPath = path.join(
+      repoRoot,
+      "tests",
+      "fixtures",
+      "models",
+      "llama-3.1-8b",
+      "toy-llama.gguf",
+    );
+    const { stdout, stderr } = await execFileAsync(
+      nativeCliPath!,
+      [
+        "run",
+        "--model-path",
+        ggufPath,
+        "--prompt",
+        "hello",
+        "--max-tokens",
+        "4",
+        "--json",
+      ],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          NO_COLOR: "1",
+        },
+      },
+    );
+
+    await testInfo.attach("stdout-native-llama-gguf", {
+      body: stdout.trim() || "(empty)",
+      contentType: "text/plain",
+    });
+    await testInfo.attach("stderr-native-llama-gguf", {
+      body: stderr.trim() || "(empty)",
+      contentType: "text/plain",
+    });
+
+    expect(stderr.trim()).toBe("");
+    const payload = JSON.parse(stdout) as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      family: "llama",
+      model: "toy-llama",
+      asset_format: "gguf",
+      asset_path: expect.stringContaining("toy-llama.gguf"),
+      backend_reason: expect.stringMatching(/^auto-/),
+      fallback: false,
+      prompt_tokens: ["hello"],
+      generated_tokens: expect.any(Array),
+    });
+    expect((payload.generated_tokens as unknown[]).length).toBeGreaterThanOrEqual(
+      4,
+    );
   });
 
   test("deepseek moe path emits moe family output", async ({}, testInfo) => {
