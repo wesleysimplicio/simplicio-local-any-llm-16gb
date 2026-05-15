@@ -14,6 +14,7 @@
 #include "adapters/llama/llama_config.h"
 #include "adapters/qwen/qwen_adapter.h"
 #include "core/backend_selector.h"
+#include "core/gqa_attention.h"
 #include "core/model_asset.h"
 #include "core/rope.h"
 #include "core/runtime_context.h"
@@ -246,6 +247,51 @@ int main() {
     ok &= Expect(std::abs(normalized.ropeTheta - 10000.0F) <= 1e-6F &&
                      std::abs(normalized.ropeScale - 1.0F) <= 1e-6F,
                  "llama config should clamp invalid rope values to defaults");
+  }
+
+  {
+    us4::Tensor scalarQuery({1, 2}, us4::DType::kFloat32);
+    us4::Tensor scalarKey({2, 2}, us4::DType::kFloat32);
+    us4::Tensor scalarValue({2, 2}, us4::DType::kFloat32);
+    us4::Tensor scalarOut({1, 2}, us4::DType::kFloat32);
+    us4::Tensor gqaSingleOut({1, 2}, us4::DType::kFloat32);
+    FillFloatTensor(scalarQuery, {1.0F, 0.0F});
+    FillFloatTensor(scalarKey, {1.0F, 0.0F, 0.0F, 1.0F});
+    FillFloatTensor(scalarValue, {2.0F, 0.0F, 0.0F, 4.0F});
+    std::string attentionError;
+    ok &= Expect(us4::ScalarAttention(scalarQuery, scalarKey, scalarValue,
+                                      scalarOut, false, {}, &attentionError),
+                 "scalar attention reference should succeed");
+    ok &= Expect(us4::GqaAttention(scalarQuery, scalarKey, scalarValue, 1U, 1U,
+                                   gqaSingleOut, &attentionError),
+                 "single-head gqa should succeed");
+    const float *scalarOutData = scalarOut.DataAsFloat32();
+    const float *gqaSingleData = gqaSingleOut.DataAsFloat32();
+    ok &= Expect(std::abs(scalarOutData[0] - gqaSingleData[0]) <= 1e-5F &&
+                     std::abs(scalarOutData[1] - gqaSingleData[1]) <= 1e-5F,
+                 "single-head gqa should match scalar attention");
+
+    us4::Tensor groupedQuery({1, 4}, us4::DType::kFloat32);
+    us4::Tensor groupedKey({2, 2}, us4::DType::kFloat32);
+    us4::Tensor groupedValue({2, 2}, us4::DType::kFloat32);
+    us4::Tensor groupedOut({1, 4}, us4::DType::kFloat32);
+    FillFloatTensor(groupedQuery, {1.0F, 0.0F, 0.0F, 1.0F});
+    FillFloatTensor(groupedKey, {1.0F, 0.0F, 0.0F, 1.0F});
+    FillFloatTensor(groupedValue, {10.0F, 0.0F, 0.0F, 20.0F});
+    ok &= Expect(us4::GqaAttention(groupedQuery, groupedKey, groupedValue, 2U,
+                                   1U, groupedOut, &attentionError),
+                 "grouped-query attention should succeed");
+    const float *groupedData = groupedOut.DataAsFloat32();
+    ok &= Expect(std::abs(groupedData[0] - 6.69762F) <= 1e-4F &&
+                     std::abs(groupedData[1] - 6.60478F) <= 1e-4F &&
+                     std::abs(groupedData[2] - 3.30238F) <= 1e-4F &&
+                     std::abs(groupedData[3] - 13.3952F) <= 1e-4F,
+                 "grouped-query attention should keep golden output stable");
+    ok &=
+        Expect(!us4::GqaAttention(groupedQuery, groupedKey, groupedValue, 3U,
+                                  2U, groupedOut, &attentionError) &&
+                   attentionError == "invalid GQA head relationship",
+               "invalid grouped-query topology should fail deterministically");
   }
 
   {

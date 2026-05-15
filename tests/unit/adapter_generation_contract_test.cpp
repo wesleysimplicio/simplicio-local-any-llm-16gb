@@ -164,6 +164,7 @@ TEST(AdapterGenerationContractTest,
   EXPECT_EQ(result.kvPageCount, 1U);
   EXPECT_EQ(result.kvHotPages, 1U);
   EXPECT_EQ(result.generatedTokens.size(), 3U);
+  EXPECT_EQ(result.text.find("gqa-error"), std::string::npos);
 }
 
 TEST(AdapterGenerationContractTest,
@@ -229,6 +230,7 @@ TEST(AdapterGenerationContractTest,
   EXPECT_FALSE(first.kvCacheHit);
   EXPECT_TRUE(second.kvCacheHit);
   EXPECT_EQ(first.text, second.text);
+  EXPECT_EQ(first.text.find("gqa-error"), std::string::npos);
   EXPECT_EQ(second.backend, "neon");
   EXPECT_EQ(second.kvPageCount, 1U);
   EXPECT_EQ(second.kvHotPages, 1U);

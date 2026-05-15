@@ -18,6 +18,7 @@ set(us4_runtime_contract_test_sources
   neon_dequant_contract_test.cpp
   neon_contract_test.cpp
   runtime_acceleration_contract_test.cpp
+  gqa_attention_contract_test.cpp
   rope_contract_test.cpp
   tensor_contract_test.cpp
   scalar_kernels_contract_test.cpp

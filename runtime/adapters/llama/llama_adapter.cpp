@@ -109,13 +109,25 @@ bool LlamaAdapter::SupportsMlxBackend() const { return true; }
 
 bool LlamaAdapter::SupportsMetalBackend() const { return true; }
 
-std::vector<float> LlamaAdapter::BuildRopeRow(const std::size_t tokenId,
-                                              const std::uint32_t seed,
-                                              const std::size_t position,
-                                              const LlamaConfig &config) const {
+std::vector<float>
+LlamaAdapter::BuildQueryRow(const std::size_t tokenId, const std::uint32_t seed,
+                            const std::size_t position,
+                            const LlamaConfig &config) const {
   Tensor row({1, config.hiddenSize}, DType::kFloat32);
   CopyVectorToTensor(BuildTokenEmbedding(tokenId, config.hiddenSize, seed),
                      row);
+  ApplyRopeInPlace(row, position, config.ropeTheta, config.ropeScaling,
+                   config.ropeScale);
+  return ReadTensorRow(row);
+}
+
+std::vector<float> LlamaAdapter::BuildKeyRow(const std::size_t tokenId,
+                                             const std::uint32_t seed,
+                                             const std::size_t position,
+                                             const LlamaConfig &config) const {
+  const std::size_t kvWidth = config.kvHeads * config.headDim;
+  Tensor row({1, kvWidth}, DType::kFloat32);
+  CopyVectorToTensor(BuildTokenEmbedding(tokenId, kvWidth, seed + 11U), row);
   ApplyRopeInPlace(row, position, config.ropeTheta, config.ropeScaling,
                    config.ropeScale);
   return ReadTensorRow(row);
@@ -125,8 +137,8 @@ std::vector<float>
 LlamaAdapter::BuildValueRow(const std::size_t tokenId, const std::uint32_t seed,
                             const std::size_t position,
                             const LlamaConfig &config) const {
-  std::vector<float> row =
-      BuildTokenEmbedding(tokenId, config.hiddenSize, seed + 29U);
+  const std::size_t kvWidth = config.kvHeads * config.headDim;
+  std::vector<float> row = BuildTokenEmbedding(tokenId, kvWidth, seed + 29U);
   for (std::size_t hidden = 0; hidden < row.size(); ++hidden) {
     row[hidden] += static_cast<float>((position + hidden) % 5U) * 0.01F;
   }
@@ -155,6 +167,7 @@ GenerationResult LlamaAdapter::Generate(const GenerationRequest &request,
           ? request.asset->seed
           : Seed();
   const LlamaConfig config = ResolveLlamaConfig(request.asset);
+  const std::size_t kvWidth = config.kvHeads * config.headDim;
 
   std::vector<std::string> promptTokens = Tokenize(request.prompt);
   if (promptTokens.empty()) {
@@ -180,7 +193,7 @@ GenerationResult LlamaAdapter::Generate(const GenerationRequest &request,
   bool kvCacheHit = false;
   if (const std::optional<KvPage> cachedPage =
           mutableContext.kvPager().Lookup(prefixKey);
-      cachedPage.has_value() && cachedPage->rowWidth == config.hiddenSize &&
+      cachedPage.has_value() && cachedPage->rowWidth == kvWidth &&
       cachedPage->rowCount == promptTokens.size() &&
       cachedPage->keys.size() == cachedPage->values.size()) {
     keyBuffer = cachedPage->keys;
@@ -188,17 +201,17 @@ GenerationResult LlamaAdapter::Generate(const GenerationRequest &request,
     kvCacheHit = true;
   } else {
     const std::vector<float> firstKeyRow =
-        BuildRopeRow(tokenIds.front(), activeSeed, 0U, config);
+        BuildKeyRow(tokenIds.front(), activeSeed, 0U, config);
     const std::vector<float> firstValueRow =
         BuildValueRow(tokenIds.front(), activeSeed, 0U, config);
     mutableContext.kvPager().Append(prefixKey, firstKeyRow, firstValueRow,
-                                    config.hiddenSize);
+                                    kvWidth);
     keyBuffer = firstKeyRow;
     valueBuffer = firstValueRow;
 
     for (std::size_t index = 1; index < tokenIds.size(); ++index) {
       const std::vector<float> keyRow =
-          BuildRopeRow(tokenIds[index], activeSeed, index, config);
+          BuildKeyRow(tokenIds[index], activeSeed, index, config);
       const std::vector<float> valueRow =
           BuildValueRow(tokenIds[index], activeSeed, index, config);
       const bool appended =
@@ -210,8 +223,7 @@ GenerationResult LlamaAdapter::Generate(const GenerationRequest &request,
         mergedValues.insert(mergedValues.end(), valueRow.begin(),
                             valueRow.end());
         mutableContext.kvPager().Append(prefixKey, std::move(mergedKeys),
-                                        std::move(mergedValues),
-                                        config.hiddenSize);
+                                        std::move(mergedValues), kvWidth);
       }
       keyBuffer.insert(keyBuffer.end(), keyRow.begin(), keyRow.end());
       valueBuffer.insert(valueBuffer.end(), valueRow.begin(), valueRow.end());
@@ -221,9 +233,9 @@ GenerationResult LlamaAdapter::Generate(const GenerationRequest &request,
   std::vector<std::string> generatedTokens;
   generatedTokens.reserve(request.maxTokens);
   for (std::size_t step = 0; step < request.maxTokens; ++step) {
-    const std::size_t sequenceLength = keyBuffer.size() / config.hiddenSize;
-    Tensor key({sequenceLength, config.hiddenSize}, DType::kFloat32);
-    Tensor value({sequenceLength, config.hiddenSize}, DType::kFloat32);
+    const std::size_t sequenceLength = keyBuffer.size() / kvWidth;
+    Tensor key({sequenceLength, kvWidth}, DType::kFloat32);
+    Tensor value({sequenceLength, kvWidth}, DType::kFloat32);
     Tensor query({1, config.hiddenSize}, DType::kFloat32);
     Tensor contextTensor({1, config.hiddenSize}, DType::kFloat32);
     Tensor logits({1, vocabulary.size()}, DType::kFloat32);
@@ -231,7 +243,7 @@ GenerationResult LlamaAdapter::Generate(const GenerationRequest &request,
     CopyVectorToTensor(keyBuffer, key);
     CopyVectorToTensor(valueBuffer, value);
     CopyVectorToTensor(
-        BuildRopeRow(tokenIds.back(), activeSeed, sequenceLength - 1U, config),
+        BuildQueryRow(tokenIds.back(), activeSeed, sequenceLength - 1U, config),
         query);
 
     std::string error;
@@ -273,7 +285,7 @@ GenerationResult LlamaAdapter::Generate(const GenerationRequest &request,
     tokenIds.push_back(bestIndex);
 
     const std::vector<float> nextKeyRow =
-        BuildRopeRow(bestIndex, activeSeed, sequenceLength, config);
+        BuildKeyRow(bestIndex, activeSeed, sequenceLength, config);
     const std::vector<float> nextValueRow =
         BuildValueRow(bestIndex, activeSeed, sequenceLength, config);
     keyBuffer.insert(keyBuffer.end(), nextKeyRow.begin(), nextKeyRow.end());

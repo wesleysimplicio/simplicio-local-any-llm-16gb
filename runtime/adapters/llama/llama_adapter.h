@@ -20,9 +20,12 @@ protected:
   std::string DefaultPromptToken() const override;
 
 private:
-  std::vector<float> BuildRopeRow(std::size_t tokenId, std::uint32_t seed,
-                                  std::size_t position,
-                                  const LlamaConfig &config) const;
+  std::vector<float> BuildQueryRow(std::size_t tokenId, std::uint32_t seed,
+                                   std::size_t position,
+                                   const LlamaConfig &config) const;
+  std::vector<float> BuildKeyRow(std::size_t tokenId, std::uint32_t seed,
+                                 std::size_t position,
+                                 const LlamaConfig &config) const;
   std::vector<float> BuildValueRow(std::size_t tokenId, std::uint32_t seed,
                                    std::size_t position,
                                    const LlamaConfig &config) const;
