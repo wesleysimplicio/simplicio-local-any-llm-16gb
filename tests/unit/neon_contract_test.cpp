@@ -244,6 +244,39 @@ TEST(NeonContractTest, NeonAttentionMatchesScalarWithCache) {
   }
 }
 
+TEST(NeonContractTest, NeonAttentionMatchesScalarForWideValueTail) {
+  us4::Tensor query({2, 4}, us4::DType::kFloat32, us4::DeviceType::kCpu);
+  us4::Tensor key({3, 4}, us4::DType::kFloat32, us4::DeviceType::kCpu);
+  us4::Tensor value({3, 5}, us4::DType::kFloat32, us4::DeviceType::kCpu);
+  us4::Tensor cacheKeys({1, 4}, us4::DType::kFloat32, us4::DeviceType::kCpu);
+  us4::Tensor cacheValues({1, 5}, us4::DType::kFloat32, us4::DeviceType::kCpu);
+  us4::Tensor neonOutput({2, 5}, us4::DType::kFloat32, us4::DeviceType::kCpu);
+  us4::Tensor scalarOutput({2, 5}, us4::DType::kFloat32, us4::DeviceType::kCpu);
+
+  FillSequence(query.MutableDataAsFloat32(), 8U, 0.28F, -0.12F);
+  FillSequence(key.MutableDataAsFloat32(), 12U, 0.14F, 0.08F);
+  FillSequence(value.MutableDataAsFloat32(), 15U, 0.11F, -0.04F);
+  FillSequence(cacheKeys.MutableDataAsFloat32(), 4U, 0.09F, 0.03F);
+  FillSequence(cacheValues.MutableDataAsFloat32(), 5U, 0.16F, 0.07F);
+
+  const us4::AttentionCacheView cache{&cacheKeys, &cacheValues};
+  std::string error;
+  ASSERT_TRUE(
+      us4::NeonAttention(query, key, value, neonOutput, true, cache, &error))
+      << error;
+  ASSERT_TRUE(us4::ScalarAttention(query, key, value, scalarOutput, true, cache,
+                                   &error))
+      << error;
+
+  const float *neonValues = neonOutput.DataAsFloat32();
+  const float *scalarValues = scalarOutput.DataAsFloat32();
+  ASSERT_NE(neonValues, nullptr);
+  ASSERT_NE(scalarValues, nullptr);
+  for (std::size_t index = 0; index < 10U; ++index) {
+    EXPECT_NEAR(neonValues[index], scalarValues[index], 1e-5F) << index;
+  }
+}
+
 TEST(NeonContractTest, NeonAttentionFallsBackOnNonArmHosts) {
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
   GTEST_SKIP() << "This host builds the NEON path directly.";

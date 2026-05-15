@@ -165,11 +165,27 @@ bool NeonAttention(const Tensor &query, const Tensor &key, const Tensor &value,
       return WriteError(error, "attention softmax denominator is too small");
     }
 
-    for (std::size_t outCol = 0; outCol < valueWidth; ++outCol) {
+    for (std::size_t kvRow = 0; kvRow < visibleRows; ++kvRow) {
+      scores[kvRow] /= denominator;
+    }
+
+    std::size_t outCol = 0;
+    for (; outCol + 4U <= valueWidth; outCol += 4U) {
+      float32x4_t weightedVector = vdupq_n_f32(0.0F);
+      for (std::size_t kvRow = 0; kvRow < visibleRows; ++kvRow) {
+        const float32x4_t valueVector =
+            vld1q_f32(mergedValues.data() + (kvRow * valueWidth + outCol));
+        weightedVector =
+            vmlaq_n_f32(weightedVector, valueVector, scores[kvRow]);
+      }
+      vst1q_f32(outputData + (row * valueWidth + outCol), weightedVector);
+    }
+
+    for (; outCol < valueWidth; ++outCol) {
       float weightedSum = 0.0F;
       for (std::size_t kvRow = 0; kvRow < visibleRows; ++kvRow) {
-        weightedSum += (scores[kvRow] / denominator) *
-                       mergedValues[kvRow * valueWidth + outCol];
+        weightedSum +=
+            scores[kvRow] * mergedValues[kvRow * valueWidth + outCol];
       }
       outputData[row * valueWidth + outCol] = weightedSum;
     }

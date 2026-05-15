@@ -20,6 +20,9 @@ What already exists:
 - `neon_attention.cpp` now has its first real fp32 NEON dot-product path for
   rank-2 attention, still preserving scalar fallback off ARM plus causal/cache
   contract compatibility
+- that attention path now also normalizes scores once per row and accumulates
+  `value` on lane-4 vectors before tail-scalar cleanup when `valueWidth` is not
+  a multiple of 4
 
 What is still missing:
 

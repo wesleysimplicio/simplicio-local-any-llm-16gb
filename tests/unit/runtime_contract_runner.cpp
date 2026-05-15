@@ -519,6 +519,41 @@ int main() {
     ok &= Expect(causalMatches,
                  "neon attention should match scalar outputs with cache");
 
+    us4::Tensor wideValue({3, 5}, us4::DType::kFloat32, us4::DeviceType::kCpu);
+    us4::Tensor wideCacheValues({1, 5}, us4::DType::kFloat32,
+                                us4::DeviceType::kCpu);
+    us4::Tensor wideNeonOut({2, 5}, us4::DType::kFloat32,
+                            us4::DeviceType::kCpu);
+    us4::Tensor wideScalarOut({2, 5}, us4::DType::kFloat32,
+                              us4::DeviceType::kCpu);
+    float *wideValueData = wideValue.MutableDataAsFloat32();
+    float *wideCacheValueData = wideCacheValues.MutableDataAsFloat32();
+    for (std::size_t index = 0; index < 15U; ++index) {
+      wideValueData[index] =
+          (static_cast<float>((index % 7U) + 1U) * 0.11F) - 0.04F;
+    }
+    for (std::size_t index = 0; index < 5U; ++index) {
+      wideCacheValueData[index] =
+          (static_cast<float>((index % 7U) + 1U) * 0.16F) + 0.07F;
+    }
+    const us4::AttentionCacheView wideCache{&cacheKeys, &wideCacheValues};
+    ok &= Expect(us4::NeonAttention(attentionQuery, attentionKey, wideValue,
+                                    wideNeonOut, true, wideCache, nullptr),
+                 "neon attention should support wide value tail accumulation");
+    ok &= Expect(us4::ScalarAttention(attentionQuery, attentionKey, wideValue,
+                                      wideScalarOut, true, wideCache, nullptr),
+                 "scalar attention should provide wide value tail reference");
+    const float *wideNeonValues = wideNeonOut.DataAsFloat32();
+    const float *wideScalarValues = wideScalarOut.DataAsFloat32();
+    bool wideMatches = wideNeonValues != nullptr && wideScalarValues != nullptr;
+    for (std::size_t index = 0; wideMatches && index < 10U; ++index) {
+      const float diff = wideNeonValues[index] - wideScalarValues[index];
+      wideMatches = std::abs(diff) <= 1e-5F;
+    }
+    ok &= Expect(
+        wideMatches,
+        "neon attention should match scalar outputs for wide value tails");
+
     us4::HardwareProbeResult narrowNeonProbe = neonProbe;
     narrowNeonProbe.neonVectorBits = 64;
     const us4::QwenAdapter qwenAdapter;
