@@ -174,6 +174,13 @@ void PrintRunText(const us4::GenerationResult &result) {
             << "shared_allocations: " << result.sharedAllocations << "\n"
             << "metal_dispatches: " << result.metalDispatches << "\n"
             << "mlx_operation_count: " << result.mlxOperationCount << "\n"
+            << "kv_cache_hit: " << (result.kvCacheHit ? "true" : "false")
+            << "\n"
+            << "kv_page_count: " << result.kvPageCount << "\n"
+            << "kv_hot_pages: " << result.kvHotPages << "\n"
+            << "kv_warm_pages: " << result.kvWarmPages << "\n"
+            << "kv_cold_pages: " << result.kvColdPages << "\n"
+            << "prefix_cache_entries: " << result.prefixCacheEntries << "\n"
             << "mlx_plan_built: " << (result.mlxPlanBuilt ? "true" : "false")
             << "\n"
             << "mlx_evaluated: " << (result.mlxEvaluated ? "true" : "false")
@@ -220,6 +227,13 @@ void PrintRunJson(const us4::GenerationResult &result) {
             << "\"shared_allocations\":" << result.sharedAllocations << ","
             << "\"metal_dispatches\":" << result.metalDispatches << ","
             << "\"mlx_operation_count\":" << result.mlxOperationCount << ","
+            << "\"kv_cache_hit\":" << (result.kvCacheHit ? "true" : "false")
+            << ","
+            << "\"kv_page_count\":" << result.kvPageCount << ","
+            << "\"kv_hot_pages\":" << result.kvHotPages << ","
+            << "\"kv_warm_pages\":" << result.kvWarmPages << ","
+            << "\"kv_cold_pages\":" << result.kvColdPages << ","
+            << "\"prefix_cache_entries\":" << result.prefixCacheEntries << ","
             << "\"mlx_plan_built\":" << (result.mlxPlanBuilt ? "true" : "false")
             << ","
             << "\"mlx_evaluated\":" << (result.mlxEvaluated ? "true" : "false")

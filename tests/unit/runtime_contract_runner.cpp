@@ -288,8 +288,12 @@ int main() {
     pager.Append("prompt-b", {3.0F, 4.0F});
     const auto page = pager.Lookup("prompt-a");
     ok &= Expect(page.has_value(), "kv pager should find stored page");
+    ok &= Expect(page->keys.size() == 2U,
+                 "kv pager should preserve key rows for cached pages");
     ok &= Expect(page->hitCount >= 1U,
                  "kv pager lookup should increase hit count");
+    ok &= Expect(pager.WarmPageCount() == 1U,
+                 "kv pager should demote excess hot pages into warm tier");
 
     us4::Summarizer summarizer;
     const auto summary = summarizer.Summarize({2.0F, 4.0F, 6.0F});
@@ -360,12 +364,23 @@ int main() {
                  "scalar fallback should not record metal dispatches");
     ok &= Expect(result.mlxOperationCount == 0U,
                  "scalar fallback should not record mlx operations");
+    ok &= Expect(!result.kvCacheHit,
+                 "first generation should populate kv cache on demand");
+    ok &= Expect(result.kvPageCount == 1U,
+                 "first generation should publish a single prompt kv page");
+    ok &= Expect(result.kvHotPages == 1U && result.kvWarmPages == 0U &&
+                     result.kvColdPages == 0U,
+                 "single prompt cache should stay hot");
+    ok &= Expect(result.prefixCacheEntries == 1U,
+                 "generation should retain a prefix cache entry");
 
     const us4::GenerationResult autoResult = qwen->Generate(
         {.prompt = "Hi, US4!", .maxTokens = 4, .asset = &asset}, context);
     ok &= Expect(autoResult.backendReason == "auto-neon" ||
                      autoResult.backendReason == "auto-scalar",
                  "auto generation should expose explicit backend reason");
+    ok &= Expect(autoResult.kvCacheHit,
+                 "repeated generation should reuse prompt kv cache");
     ok &= Expect(result.weightDType == "fp16",
                  "generation should surface asset weight dtype");
     ok &= Expect(result.neonKernelFlavor == "fp16-lane8",
@@ -458,12 +473,11 @@ int main() {
                               us4::DeviceType::kCpu);
     const us4::NeonMatmulProfile bf16MatmulProfile =
         us4::PlanNeonMatmul(neonProbe, bf16Lhs, bf16Rhs);
-    ok &= Expect(
-        bf16MatmulProfile.flavor == us4::NeonKernelFlavor::kBf16Lane8,
-        "neon matmul should pick bf16 lane8 profile on arm64");
-    ok &= Expect(
-        bf16MatmulProfile.tileRows == 8U && bf16MatmulProfile.tileCols == 8U,
-        "neon matmul should keep 8x8 tile contract for bf16");
+    ok &= Expect(bf16MatmulProfile.flavor == us4::NeonKernelFlavor::kBf16Lane8,
+                 "neon matmul should pick bf16 lane8 profile on arm64");
+    ok &= Expect(bf16MatmulProfile.tileRows == 8U &&
+                     bf16MatmulProfile.tileCols == 8U,
+                 "neon matmul should keep 8x8 tile contract for bf16");
 
     const us4::Tensor query({1, 8, 64}, us4::DType::kFloat32,
                             us4::DeviceType::kCpu);

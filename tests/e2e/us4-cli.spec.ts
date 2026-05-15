@@ -248,6 +248,12 @@ test.describe("Native CLI sprint 02 contract", () => {
       shared_allocations: 0,
       metal_dispatches: 0,
       mlx_operation_count: 0,
+      kv_cache_hit: false,
+      kv_page_count: 1,
+      kv_hot_pages: 1,
+      kv_warm_pages: 0,
+      kv_cold_pages: 0,
+      prefix_cache_entries: 1,
       mlx_plan_built: false,
       mlx_evaluated: false,
       metal_device: expect.any(String),
@@ -377,6 +383,8 @@ test.describe("Native CLI sprint 02 contract", () => {
       shared_allocations: 0,
       metal_dispatches: 0,
       mlx_operation_count: 0,
+      kv_cache_hit: false,
+      kv_page_count: 1,
     });
   });
 
@@ -508,6 +516,8 @@ test.describe("Native CLI sprint 02 contract", () => {
       shared_allocations: 0,
       metal_dispatches: 0,
       mlx_operation_count: 0,
+      kv_cache_hit: false,
+      kv_page_count: 1,
     });
   });
 
@@ -641,6 +651,8 @@ test.describe("Native CLI sprint 02 contract", () => {
       shared_allocations: 0,
       metal_dispatches: 0,
       mlx_operation_count: 0,
+      kv_cache_hit: false,
+      kv_page_count: 1,
       generated_tokens: expect.any(Array),
     });
   });

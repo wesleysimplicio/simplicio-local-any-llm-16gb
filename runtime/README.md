@@ -21,6 +21,8 @@ ahead of us.
   contracts
 - `kv/` contains small `KvPager` and `PrefixCache` foundations used by unit
   coverage
+- repeated prompt generation in the same `RuntimeContext` now reuses prompt KV
+  rows instead of rebuilding them from scratch every token step
 - `moe/` contains small `Router` and `ExpertPager` foundations used by MoE
   adapter scaffolding
 - `telemetry/` contains minimal sink/types placeholders used by smoke tests
@@ -64,25 +66,26 @@ ahead of us.
 - NEON / Accelerate hot paths used by generation
 - backend-specific execution beyond the selection and fallback contract
 - production KV tiering, SSD cold storage, and summarization flows
+- dedicated KV reuse for Llama and MoE paths beyond the shared dense scaffold
 - production MoE routing, expert lazy loading, and expert telemetry
 - production-capable `run`, `serve`, `bench`, and `tune` CLI flows
 - correctness fixtures and backend regression coverage
 
 ## Directory intent
 
-| Path | Intent today | Evolves into |
-|---|---|---|
-| `core/` | stable contracts and orchestration skeleton | runtime orchestration, selection, and shared primitives |
-| `adapters/` | native registry and scaffold family adapters | dense, MoE, and low-memory adapters |
-| `mlx/` | reserved primary backend surface | MLX graph/build/eval integration |
-| `metal/` | reserved accelerated backend surface | measured hot kernels only |
-| `neon/` | reserved CPU fallback surface | scalar/NEON low-memory and safety paths |
-| `ane/` | reserved opt-in backend surface | validated M5+ offload paths |
-| `kv/` | contract-grade pager and prefix-cache foundation | KV lifecycle, tiering, and reuse |
-| `moe/` | contract-grade router and expert-pager foundation | routed experts and MoE scheduling |
-| `memory/`, `cache/`, `speculative/`, `tuning/` | roadmap-aligned placeholders | runtime subsystems landed by later sprints |
-| `telemetry/` | smoke-level instrumentation contract | structured runtime metrics and fallback observability |
-| `benchmarks/` | baseline scaffold harness | correctness and throughput evidence |
+| Path                                           | Intent today                                      | Evolves into                                            |
+| ---------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------- |
+| `core/`                                        | stable contracts and orchestration skeleton       | runtime orchestration, selection, and shared primitives |
+| `adapters/`                                    | native registry and scaffold family adapters      | dense, MoE, and low-memory adapters                     |
+| `mlx/`                                         | reserved primary backend surface                  | MLX graph/build/eval integration                        |
+| `metal/`                                       | reserved accelerated backend surface              | measured hot kernels only                               |
+| `neon/`                                        | reserved CPU fallback surface                     | scalar/NEON low-memory and safety paths                 |
+| `ane/`                                         | reserved opt-in backend surface                   | validated M5+ offload paths                             |
+| `kv/`                                          | contract-grade pager and prefix-cache foundation  | KV lifecycle, tiering, and reuse                        |
+| `moe/`                                         | contract-grade router and expert-pager foundation | routed experts and MoE scheduling                       |
+| `memory/`, `cache/`, `speculative/`, `tuning/` | roadmap-aligned placeholders                      | runtime subsystems landed by later sprints              |
+| `telemetry/`                                   | smoke-level instrumentation contract              | structured runtime metrics and fallback observability   |
+| `benchmarks/`                                  | baseline scaffold harness                         | correctness and throughput evidence                     |
 
 ## Build entrypoints
 

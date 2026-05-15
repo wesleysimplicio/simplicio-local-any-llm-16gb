@@ -82,6 +82,12 @@ TEST(AdapterGenerationContractTest,
   EXPECT_EQ(result.weightDType, "fp16");
   EXPECT_EQ(result.neonKernelFlavor, "fp16-lane8");
   EXPECT_EQ(result.dequantPath, "none");
+  EXPECT_FALSE(result.kvCacheHit);
+  EXPECT_EQ(result.kvPageCount, 1U);
+  EXPECT_EQ(result.kvHotPages, 1U);
+  EXPECT_EQ(result.kvWarmPages, 0U);
+  EXPECT_EQ(result.kvColdPages, 0U);
+  EXPECT_EQ(result.prefixCacheEntries, 1U);
   EXPECT_TRUE(result.fellBack);
   EXPECT_EQ(result.promptTokens.size(), 4U);
   EXPECT_EQ(result.promptTokens[0], "hi");
@@ -119,6 +125,7 @@ TEST(AdapterGenerationContractTest,
   EXPECT_EQ(result.weightDType, "bf16");
   EXPECT_EQ(result.neonKernelFlavor, "bf16-lane8");
   EXPECT_EQ(result.dequantPath, "none");
+  EXPECT_FALSE(result.kvCacheHit);
   EXPECT_FALSE(result.fellBack);
   EXPECT_EQ(result.generatedTokens.size(), 3U);
 }
@@ -150,6 +157,7 @@ TEST(AdapterGenerationContractTest, LowBitAssetsSurfaceNeonDequantIntent) {
   EXPECT_EQ(int8Result.weightDType, "int8");
   EXPECT_EQ(int8Result.dequantPath, "groupwise-int8");
   EXPECT_EQ(int8Result.neonKernelFlavor, "int8-dot");
+  EXPECT_EQ(int8Result.kvPageCount, 1U);
 
   us4::RuntimeContext ternaryContext(MakeProbe());
   ternary->ConfigureRuntime(ternaryContext);
@@ -159,4 +167,32 @@ TEST(AdapterGenerationContractTest, LowBitAssetsSurfaceNeonDequantIntent) {
   EXPECT_EQ(int4Result.weightDType, "int4");
   EXPECT_EQ(int4Result.dequantPath, "groupwise-int4");
   EXPECT_EQ(int4Result.neonKernelFlavor, "scalar-bridge");
+}
+
+TEST(AdapterGenerationContractTest,
+     RepeatedGenerateReusesPromptKvCacheWithinSharedRuntimeContext) {
+  const us4::IUS4V6Adapter *adapter = us4::FindAdapterByModel("qwen-0.5b");
+  ASSERT_NE(adapter, nullptr);
+
+  us4::ModelAsset asset;
+  std::string error;
+  const std::filesystem::path manifest = RepoRoot() / "tests" / "fixtures" /
+                                         "models" / "qwen-0.5b" /
+                                         "model.us4manifest";
+  ASSERT_TRUE(us4::LoadModelAsset(manifest, asset, &error)) << error;
+
+  us4::RuntimeContext context(MakeProbe());
+  adapter->ConfigureRuntime(context);
+
+  const us4::GenerationResult first = adapter->Generate(
+      {.prompt = "cache me", .maxTokens = 3, .asset = &asset}, context);
+  const us4::GenerationResult second = adapter->Generate(
+      {.prompt = "cache me", .maxTokens = 3, .asset = &asset}, context);
+
+  EXPECT_FALSE(first.kvCacheHit);
+  EXPECT_TRUE(second.kvCacheHit);
+  EXPECT_EQ(first.text, second.text);
+  EXPECT_EQ(second.kvPageCount, 1U);
+  EXPECT_EQ(second.kvHotPages, 1U);
+  EXPECT_EQ(second.prefixCacheEntries, 1U);
 }

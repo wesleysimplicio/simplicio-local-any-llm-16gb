@@ -14,6 +14,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   NODE_ENV: test
   CI: true
@@ -157,32 +160,157 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  runtime-scaffold:
-    name: Runtime scaffold sanity
-    runs-on: ubuntu-latest
-    if: ${{ hashFiles('CMakeLists.txt', 'runtime/CMakeLists.txt', 'apps/CMakeLists.txt') != '' }}
-    timeout-minutes: 5
+  runtime-native:
+    name: Runtime native validation (macos-14)
+    runs-on: macos-14
+    if: ${{ hashFiles('CMakeLists.txt', 'runtime/CMakeLists.txt', 'apps/CMakeLists.txt', 'tests/CMakeLists.txt') != '' }}
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify runtime scaffold entrypoints
+      - name: Setup Node.js
+        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Node dependencies
+        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' }}
         shell: bash
         run: |
           set -euo pipefail
-          required=(
-            "CMakeLists.txt"
-            "runtime/CMakeLists.txt"
-            "apps/CMakeLists.txt"
-            "apps/cli/main.cpp"
-            "tests/unit/CMakeLists.txt"
-            "tests/e2e/README.md"
-          )
-          missing=0
-          for path in "${required[@]}"; do
-            if [ ! -e "$path" ]; then
-              echo "::error::missing runtime scaffold path: $path"
-              missing=1
-            fi
-          done
-          exit "$missing"
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --no-package-lock
+          fi
+
+      - name: Configure runtime build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ci-artifacts/runtime-native
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DUS4_BUILD_TESTS=ON -DUS4_BUILD_BENCHMARKS=ON \
+            | tee ci-artifacts/runtime-native/cmake-configure.log
+
+      - name: Build runtime targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build build --parallel \
+            | tee ci-artifacts/runtime-native/cmake-build.log
+
+      - name: Verify native test inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          ctest --test-dir build -N \
+            | tee ci-artifacts/runtime-native/ctest-inventory.log
+          grep -q 'us4_runtime_smoke_test' ci-artifacts/runtime-native/ctest-inventory.log
+          grep -q 'us4_runtime_contract_runner' ci-artifacts/runtime-native/ctest-inventory.log
+
+      - name: Run native unit and contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          ctest --test-dir build --output-on-failure \
+            | tee ci-artifacts/runtime-native/ctest.log
+
+      - name: Run direct native CLI smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          find_native_cli() {
+            local candidates=(
+              "./build/apps/us4-cli"
+              "./build/us4-cli"
+              "./build/apps/Release/us4-cli"
+              "./build/Release/us4-cli"
+            )
+            local candidate
+            for candidate in "${candidates[@]}"; do
+              if [ -x "$candidate" ]; then
+                echo "$candidate"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          native_cli="$(find_native_cli)"
+          echo "native_cli=${native_cli}" | tee ci-artifacts/runtime-native/native-cli-path.txt
+
+          "${native_cli}" --probe --json > ci-artifacts/runtime-native/us4-cli-probe.json
+          "${native_cli}" list-models --json > ci-artifacts/runtime-native/us4-cli-list-models.json
+          "${native_cli}" run \
+            --model-path tests/fixtures/models/qwen-0.5b/model.us4manifest \
+            --backend scalar \
+            --prompt hi \
+            --max-tokens 4 \
+            --json > ci-artifacts/runtime-native/us4-cli-run.json
+
+          node - <<'EOF'
+          const fs = require('fs');
+          const probe = JSON.parse(fs.readFileSync('ci-artifacts/runtime-native/us4-cli-probe.json', 'utf8'));
+          if (!probe.version || !probe.platform || !probe.recommended_mode) {
+            throw new Error('native probe payload missing expected fields');
+          }
+          const listModels = JSON.parse(fs.readFileSync('ci-artifacts/runtime-native/us4-cli-list-models.json', 'utf8'));
+          if (!Array.isArray(listModels.models) || listModels.models.length < 3) {
+            throw new Error('native list-models payload missing adapter inventory');
+          }
+          const run = JSON.parse(fs.readFileSync('ci-artifacts/runtime-native/us4-cli-run.json', 'utf8'));
+          if (run.backend !== 'scalar' || run.fallback !== false) {
+            throw new Error('native scalar run contract drifted');
+          }
+          if (!Array.isArray(run.generated_tokens) || run.generated_tokens.length < 4) {
+            throw new Error('native scalar run did not emit enough tokens');
+          }
+          EOF
+
+      - name: Run benchmark smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./build/runtime/benchmarks/dense_baseline \
+            | tee ci-artifacts/runtime-native/dense_baseline.log
+          grep -q '^benchmark=dense_baseline$' ci-artifacts/runtime-native/dense_baseline.log
+          grep -q '^case=dense-default$' ci-artifacts/runtime-native/dense_baseline.log
+          grep -q '^case=lowbit-int8$' ci-artifacts/runtime-native/dense_baseline.log
+          grep -q '^case=lowbit-int4$' ci-artifacts/runtime-native/dense_baseline.log
+
+      - name: Install Playwright browsers
+        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' && (hashFiles('tests/e2e/**/*.spec.ts') != '' || hashFiles('tests/e2e/**/*.spec.js') != '' || hashFiles('tests/e2e/**/*.test.ts') != '' || hashFiles('tests/e2e/**/*.test.js') != '') }}
+        run: npx playwright install
+
+      - name: Run Playwright CLI smoke
+        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' && (hashFiles('tests/e2e/**/*.spec.ts') != '' || hashFiles('tests/e2e/**/*.spec.js') != '' || hashFiles('tests/e2e/**/*.test.ts') != '' || hashFiles('tests/e2e/**/*.test.js') != '') }}
+        run: npx playwright test
+
+      - name: Verify Playwright evidence
+        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' && (hashFiles('tests/e2e/**/*.spec.ts') != '' || hashFiles('tests/e2e/**/*.spec.js') != '' || hashFiles('tests/e2e/**/*.test.ts') != '' || hashFiles('tests/e2e/**/*.test.js') != '') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f playwright-report/index.html
+          test -f test-results/results.json
+          test -f test-results/results.xml
+          trace_path="$(find test-results -name trace.zip -print -quit)"
+          if [ -z "${trace_path}" ]; then
+            echo "::error::Playwright trace.zip ausente em test-results/."
+            exit 1
+          fi
+
+      - name: Upload native validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-native-macos14
+          path: |
+            ci-artifacts/runtime-native/
+            build/Testing/Temporary/
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14

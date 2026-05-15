@@ -31,6 +31,18 @@ Caminhos quentes em NEON (ARM SIMD): matmul, attention, dequantizacao INT8/INT4.
 - O contract runner e a suite GTest ja verificam tile shape, lane width, fused softmax-rescale, parity com scalar em attention/matmul e fallback para hosts nao-ARM.
 - Ainda faltam ampliar os hot paths com vetorizaçao mais forte para `fp16/bf16`, abrir `INT8 dotprod`, fechar block GEMM/tuning e consolidar bench consistente do caminho NEON.
 
+## Observabilidade atual
+
+- `runtime/benchmarks/dense_baseline.cpp` agora roda os casos low-bit em pares
+  `scalar` vs `neon`
+- Cada execucao publica `requested_backend`, `observed_backend`,
+  `backend_reason`, `fell_back`, `dequant_path`, `neon_kernel_flavor`,
+  `text_fingerprint`, `elapsed_ms` e `regression_status`
+- `lowbit-int8` e `lowbit-int4` agora ficam comparaveis sem depender de
+  instrumentacao no backend pesado
+- `warn` significa fallback observavel com saida equivalente ao baseline
+  scalar; `fail` sinaliza drift de output ou metadata low-bit fora do contrato
+
 ## Tasks
 
 - [ ] T04.1 — `runtime/neon/neon_matmul.cpp` (FP16/BF16/INT8 via dotprod, vdotq_s32)

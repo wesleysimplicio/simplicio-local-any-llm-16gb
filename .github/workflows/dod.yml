@@ -15,9 +15,12 @@ permissions:
   contents: read
   pull-requests: read
 
+env:
+  CI: true
+
 jobs:
-  dod-check:
-    name: Definition of Done
+  pr-policy:
+    name: PR policy
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -25,121 +28,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Detect repository lanes
-        id: detect
-        shell: bash
-        run: |
-          set -euo pipefail
-          has_starter=false
-          has_runtime_scaffold=false
-          has_playwright_specs=false
-          has_playwright_dependency=false
-
-          if [ -f package.json ] && [ -f bin/cli.js ] && [ -d test ]; then
-            has_starter=true
-          fi
-
-          if [ -f CMakeLists.txt ] && [ -f runtime/CMakeLists.txt ] && [ -f apps/CMakeLists.txt ]; then
-            has_runtime_scaffold=true
-          fi
-
-          shopt -s nullglob globstar
-          spec_files=(
-            tests/e2e/**/*.spec.ts
-            tests/e2e/**/*.spec.js
-            tests/e2e/**/*.test.ts
-            tests/e2e/**/*.test.js
-          )
-          if [ ${#spec_files[@]} -gt 0 ]; then
-            has_playwright_specs=true
-          fi
-
-          if [ -f package.json ] && grep -Eq '"(@playwright/test|playwright)"[[:space:]]*:' package.json; then
-            has_playwright_dependency=true
-          fi
-
-          echo "has_starter=${has_starter}" >> "$GITHUB_OUTPUT"
-          echo "has_runtime_scaffold=${has_runtime_scaffold}" >> "$GITHUB_OUTPUT"
-          echo "has_playwright_specs=${has_playwright_specs}" >> "$GITHUB_OUTPUT"
-          echo "has_playwright_dependency=${has_playwright_dependency}" >> "$GITHUB_OUTPUT"
-
-      - name: Setup Node.js
-        if: ${{ steps.detect.outputs.has_starter == 'true' || steps.detect.outputs.has_playwright_specs == 'true' }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        if: ${{ steps.detect.outputs.has_starter == 'true' || steps.detect.outputs.has_playwright_specs == 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install --no-package-lock
-          fi
-
-      - name: Run unit tests with coverage
-        if: ${{ steps.detect.outputs.has_starter == 'true' }}
-        run: npm test -- --coverage
-
-      - name: Check coverage threshold (>=80%)
-        if: ${{ steps.detect.outputs.has_starter == 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ ! -f coverage/coverage-summary.json ]; then
-            echo "::error::coverage/coverage-summary.json nao encontrado. Configure o reporter json-summary no test runner."
-            exit 1
-          fi
-          PCT=$(node -e "const c=require('./coverage/coverage-summary.json');console.log(c.total.lines.pct)")
-          echo "Coverage de linhas: ${PCT}%"
-          awk -v p="$PCT" 'BEGIN { if (p+0 < 80) { print "::error::Coverage abaixo de 80% (atual: " p "%)"; exit 1 } }'
-
-      - name: Install Playwright browsers
-        if: ${{ steps.detect.outputs.has_playwright_specs == 'true' && steps.detect.outputs.has_playwright_dependency == 'true' }}
-        run: npx playwright install --with-deps
-
-      - name: Run Playwright tests
-        if: ${{ steps.detect.outputs.has_playwright_specs == 'true' && steps.detect.outputs.has_playwright_dependency == 'true' }}
-        run: npx playwright test
-
-      - name: Verify Playwright evidence
-        if: ${{ steps.detect.outputs.has_playwright_specs == 'true' && steps.detect.outputs.has_playwright_dependency == 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ ! -d test-results ] && [ ! -f test-results/results.xml ] && [ ! -f test-results/results.json ]; then
-            echo "::error::Evidencia Playwright ausente. Rode 'npx playwright test' e gere artifacts em test-results/."
-            exit 1
-          fi
-          echo "Evidencia Playwright OK em test-results/"
-
-      - name: Skip Playwright requirement until dependency is declared
-        if: ${{ steps.detect.outputs.has_playwright_specs == 'true' && steps.detect.outputs.has_playwright_dependency != 'true' }}
-        run: echo "Playwright specs exist, but the repository does not yet declare a Playwright dependency; skipping execution in this phase."
-
-      - name: Verify runtime scaffold hand-off
-        if: ${{ steps.detect.outputs.has_runtime_scaffold == 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          required=(
-            "CMakeLists.txt"
-            "runtime/CMakeLists.txt"
-            "apps/CMakeLists.txt"
-            "apps/cli/main.cpp"
-            "tests/unit/CMakeLists.txt"
-          )
-          for path in "${required[@]}"; do
-            if [ ! -e "$path" ]; then
-              echo "::error::runtime scaffold path missing: $path"
-              exit 1
-            fi
-          done
-          echo "Runtime scaffold paths OK"
 
       - name: Validate PR title (conventional commit)
         env:
@@ -175,11 +63,200 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || true)
-          if echo "$CHANGED" | grep -Eq '^\.specs/architecture/|^architecture/'; then
+          changed="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || true)"
+          if echo "$changed" | grep -Eq '^\.specs/architecture/|^architecture/'; then
             echo "Mudancas detectadas em architecture/. Verificando ADR linkado..."
             if ! echo "${PR_BODY:-}" | grep -Eq '(ADR-[0-9]+|adr-[0-9]+)'; then
               echo "::error::Mudancas em architecture/ exigem ADR linkado no PR body (ex: ADR-001, ADR-042)."
               exit 1
             fi
           fi
+
+  starter-dod:
+    name: Starter DoD
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('package.json', 'bin/cli.js', 'test/**/*.js') != '' }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --no-package-lock
+          fi
+
+      - name: Run starter unit tests with coverage
+        run: npm test -- --coverage
+
+      - name: Check starter coverage threshold (>=80%)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f coverage/coverage-summary.json ]; then
+            echo "::error::coverage/coverage-summary.json nao encontrado. Configure o reporter json-summary no test runner."
+            exit 1
+          fi
+          pct="$(node -e "const c=require('./coverage/coverage-summary.json');console.log(c.total.lines.pct)")"
+          echo "Coverage de linhas: ${pct}%"
+          awk -v p="$pct" 'BEGIN { if (p + 0 < 80) { print "::error::Coverage abaixo de 80% (atual: " p "%)"; exit 1 } }'
+
+  runtime-native-dod:
+    name: Runtime native DoD (macos-14)
+    runs-on: macos-14
+    if: ${{ hashFiles('CMakeLists.txt', 'runtime/CMakeLists.txt', 'apps/CMakeLists.txt', 'tests/CMakeLists.txt') != '' }}
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Node dependencies
+        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --no-package-lock
+          fi
+
+      - name: Configure native build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dod-artifacts/runtime-native
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DUS4_BUILD_TESTS=ON -DUS4_BUILD_BENCHMARKS=ON \
+            | tee dod-artifacts/runtime-native/cmake-configure.log
+
+      - name: Build native runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build build --parallel \
+            | tee dod-artifacts/runtime-native/cmake-build.log
+
+      - name: Verify runtime regression inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          ctest --test-dir build -N \
+            | tee dod-artifacts/runtime-native/ctest-inventory.log
+          grep -q 'us4_runtime_smoke_test' dod-artifacts/runtime-native/ctest-inventory.log
+          grep -q 'us4_runtime_contract_runner' dod-artifacts/runtime-native/ctest-inventory.log
+
+      - name: Run runtime regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          ctest --test-dir build --output-on-failure \
+            | tee dod-artifacts/runtime-native/ctest.log
+
+      - name: Run native benchmark gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./build/runtime/benchmarks/dense_baseline \
+            | tee dod-artifacts/runtime-native/dense_baseline.log
+          grep -q '^benchmark=dense_baseline$' dod-artifacts/runtime-native/dense_baseline.log
+          grep -q '^case=dense-default$' dod-artifacts/runtime-native/dense_baseline.log
+          grep -q '^case=lowbit-int8$' dod-artifacts/runtime-native/dense_baseline.log
+          grep -q '^case=lowbit-int4$' dod-artifacts/runtime-native/dense_baseline.log
+
+      - name: Run direct native CLI contract checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          find_native_cli() {
+            local candidates=(
+              "./build/apps/us4-cli"
+              "./build/us4-cli"
+              "./build/apps/Release/us4-cli"
+              "./build/Release/us4-cli"
+            )
+            local candidate
+            for candidate in "${candidates[@]}"; do
+              if [ -x "$candidate" ]; then
+                echo "$candidate"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          native_cli="$(find_native_cli)"
+          echo "native_cli=${native_cli}" | tee dod-artifacts/runtime-native/native-cli-path.txt
+
+          "${native_cli}" --probe --json > dod-artifacts/runtime-native/us4-cli-probe.json
+          "${native_cli}" run \
+            --model-path tests/fixtures/models/qwen-0.5b/model.us4manifest \
+            --backend scalar \
+            --prompt hi \
+            --max-tokens 4 \
+            --json > dod-artifacts/runtime-native/us4-cli-run.json
+
+          node - <<'EOF'
+          const fs = require('fs');
+          const probe = JSON.parse(fs.readFileSync('dod-artifacts/runtime-native/us4-cli-probe.json', 'utf8'));
+          if (!probe.version || !probe.platform || !probe.recommended_mode) {
+            throw new Error('native probe payload missing expected fields');
+          }
+          const run = JSON.parse(fs.readFileSync('dod-artifacts/runtime-native/us4-cli-run.json', 'utf8'));
+          if (run.backend !== 'scalar' || run.fallback !== false) {
+            throw new Error('native scalar run contract drifted');
+          }
+          if (!Array.isArray(run.generated_tokens) || run.generated_tokens.length < 4) {
+            throw new Error('native scalar run did not emit enough tokens');
+          }
+          EOF
+
+      - name: Install Playwright browsers
+        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' && (hashFiles('tests/e2e/**/*.spec.ts') != '' || hashFiles('tests/e2e/**/*.spec.js') != '' || hashFiles('tests/e2e/**/*.test.ts') != '' || hashFiles('tests/e2e/**/*.test.js') != '') }}
+        run: npx playwright install
+
+      - name: Run Playwright smoke
+        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' && (hashFiles('tests/e2e/**/*.spec.ts') != '' || hashFiles('tests/e2e/**/*.spec.js') != '' || hashFiles('tests/e2e/**/*.test.ts') != '' || hashFiles('tests/e2e/**/*.test.js') != '') }}
+        run: npx playwright test
+
+      - name: Verify Playwright evidence
+        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' && (hashFiles('tests/e2e/**/*.spec.ts') != '' || hashFiles('tests/e2e/**/*.spec.js') != '' || hashFiles('tests/e2e/**/*.test.ts') != '' || hashFiles('tests/e2e/**/*.test.js') != '') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f playwright-report/index.html
+          test -f test-results/results.json
+          test -f test-results/results.xml
+          trace_path="$(find test-results -name trace.zip -print -quit)"
+          if [ -z "${trace_path}" ]; then
+            echo "::error::Playwright trace.zip ausente em test-results/."
+            exit 1
+          fi
+
+      - name: Upload runtime DoD artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-native-dod-macos14
+          path: |
+            dod-artifacts/runtime-native/
+            build/Testing/Temporary/
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14

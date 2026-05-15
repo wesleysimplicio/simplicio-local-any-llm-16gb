@@ -48,11 +48,14 @@ Examples:
 
 ### Runtime work
 
-- build
-- format/lint
-- unit
-- CLI E2E
-- correctness or regression when the target phase supports it
+- `cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release`
+- `cmake --build build`
+- `ctest --test-dir build --output-on-failure`
+- `./build/runtime/benchmarks/dense_baseline`
+- `npx playwright test`
+
+Correctness diff and a dedicated benchmark/regression matrix stay phase-gated
+until `runtime/benchmarks/correctness/` and the broader inference harness exist.
 
 ## 5. PR expectations
 

@@ -63,25 +63,38 @@ Do not require real logit-diff benchmarking before a runnable inference baseline
 
 ## 5. CI reality today
 
-Today the repo CI validates the **starter/bootstrap layer**.
+Today the repo CI validates **both** active lanes:
+
+- the starter/bootstrap layer on Ubuntu;
+- the native runtime lane on `macos-14`.
+
+Current workflows:
 
 - `.github/workflows/ci.yml`
 - `.github/workflows/dod.yml`
 - `.github/workflows/scaffold-self-check.yml`
 
-Those workflows do not yet validate a C++ runtime. They validate the starter package and planning hygiene.
+What is already enforced now:
 
-## 6. Planned CI transition
+- starter lint, unit, coverage, and starter Playwright smoke;
+- runtime `cmake` configure/build on Apple Silicon runners;
+- `ctest` execution for native smoke and contract regression binaries;
+- direct `us4-cli` native contract checks;
+- benchmark smoke via `runtime/benchmarks/dense_baseline`;
+- Playwright evidence for the CLI smoke lane.
 
-Sprint 01 and Sprint 02 are expected to introduce the runtime-facing pipeline:
+## 6. Next CI transition
 
-- CMake configure/build
-- clang-format
-- clang-tidy
-- CTest
-- Playwright CLI smoke for `us4-cli`
+The next transition is no longer "starter to runtime build exists". That part is already live.
 
-Production release automation remains planned until the runtime build exists.
+The remaining CI maturity work is:
+
+- `clang-format` and `clang-tidy` as native gates once the runner toolchain is standardized;
+- dedicated correctness harness under `runtime/benchmarks/correctness/`;
+- labeled regression suites beyond the current smoke + contract runner coverage;
+- release automation once inference-capable gates exist.
+
+Production release automation remains planned until the runtime reaches the inference-capable phase.
 
 ## 7. Pull requests
 

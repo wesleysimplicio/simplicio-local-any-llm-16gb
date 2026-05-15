@@ -45,6 +45,21 @@ std::string NormalizeToken(const std::string_view token) {
   return normalized;
 }
 
+std::string BuildPromptCacheKey(const std::string_view family,
+                                const std::uint32_t seed,
+                                const std::vector<std::string> &promptTokens) {
+  std::ostringstream stream;
+  stream << family << ":" << seed << ":";
+  for (const std::string &token : promptTokens) {
+    stream << NormalizeToken(token) << '|';
+  }
+  return family.empty()
+             ? "kv:anonymous:" +
+                   std::to_string(std::hash<std::string>{}(stream.str()))
+             : "kv:" + std::string(family) + ":" +
+                   std::to_string(std::hash<std::string>{}(stream.str()));
+}
+
 float DeterministicValue(const std::uint32_t seed, const std::uint32_t a,
                          const std::uint32_t b) {
   std::uint32_t value = seed;
@@ -299,6 +314,7 @@ DenseAdapterBase::Tokenize(const std::string_view text) const {
 GenerationResult
 DenseAdapterBase::Generate(const GenerationRequest &request,
                            const RuntimeContext &context) const {
+  RuntimeContext &mutableContext = const_cast<RuntimeContext &>(context);
   const BackendSelection backendSelection = SelectBackend(
       context.hardware(), context.mode(), *this, request.requestedBackend);
   RecordBackendScaffold(*this, backendSelection, request, context);
@@ -326,28 +342,48 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
     tokenIds.push_back(TokenIdFor(token, vocabulary));
   }
 
+  const std::string prefixKey =
+      BuildPromptCacheKey(family_, activeSeed, promptTokens);
+  mutableContext.prefixCache().Retain(prefixKey);
+
+  std::vector<float> keyBuffer;
+  std::vector<float> valueBuffer;
+  bool kvCacheHit = false;
+  const std::optional<KvPage> cachedPrefix =
+      mutableContext.kvPager().Lookup(prefixKey);
+  if (cachedPrefix.has_value() && cachedPrefix->rowWidth == kHiddenSize &&
+      cachedPrefix->rowCount == tokenIds.size() &&
+      cachedPrefix->keys.size() == tokenIds.size() * kHiddenSize &&
+      cachedPrefix->values.size() == tokenIds.size() * kHiddenSize) {
+    keyBuffer = cachedPrefix->keys;
+    valueBuffer = cachedPrefix->values;
+    kvCacheHit = true;
+  } else {
+    keyBuffer.reserve(tokenIds.size() * kHiddenSize);
+    valueBuffer.reserve(tokenIds.size() * kHiddenSize);
+    for (std::size_t index = 0; index < tokenIds.size(); ++index) {
+      const std::vector<float> embedding =
+          BuildTokenEmbedding(tokenIds[index], kHiddenSize, activeSeed);
+      for (std::size_t hidden = 0; hidden < kHiddenSize; ++hidden) {
+        keyBuffer.push_back(embedding[hidden]);
+        valueBuffer.push_back(embedding[hidden] +
+                              static_cast<float>(index % 3U) * 0.01F);
+      }
+    }
+    mutableContext.kvPager().Append(prefixKey, keyBuffer, valueBuffer,
+                                    kHiddenSize);
+  }
+
   std::vector<std::string> generatedTokens;
   generatedTokens.reserve(request.maxTokens);
   for (std::size_t step = 0; step < request.maxTokens; ++step) {
-    const std::size_t sequenceLength = tokenIds.size();
+    const std::size_t sequenceLength = keyBuffer.size() / kHiddenSize;
     Tensor key({sequenceLength, kHiddenSize}, DType::kFloat32);
     Tensor value({sequenceLength, kHiddenSize}, DType::kFloat32);
     Tensor query({1, kHiddenSize}, DType::kFloat32);
     Tensor contextTensor({1, kHiddenSize}, DType::kFloat32);
     Tensor projection({kHiddenSize, vocabulary.size()}, DType::kFloat32);
     Tensor logits({1, vocabulary.size()}, DType::kFloat32);
-
-    std::vector<float> keyBuffer(sequenceLength * kHiddenSize, 0.0F);
-    std::vector<float> valueBuffer(sequenceLength * kHiddenSize, 0.0F);
-    for (std::size_t index = 0; index < sequenceLength; ++index) {
-      const std::vector<float> embedding =
-          BuildTokenEmbedding(tokenIds[index], kHiddenSize, activeSeed);
-      for (std::size_t hidden = 0; hidden < kHiddenSize; ++hidden) {
-        keyBuffer[index * kHiddenSize + hidden] = embedding[hidden];
-        valueBuffer[index * kHiddenSize + hidden] =
-            embedding[hidden] + static_cast<float>((index + step) % 3U) * 0.01F;
-      }
-    }
 
     CopyVectorToTensor(keyBuffer, key);
     CopyVectorToTensor(valueBuffer, value);
@@ -402,6 +438,15 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
 
     generatedTokens.push_back(vocabulary[bestIndex]);
     tokenIds.push_back(bestIndex);
+
+    const std::vector<float> nextEmbedding =
+        BuildTokenEmbedding(bestIndex, kHiddenSize, activeSeed);
+    for (std::size_t hidden = 0; hidden < kHiddenSize; ++hidden) {
+      keyBuffer.push_back(nextEmbedding[hidden]);
+      valueBuffer.push_back(nextEmbedding[hidden] +
+                            static_cast<float>((sequenceLength + step) % 3U) *
+                                0.01F);
+    }
   }
 
   GenerationResult result;
@@ -428,6 +473,12 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
       context.mlxBridge().LastPlan().has_value()
           ? context.mlxBridge().LastPlan()->operations.size()
           : 0U;
+  result.kvCacheHit = kvCacheHit;
+  result.kvPageCount = mutableContext.kvPager().PageCount();
+  result.kvHotPages = mutableContext.kvPager().HotPageCount();
+  result.kvWarmPages = mutableContext.kvPager().WarmPageCount();
+  result.kvColdPages = mutableContext.kvPager().ColdPageCount();
+  result.prefixCacheEntries = mutableContext.prefixCache().EntryCount();
   result.mlxPlanBuilt = context.mlxBridge().LastPlan().has_value();
   result.mlxEvaluated = context.mlxBridge().LastEvaluationSucceeded();
   result.weightDType = request.asset != nullptr

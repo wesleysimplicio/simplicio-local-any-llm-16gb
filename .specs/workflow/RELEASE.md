@@ -48,13 +48,14 @@ These files do not exist yet in the current repo state.
 ### After runnable CLI baseline exists
 
 - build gate
-- unit gate
-- Playwright CLI smoke
+- `ctest` gate for native smoke and contract runners
+- benchmark smoke gate
+- Playwright CLI smoke with evidence
 
 ### After inference baseline exists
 
 - correctness gate
-- regression gate
+- dedicated regression gate
 - benchmark evidence
 
 ## 6. Planned release automation
