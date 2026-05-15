@@ -13,21 +13,23 @@
 #include "core/model_asset.h"
 #include "core/runtime_context.h"
 #include "core/runtime_mode.h"
+#include "metal/command_queue.h"
 #include "metal/device_info.h"
 #include "us4/version.h"
 
 namespace {
 
-std::string_view ArchitectureToString(const us4::ArchitectureType architecture) {
+std::string_view
+ArchitectureToString(const us4::ArchitectureType architecture) {
   switch (architecture) {
-    case us4::ArchitectureType::kDense:
-      return "dense";
-    case us4::ArchitectureType::kMoe:
-      return "moe";
-    case us4::ArchitectureType::kTernary:
-      return "ternary";
-    case us4::ArchitectureType::kUnknown:
-      return "unknown";
+  case us4::ArchitectureType::kDense:
+    return "dense";
+  case us4::ArchitectureType::kMoe:
+    return "moe";
+  case us4::ArchitectureType::kTernary:
+    return "ternary";
+  case us4::ArchitectureType::kUnknown:
+    return "unknown";
   }
   return "unknown";
 }
@@ -37,106 +39,143 @@ std::string EscapeJson(const std::string_view value) {
   escaped.reserve(value.size() + 8);
   for (const char ch : value) {
     switch (ch) {
-      case '\\':
-        escaped += "\\\\";
-        break;
-      case '"':
-        escaped += "\\\"";
-        break;
-      case '\n':
-        escaped += "\\n";
-        break;
-      case '\r':
-        escaped += "\\r";
-        break;
-      case '\t':
-        escaped += "\\t";
-        break;
-      default:
-        escaped.push_back(ch);
-        break;
+    case '\\':
+      escaped += "\\\\";
+      break;
+    case '"':
+      escaped += "\\\"";
+      break;
+    case '\n':
+      escaped += "\\n";
+      break;
+    case '\r':
+      escaped += "\\r";
+      break;
+    case '\t':
+      escaped += "\\t";
+      break;
+    default:
+      escaped.push_back(ch);
+      break;
     }
   }
   return escaped;
 }
 
 void PrintHelp() {
-  std::cout
-      << "US4 V6 Apple Edition CLI\n"
-      << "Usage:\n"
-      << "  us4-cli --version\n"
-      << "  us4-cli --probe [--json]\n"
-      << "  us4-cli --mode auto [--json]\n"
-      << "  us4-cli list-models [--json]\n"
-      << "  us4-cli run --model <name> [--model-path <path>] [--backend <scalar|neon|mlx|metal|ane>] --prompt <text> [--max-tokens N] [--json]\n";
+  std::cout << "US4 V6 Apple Edition CLI\n"
+            << "Usage:\n"
+            << "  us4-cli --version\n"
+            << "  us4-cli --probe [--json]\n"
+            << "  us4-cli --mode auto [--json]\n"
+            << "  us4-cli list-models [--json]\n"
+            << "  us4-cli run --model <name> [--model-path <path>] [--backend "
+               "<scalar|neon|mlx|metal|ane>] --prompt <text> [--max-tokens N] "
+               "[--json]\n";
 }
 
-void PrintProbeText(const us4::HardwareProbeResult& probe) {
-  const us4::MetalDeviceInfo metalDevice = us4::ProbeMetalDevice(probe);
-  std::cout
-      << "US4 V6 Apple Edition\n"
-      << "version: " << us4::kUs4Version << "\n"
-      << "platform: " << probe.platform << "\n"
-      << "architecture: " << probe.architecture << "\n"
-      << "chip: " << probe.chip << "\n"
-      << "memory_gib: " << probe.unifiedMemoryGiB << "\n"
-      << "is_apple_silicon: " << (probe.isAppleSilicon ? "true" : "false") << "\n"
-      << "has_mlx: " << (probe.hasMlx ? "true" : "false") << "\n"
-      << "has_metal: " << (probe.hasMetal ? "true" : "false") << "\n"
-      << "has_neon: " << (probe.hasNeon ? "true" : "false") << "\n"
-      << "has_ane: " << (probe.hasAne ? "true" : "false") << "\n"
-      << "metal_device: " << metalDevice.deviceName << "\n"
-      << "metal_queue_label: " << metalDevice.queueLabel << "\n"
-      << "metal_threads_per_group: " << metalDevice.maxThreadsPerThreadgroup << "\n"
-      << "supports_unified_memory: " << (metalDevice.supportsUnifiedMemory ? "true" : "false") << "\n"
-      << "recommended_mode: " << us4::ToString(probe.recommendedMode) << "\n";
+void PrintProbeText(const us4::HardwareProbeResult &probe) {
+  const us4::MetalCommandQueue metalQueue(probe);
+  const us4::MetalDeviceInfo &metalDevice = metalQueue.Device();
+  const us4::MetalQueueProfile &metalProfile = metalQueue.Profile();
+  std::cout << "US4 V6 Apple Edition\n"
+            << "version: " << us4::kUs4Version << "\n"
+            << "platform: " << probe.platform << "\n"
+            << "architecture: " << probe.architecture << "\n"
+            << "chip: " << probe.chip << "\n"
+            << "memory_gib: " << probe.unifiedMemoryGiB << "\n"
+            << "is_apple_silicon: " << (probe.isAppleSilicon ? "true" : "false")
+            << "\n"
+            << "has_mlx: " << (probe.hasMlx ? "true" : "false") << "\n"
+            << "has_metal: " << (probe.hasMetal ? "true" : "false") << "\n"
+            << "has_neon: " << (probe.hasNeon ? "true" : "false") << "\n"
+            << "has_ane: " << (probe.hasAne ? "true" : "false") << "\n"
+            << "metal_device: " << metalDevice.deviceName << "\n"
+            << "metal_queue_label: " << metalDevice.queueLabel << "\n"
+            << "metal_threads_per_group: "
+            << metalDevice.maxThreadsPerThreadgroup << "\n"
+            << "supports_unified_memory: "
+            << (metalDevice.supportsUnifiedMemory ? "true" : "false") << "\n"
+            << "metal_init_stage: " << us4::ToString(metalProfile.stage) << "\n"
+            << "metal_queue_created: "
+            << (metalProfile.queueCreated ? "true" : "false") << "\n"
+            << "metal_autorelease_boundary_requested: "
+            << (metalProfile.requiresAutoreleaseBoundary ? "true" : "false")
+            << "\n"
+            << "metal_objc_boundary_supported: "
+            << (metalProfile.hostSupportsObjectiveCBoundary ? "true" : "false")
+            << "\n"
+            << "metal_reason: " << metalQueue.Reason() << "\n"
+            << "recommended_mode: " << us4::ToString(probe.recommendedMode)
+            << "\n";
 }
 
-void PrintProbeJson(const us4::HardwareProbeResult& probe) {
-  const us4::MetalDeviceInfo metalDevice = us4::ProbeMetalDevice(probe);
-  std::cout
-      << "{"
-      << "\"version\":\"" << EscapeJson(us4::kUs4Version) << "\","
-      << "\"platform\":\"" << EscapeJson(probe.platform) << "\","
-      << "\"architecture\":\"" << EscapeJson(probe.architecture) << "\","
-      << "\"chip\":\"" << EscapeJson(probe.chip) << "\","
-      << "\"memory_gib\":" << probe.unifiedMemoryGiB << ","
-      << "\"is_apple_silicon\":" << (probe.isAppleSilicon ? "true" : "false") << ","
-      << "\"has_mlx\":" << (probe.hasMlx ? "true" : "false") << ","
-      << "\"has_metal\":" << (probe.hasMetal ? "true" : "false") << ","
-      << "\"has_neon\":" << (probe.hasNeon ? "true" : "false") << ","
-      << "\"has_ane\":" << (probe.hasAne ? "true" : "false") << ","
-      << "\"metal_device\":\"" << EscapeJson(metalDevice.deviceName) << "\","
-      << "\"metal_queue_label\":\"" << EscapeJson(metalDevice.queueLabel) << "\","
-      << "\"metal_threads_per_group\":" << metalDevice.maxThreadsPerThreadgroup << ","
-      << "\"supports_unified_memory\":" << (metalDevice.supportsUnifiedMemory ? "true" : "false") << ","
-      << "\"recommended_mode\":\"" << us4::ToString(probe.recommendedMode) << "\""
-      << "}\n";
+void PrintProbeJson(const us4::HardwareProbeResult &probe) {
+  const us4::MetalCommandQueue metalQueue(probe);
+  const us4::MetalDeviceInfo &metalDevice = metalQueue.Device();
+  const us4::MetalQueueProfile &metalProfile = metalQueue.Profile();
+  std::cout << "{"
+            << "\"version\":\"" << EscapeJson(us4::kUs4Version) << "\","
+            << "\"platform\":\"" << EscapeJson(probe.platform) << "\","
+            << "\"architecture\":\"" << EscapeJson(probe.architecture) << "\","
+            << "\"chip\":\"" << EscapeJson(probe.chip) << "\","
+            << "\"memory_gib\":" << probe.unifiedMemoryGiB << ","
+            << "\"is_apple_silicon\":"
+            << (probe.isAppleSilicon ? "true" : "false") << ","
+            << "\"has_mlx\":" << (probe.hasMlx ? "true" : "false") << ","
+            << "\"has_metal\":" << (probe.hasMetal ? "true" : "false") << ","
+            << "\"has_neon\":" << (probe.hasNeon ? "true" : "false") << ","
+            << "\"has_ane\":" << (probe.hasAne ? "true" : "false") << ","
+            << "\"metal_device\":\"" << EscapeJson(metalDevice.deviceName)
+            << "\","
+            << "\"metal_queue_label\":\"" << EscapeJson(metalDevice.queueLabel)
+            << "\","
+            << "\"metal_threads_per_group\":"
+            << metalDevice.maxThreadsPerThreadgroup << ","
+            << "\"supports_unified_memory\":"
+            << (metalDevice.supportsUnifiedMemory ? "true" : "false") << ","
+            << "\"metal_init_stage\":\""
+            << EscapeJson(us4::ToString(metalProfile.stage)) << "\","
+            << "\"metal_queue_created\":"
+            << (metalProfile.queueCreated ? "true" : "false") << ","
+            << "\"metal_autorelease_boundary_requested\":"
+            << (metalProfile.requiresAutoreleaseBoundary ? "true" : "false")
+            << ","
+            << "\"metal_objc_boundary_supported\":"
+            << (metalProfile.hostSupportsObjectiveCBoundary ? "true" : "false")
+            << ","
+            << "\"metal_reason\":\"" << EscapeJson(metalQueue.Reason()) << "\","
+            << "\"recommended_mode\":\"" << us4::ToString(probe.recommendedMode)
+            << "\""
+            << "}\n";
 }
 
-void PrintRunText(const us4::GenerationResult& result) {
-  std::cout
-      << "family: " << result.family << "\n"
-      << "model: " << result.modelName << "\n"
-      << "asset_format: " << result.assetFormat << "\n"
-      << "asset_path: " << (result.assetPath.empty() ? "<builtin>" : result.assetPath) << "\n"
-      << "mode: " << us4::ToString(result.mode) << "\n"
-      << "backend: " << result.backend << "\n"
-      << "backend_reason: " << result.backendReason << "\n"
-      << "fallback: " << (result.fellBack ? "true" : "false") << "\n"
-      << "shared_allocations: " << result.sharedAllocations << "\n"
-      << "metal_dispatches: " << result.metalDispatches << "\n"
-      << "mlx_operation_count: " << result.mlxOperationCount << "\n"
-      << "mlx_plan_built: " << (result.mlxPlanBuilt ? "true" : "false") << "\n"
-      << "mlx_evaluated: " << (result.mlxEvaluated ? "true" : "false") << "\n"
-      << "metal_device: " << result.metalDevice << "\n"
-      << "metal_queue_label: " << result.metalQueueLabel << "\n"
-      << "prompt_tokens: " << result.promptTokens.size() << "\n"
-      << "generated_tokens: " << result.generatedTokens.size() << "\n"
-      << "text: " << result.text << "\n";
+void PrintRunText(const us4::GenerationResult &result) {
+  std::cout << "family: " << result.family << "\n"
+            << "model: " << result.modelName << "\n"
+            << "asset_format: " << result.assetFormat << "\n"
+            << "asset_path: "
+            << (result.assetPath.empty() ? "<builtin>" : result.assetPath)
+            << "\n"
+            << "mode: " << us4::ToString(result.mode) << "\n"
+            << "backend: " << result.backend << "\n"
+            << "backend_reason: " << result.backendReason << "\n"
+            << "fallback: " << (result.fellBack ? "true" : "false") << "\n"
+            << "shared_allocations: " << result.sharedAllocations << "\n"
+            << "metal_dispatches: " << result.metalDispatches << "\n"
+            << "mlx_operation_count: " << result.mlxOperationCount << "\n"
+            << "mlx_plan_built: " << (result.mlxPlanBuilt ? "true" : "false")
+            << "\n"
+            << "mlx_evaluated: " << (result.mlxEvaluated ? "true" : "false")
+            << "\n"
+            << "metal_device: " << result.metalDevice << "\n"
+            << "metal_queue_label: " << result.metalQueueLabel << "\n"
+            << "prompt_tokens: " << result.promptTokens.size() << "\n"
+            << "generated_tokens: " << result.generatedTokens.size() << "\n"
+            << "text: " << result.text << "\n";
 }
 
-void PrintRunJson(const us4::GenerationResult& result) {
+void PrintRunJson(const us4::GenerationResult &result) {
   std::ostringstream promptTokens;
   std::ostringstream generatedTokens;
 
@@ -151,54 +190,58 @@ void PrintRunJson(const us4::GenerationResult& result) {
     if (index > 0) {
       generatedTokens << ",";
     }
-    generatedTokens << "\"" << EscapeJson(result.generatedTokens[index]) << "\"";
+    generatedTokens << "\"" << EscapeJson(result.generatedTokens[index])
+                    << "\"";
   }
 
-  std::cout
-      << "{"
-      << "\"family\":\"" << EscapeJson(result.family) << "\","
-      << "\"model\":\"" << EscapeJson(result.modelName) << "\","
-      << "\"asset_format\":\"" << EscapeJson(result.assetFormat) << "\","
-      << "\"asset_path\":\"" << EscapeJson(result.assetPath) << "\","
-      << "\"mode\":\"" << EscapeJson(us4::ToString(result.mode)) << "\","
-      << "\"backend\":\"" << EscapeJson(result.backend) << "\","
-      << "\"backend_reason\":\"" << EscapeJson(result.backendReason) << "\","
-      << "\"fallback\":" << (result.fellBack ? "true" : "false") << ","
-      << "\"shared_allocations\":" << result.sharedAllocations << ","
-      << "\"metal_dispatches\":" << result.metalDispatches << ","
-      << "\"mlx_operation_count\":" << result.mlxOperationCount << ","
-      << "\"mlx_plan_built\":" << (result.mlxPlanBuilt ? "true" : "false") << ","
-      << "\"mlx_evaluated\":" << (result.mlxEvaluated ? "true" : "false") << ","
-      << "\"metal_device\":\"" << EscapeJson(result.metalDevice) << "\","
-      << "\"metal_queue_label\":\"" << EscapeJson(result.metalQueueLabel) << "\","
-      << "\"prompt_tokens\":[" << promptTokens.str() << "],"
-      << "\"generated_tokens\":[" << generatedTokens.str() << "],"
-      << "\"text\":\"" << EscapeJson(result.text) << "\""
-      << "}\n";
+  std::cout << "{"
+            << "\"family\":\"" << EscapeJson(result.family) << "\","
+            << "\"model\":\"" << EscapeJson(result.modelName) << "\","
+            << "\"asset_format\":\"" << EscapeJson(result.assetFormat) << "\","
+            << "\"asset_path\":\"" << EscapeJson(result.assetPath) << "\","
+            << "\"mode\":\"" << EscapeJson(us4::ToString(result.mode)) << "\","
+            << "\"backend\":\"" << EscapeJson(result.backend) << "\","
+            << "\"backend_reason\":\"" << EscapeJson(result.backendReason)
+            << "\","
+            << "\"fallback\":" << (result.fellBack ? "true" : "false") << ","
+            << "\"shared_allocations\":" << result.sharedAllocations << ","
+            << "\"metal_dispatches\":" << result.metalDispatches << ","
+            << "\"mlx_operation_count\":" << result.mlxOperationCount << ","
+            << "\"mlx_plan_built\":" << (result.mlxPlanBuilt ? "true" : "false")
+            << ","
+            << "\"mlx_evaluated\":" << (result.mlxEvaluated ? "true" : "false")
+            << ","
+            << "\"metal_device\":\"" << EscapeJson(result.metalDevice) << "\","
+            << "\"metal_queue_label\":\"" << EscapeJson(result.metalQueueLabel)
+            << "\","
+            << "\"prompt_tokens\":[" << promptTokens.str() << "],"
+            << "\"generated_tokens\":[" << generatedTokens.str() << "],"
+            << "\"text\":\"" << EscapeJson(result.text) << "\""
+            << "}\n";
 }
 
-void PrintAdapterList(const us4::HardwareProbeResult& probe) {
+void PrintAdapterList(const us4::HardwareProbeResult &probe) {
   std::cout << "Available models:\n";
-  for (const us4::IUS4V6Adapter* adapter : us4::ListAdapters()) {
+  for (const us4::IUS4V6Adapter *adapter : us4::ListAdapters()) {
     const us4::BackendSelection preferred =
         us4::SelectBackend(probe, probe.recommendedMode, *adapter);
-    std::cout
-        << "  - " << adapter->ModelName()
-        << " [" << adapter->Family() << "]"
-        << " arch=" << ArchitectureToString(adapter->Architecture())
-        << " min_mode=" << us4::ToString(adapter->MinimumMode())
-        << " mlx=" << (adapter->SupportsMlxBackend() ? "true" : "false")
-        << " metal=" << (adapter->SupportsMetalBackend() ? "true" : "false")
-        << " moe=" << (adapter->SupportsMoe() ? "true" : "false")
-        << " preferred_backend=" << us4::ToString(preferred.selected)
-        << "\n";
+    std::cout << "  - " << adapter->ModelName() << " [" << adapter->Family()
+              << "]"
+              << " arch=" << ArchitectureToString(adapter->Architecture())
+              << " min_mode=" << us4::ToString(adapter->MinimumMode())
+              << " mlx=" << (adapter->SupportsMlxBackend() ? "true" : "false")
+              << " metal="
+              << (adapter->SupportsMetalBackend() ? "true" : "false")
+              << " moe=" << (adapter->SupportsMoe() ? "true" : "false")
+              << " preferred_backend=" << us4::ToString(preferred.selected)
+              << "\n";
   }
 }
 
-void PrintAdapterListJson(const us4::HardwareProbeResult& probe) {
+void PrintAdapterListJson(const us4::HardwareProbeResult &probe) {
   std::ostringstream models;
   bool first = true;
-  for (const us4::IUS4V6Adapter* adapter : us4::ListAdapters()) {
+  for (const us4::IUS4V6Adapter *adapter : us4::ListAdapters()) {
     const us4::BackendSelection preferred =
         us4::SelectBackend(probe, probe.recommendedMode, *adapter);
     if (!first) {
@@ -207,24 +250,33 @@ void PrintAdapterListJson(const us4::HardwareProbeResult& probe) {
     models << "{"
            << "\"family\":\"" << EscapeJson(adapter->Family()) << "\","
            << "\"model\":\"" << EscapeJson(adapter->ModelName()) << "\","
-           << "\"architecture\":\"" << EscapeJson(ArchitectureToString(adapter->Architecture())) << "\","
-           << "\"minimum_mode\":\"" << EscapeJson(us4::ToString(adapter->MinimumMode())) << "\","
-           << "\"supports_moe\":" << (adapter->SupportsMoe() ? "true" : "false") << ","
-           << "\"supports_mlx\":" << (adapter->SupportsMlxBackend() ? "true" : "false") << ","
-           << "\"supports_metal\":" << (adapter->SupportsMetalBackend() ? "true" : "false") << ","
-           << "\"supports_prompt_run\":" << (adapter->SupportsPromptRun() ? "true" : "false") << ","
-           << "\"preferred_backend\":\"" << EscapeJson(us4::ToString(preferred.selected)) << "\","
-           << "\"preferred_backend_reason\":\"" << EscapeJson(preferred.reason) << "\","
-           << "\"preferred_mode\":\"" << EscapeJson(us4::ToString(probe.recommendedMode)) << "\""
-            << "}";
+           << "\"architecture\":\""
+           << EscapeJson(ArchitectureToString(adapter->Architecture())) << "\","
+           << "\"minimum_mode\":\""
+           << EscapeJson(us4::ToString(adapter->MinimumMode())) << "\","
+           << "\"supports_moe\":" << (adapter->SupportsMoe() ? "true" : "false")
+           << ","
+           << "\"supports_mlx\":"
+           << (adapter->SupportsMlxBackend() ? "true" : "false") << ","
+           << "\"supports_metal\":"
+           << (adapter->SupportsMetalBackend() ? "true" : "false") << ","
+           << "\"supports_prompt_run\":"
+           << (adapter->SupportsPromptRun() ? "true" : "false") << ","
+           << "\"preferred_backend\":\""
+           << EscapeJson(us4::ToString(preferred.selected)) << "\","
+           << "\"preferred_backend_reason\":\"" << EscapeJson(preferred.reason)
+           << "\","
+           << "\"preferred_mode\":\""
+           << EscapeJson(us4::ToString(probe.recommendedMode)) << "\""
+           << "}";
     first = false;
   }
   std::cout << "{\"models\":[" << models.str() << "]}\n";
 }
 
-}  // namespace
+} // namespace
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   bool outputJson = false;
   bool showProbe = false;
   bool showVersion = false;
@@ -266,8 +318,9 @@ int main(int argc, char** argv) {
       const std::string tokenText = argv[++index];
       try {
         const unsigned long long parsed = std::stoull(tokenText);
-        maxTokens = static_cast<std::size_t>(
-            std::min<unsigned long long>(parsed, static_cast<unsigned long long>(std::numeric_limits<std::size_t>::max())));
+        maxTokens = static_cast<std::size_t>(std::min<unsigned long long>(
+            parsed, static_cast<unsigned long long>(
+                        std::numeric_limits<std::size_t>::max())));
       } catch (...) {
         std::cerr << "Invalid --max-tokens value: " << tokenText << "\n";
         return 1;
@@ -303,7 +356,9 @@ int main(int argc, char** argv) {
   if (modeValue.has_value() && !runCommand) {
     const auto parsedMode = us4::ParseRuntimeMode(*modeValue);
     const us4::RuntimeMode mode =
-        (*modeValue == "auto" || !parsedMode.has_value()) ? probe.recommendedMode : *parsedMode;
+        (*modeValue == "auto" || !parsedMode.has_value())
+            ? probe.recommendedMode
+            : *parsedMode;
 
     if (outputJson) {
       std::cout << "{\"mode\":\"" << us4::ToString(mode) << "\"}\n";
@@ -315,7 +370,8 @@ int main(int argc, char** argv) {
 
   if (runCommand) {
     const std::optional<us4::BackendType> parsedBackend =
-        backendValue.has_value() ? us4::ParseBackendType(*backendValue) : std::nullopt;
+        backendValue.has_value() ? us4::ParseBackendType(*backendValue)
+                                 : std::nullopt;
     if (backendValue.has_value() && !parsedBackend.has_value()) {
       std::cerr << "Invalid --backend value: " << *backendValue << "\n";
       return 1;
@@ -325,22 +381,25 @@ int main(int argc, char** argv) {
     if (modelPath.has_value()) {
       us4::ModelAsset asset;
       std::string error;
-      if (!us4::LoadModelAsset(std::filesystem::path(*modelPath), asset, &error)) {
+      if (!us4::LoadModelAsset(std::filesystem::path(*modelPath), asset,
+                               &error)) {
         std::cerr << "Failed to load --model-path: " << error << "\n";
         return 1;
       }
       loadedAsset = asset;
     }
 
-    if (!modelName.has_value() && (!loadedAsset.has_value() || loadedAsset->modelName.empty())) {
+    if (!modelName.has_value() &&
+        (!loadedAsset.has_value() || loadedAsset->modelName.empty())) {
       std::cerr << "--model is required for run\n";
       PrintAdapterList(probe);
       return 1;
     }
 
-    const std::string resolvedModelName =
-        modelName.value_or(loadedAsset.has_value() ? loadedAsset->modelName : std::string{});
-    const us4::IUS4V6Adapter* adapter = us4::FindAdapterByModel(resolvedModelName);
+    const std::string resolvedModelName = modelName.value_or(
+        loadedAsset.has_value() ? loadedAsset->modelName : std::string{});
+    const us4::IUS4V6Adapter *adapter =
+        us4::FindAdapterByModel(resolvedModelName);
     if (adapter == nullptr) {
       std::cerr << "Unknown model: " << resolvedModelName << "\n";
       PrintAdapterList(probe);
@@ -350,7 +409,8 @@ int main(int argc, char** argv) {
     us4::RuntimeContext context(probe);
     if (modeValue.has_value()) {
       const auto parsedMode = us4::ParseRuntimeMode(*modeValue);
-      context.SetMode(parsedMode.has_value() ? *parsedMode : probe.recommendedMode);
+      context.SetMode(parsedMode.has_value() ? *parsedMode
+                                             : probe.recommendedMode);
     } else {
       adapter->ConfigureRuntime(context);
     }

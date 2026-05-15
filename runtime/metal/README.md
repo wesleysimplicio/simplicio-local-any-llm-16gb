@@ -6,6 +6,9 @@ What already exists:
 
 - `command_queue.{h,cpp}` records dispatch intent for `matmul`, `softmax`, and
   `rmsnorm`
+- `command_queue.{h,cpp}` now also surfaces an initialization profile
+  (`unavailable -> device-ready -> queue-ready`) and records Objective-C
+  autorelease-boundary intent for each dispatch
 - `kernel_library.{h,cpp}` exposes a native metadata catalog for the Metal
   kernel set
 - `kernels/{matmul,softmax,rmsnorm}.metal` already exist as versioned source
@@ -19,6 +22,5 @@ What already exists:
 What is still missing:
 
 - real `MTLDevice` and command-queue ownership
-- autorelease helpers for Objective-C++ boundaries
 - real dispatch wrappers that compile and run those `.metal` kernels during
   generation

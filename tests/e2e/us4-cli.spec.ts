@@ -1,13 +1,15 @@
-import { test, expect, type TestInfo } from '@playwright/test';
-import { execFile } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import path from 'node:path';
-import { promisify } from 'node:util';
+import { test, expect, type TestInfo } from "@playwright/test";
+import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-const repoRoot = path.resolve(__dirname, '..', '..');
-const cliPath = path.join(repoRoot, 'bin', 'cli.js');
-const packageJson = require(path.join(repoRoot, 'package.json')) as { version: string };
+const repoRoot = path.resolve(__dirname, "..", "..");
+const cliPath = path.join(repoRoot, "bin", "cli.js");
+const packageJson = require(path.join(repoRoot, "package.json")) as {
+  version: string;
+};
 
 type CliRun = {
   stdout: string;
@@ -15,13 +17,17 @@ type CliRun = {
 };
 
 async function runCli(args: string[]): Promise<CliRun> {
-  const { stdout, stderr } = await execFileAsync(process.execPath, [cliPath, ...args], {
-    cwd: repoRoot,
-    env: {
-      ...process.env,
-      NO_COLOR: '1',
+  const { stdout, stderr } = await execFileAsync(
+    process.execPath,
+    [cliPath, ...args],
+    {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        NO_COLOR: "1",
+      },
     },
-  });
+  );
 
   return {
     stdout: stdout.trim(),
@@ -29,51 +35,55 @@ async function runCli(args: string[]): Promise<CliRun> {
   };
 }
 
-async function attachCommand(testInfo: TestInfo, label: string, result: CliRun): Promise<void> {
+async function attachCommand(
+  testInfo: TestInfo,
+  label: string,
+  result: CliRun,
+): Promise<void> {
   await testInfo.attach(`stdout-${label}`, {
-    body: result.stdout || '(empty)',
-    contentType: 'text/plain',
+    body: result.stdout || "(empty)",
+    contentType: "text/plain",
   });
   await testInfo.attach(`stderr-${label}`, {
-    body: result.stderr || '(empty)',
-    contentType: 'text/plain',
+    body: result.stderr || "(empty)",
+    contentType: "text/plain",
   });
 }
 
-test.describe('Starter CLI smoke', () => {
-  test('exposes version contract in text and JSON', async ({}, testInfo) => {
-    const textResult = await runCli(['--version']);
-    await attachCommand(testInfo, 'version-text', textResult);
+test.describe("Starter CLI smoke", () => {
+  test("exposes version contract in text and JSON", async ({}, testInfo) => {
+    const textResult = await runCli(["--version"]);
+    await attachCommand(testInfo, "version-text", textResult);
 
-    expect(textResult.stderr).toBe('');
+    expect(textResult.stderr).toBe("");
     expect(textResult.stdout).toBe(packageJson.version);
 
-    const jsonResult = await runCli(['--version', '--json']);
-    await attachCommand(testInfo, 'version-json', jsonResult);
+    const jsonResult = await runCli(["--version", "--json"]);
+    await attachCommand(testInfo, "version-json", jsonResult);
 
-    expect(jsonResult.stderr).toBe('');
+    expect(jsonResult.stderr).toBe("");
     expect(JSON.parse(jsonResult.stdout)).toMatchObject({
-      cli: 'us4-cli',
+      cli: "us4-cli",
       version: packageJson.version,
     });
   });
 
-  test('exposes probe contract in text and JSON', async ({}, testInfo) => {
-    const textResult = await runCli(['--probe']);
-    await attachCommand(testInfo, 'probe-text', textResult);
+  test("exposes probe contract in text and JSON", async ({}, testInfo) => {
+    const textResult = await runCli(["--probe"]);
+    await attachCommand(testInfo, "probe-text", textResult);
 
-    expect(textResult.stderr).toBe('');
+    expect(textResult.stderr).toBe("");
     expect(textResult.stdout).toContain(`us4-cli ${packageJson.version}`);
-    expect(textResult.stdout).toContain('mode: ');
-    expect(textResult.stdout).toContain('platform: ');
-    expect(textResult.stdout).toContain('memory: ');
+    expect(textResult.stdout).toContain("mode: ");
+    expect(textResult.stdout).toContain("platform: ");
+    expect(textResult.stdout).toContain("memory: ");
 
-    const jsonResult = await runCli(['--probe', '--json']);
-    await attachCommand(testInfo, 'probe-json', jsonResult);
+    const jsonResult = await runCli(["--probe", "--json"]);
+    await attachCommand(testInfo, "probe-json", jsonResult);
 
-    expect(jsonResult.stderr).toBe('');
+    expect(jsonResult.stderr).toBe("");
     expect(JSON.parse(jsonResult.stdout)).toMatchObject({
-      cli: 'us4-cli',
+      cli: "us4-cli",
       version: packageJson.version,
       probe: {
         platform: expect.any(String),
@@ -86,75 +96,81 @@ test.describe('Starter CLI smoke', () => {
         aneEligible: expect.any(Boolean),
       },
       mode: {
-        requested: 'auto',
+        requested: "auto",
         selected: expect.any(String),
-        taxonomy: expect.arrayContaining(['FULL', 'MICRO_PLUS', 'NANO']),
-        source: 'memory-tier',
+        taxonomy: expect.arrayContaining(["FULL", "MICRO_PLUS", "NANO"]),
+        source: "memory-tier",
       },
     });
   });
 
-  test('keeps mode auto JSON aligned with the probe shape', async ({}, testInfo) => {
-    const modeResult = await runCli(['--mode', 'auto', '--json']);
-    await attachCommand(testInfo, 'mode-auto-json', modeResult);
+  test("keeps mode auto JSON aligned with the probe shape", async ({}, testInfo) => {
+    const modeResult = await runCli(["--mode", "auto", "--json"]);
+    await attachCommand(testInfo, "mode-auto-json", modeResult);
 
-    expect(modeResult.stderr).toBe('');
+    expect(modeResult.stderr).toBe("");
     expect(JSON.parse(modeResult.stdout)).toMatchObject({
-      cli: 'us4-cli',
+      cli: "us4-cli",
       version: packageJson.version,
       probe: {
         platform: expect.any(String),
         arch: expect.any(String),
       },
       mode: {
-        requested: 'auto',
+        requested: "auto",
         selected: expect.any(String),
         taxonomy: [
-          'FULL',
-          'BALANCED_PLUS',
-          'DEGRADED',
-          'ULTRA_LOW',
-          'MICRO',
-          'MICRO_PLUS',
-          'NANO',
+          "FULL",
+          "BALANCED_PLUS",
+          "DEGRADED",
+          "ULTRA_LOW",
+          "MICRO",
+          "MICRO_PLUS",
+          "NANO",
         ],
-        source: 'memory-tier',
+        source: "memory-tier",
       },
     });
   });
 });
 
-test.describe('Native CLI sprint 02 contract', () => {
+test.describe("Native CLI sprint 02 contract", () => {
   const nativeCliCandidates = [
-    path.join(repoRoot, 'build', 'apps', 'us4-cli.exe'),
-    path.join(repoRoot, 'build', 'apps', 'us4-cli'),
-    path.join(repoRoot, 'build', 'us4-cli'),
-    path.join(repoRoot, 'build', 'us4-cli.exe'),
-    path.join(repoRoot, 'build', 'Release', 'us4-cli.exe'),
+    path.join(repoRoot, "build", "apps", "us4-cli.exe"),
+    path.join(repoRoot, "build", "apps", "us4-cli"),
+    path.join(repoRoot, "build", "us4-cli"),
+    path.join(repoRoot, "build", "us4-cli.exe"),
+    path.join(repoRoot, "build", "Release", "us4-cli.exe"),
   ];
-  const nativeCliPath = nativeCliCandidates.find((candidate) => existsSync(candidate));
+  const nativeCliPath = nativeCliCandidates.find((candidate) =>
+    existsSync(candidate),
+  );
 
-  test.skip(!nativeCliPath, 'native us4-cli is not available in this host');
+  test.skip(!nativeCliPath, "native us4-cli is not available in this host");
 
-  test('probe command exposes native acceleration profile', async ({}, testInfo) => {
-    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['--probe', '--json'], {
-      cwd: repoRoot,
-      env: {
-        ...process.env,
-        NO_COLOR: '1',
+  test("probe command exposes native acceleration profile", async ({}, testInfo) => {
+    const { stdout, stderr } = await execFileAsync(
+      nativeCliPath!,
+      ["--probe", "--json"],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          NO_COLOR: "1",
+        },
       },
+    );
+
+    await testInfo.attach("stdout-native-probe", {
+      body: stdout.trim() || "(empty)",
+      contentType: "text/plain",
+    });
+    await testInfo.attach("stderr-native-probe", {
+      body: stderr.trim() || "(empty)",
+      contentType: "text/plain",
     });
 
-    await testInfo.attach('stdout-native-probe', {
-      body: stdout.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-    await testInfo.attach('stderr-native-probe', {
-      body: stderr.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-
-    expect(stderr.trim()).toBe('');
+    expect(stderr.trim()).toBe("");
     expect(JSON.parse(stdout)).toMatchObject({
       version: expect.any(String),
       platform: expect.any(String),
@@ -166,35 +182,64 @@ test.describe('Native CLI sprint 02 contract', () => {
       metal_queue_label: expect.any(String),
       metal_threads_per_group: expect.any(Number),
       supports_unified_memory: expect.any(Boolean),
+      metal_init_stage: expect.any(String),
+      metal_queue_created: expect.any(Boolean),
+      metal_autorelease_boundary_requested: expect.any(Boolean),
+      metal_objc_boundary_supported: expect.any(Boolean),
+      metal_reason: expect.any(String),
       recommended_mode: expect.any(String),
     });
   });
 
-  test('run command emits generated scalar tokens', async ({}, testInfo) => {
-    const fixturePath = path.join(repoRoot, 'tests', 'fixtures', 'models', 'qwen-0.5b', 'model.us4manifest');
-    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['run', '--model', 'qwen-0.5b', '--model-path', fixturePath, '--backend', 'metal', '--prompt', 'hi', '--max-tokens', '5', '--json'], {
-      cwd: repoRoot,
-      env: {
-        ...process.env,
-        NO_COLOR: '1',
+  test("run command emits generated scalar tokens", async ({}, testInfo) => {
+    const fixturePath = path.join(
+      repoRoot,
+      "tests",
+      "fixtures",
+      "models",
+      "qwen-0.5b",
+      "model.us4manifest",
+    );
+    const { stdout, stderr } = await execFileAsync(
+      nativeCliPath!,
+      [
+        "run",
+        "--model",
+        "qwen-0.5b",
+        "--model-path",
+        fixturePath,
+        "--backend",
+        "metal",
+        "--prompt",
+        "hi",
+        "--max-tokens",
+        "5",
+        "--json",
+      ],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          NO_COLOR: "1",
+        },
       },
+    );
+
+    await testInfo.attach("stdout-native-run", {
+      body: stdout.trim() || "(empty)",
+      contentType: "text/plain",
+    });
+    await testInfo.attach("stderr-native-run", {
+      body: stderr.trim() || "(empty)",
+      contentType: "text/plain",
     });
 
-    await testInfo.attach('stdout-native-run', {
-      body: stdout.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-    await testInfo.attach('stderr-native-run', {
-      body: stderr.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-
-    expect(stderr.trim()).toBe('');
+    expect(stderr.trim()).toBe("");
     expect(JSON.parse(stdout)).toMatchObject({
-      model: 'qwen-0.5b-fixture',
-      asset_format: 'fixture-manifest',
-      backend: 'scalar',
-      backend_reason: 'requested-backend-unavailable',
+      model: "qwen-0.5b-fixture",
+      asset_format: "fixture-manifest",
+      backend: "scalar",
+      backend_reason: "requested-backend-unavailable",
       fallback: true,
       shared_allocations: 0,
       metal_dispatches: 0,
@@ -204,43 +249,53 @@ test.describe('Native CLI sprint 02 contract', () => {
       metal_device: expect.any(String),
       metal_queue_label: expect.any(String),
       asset_path: expect.any(String),
-      prompt_tokens: ['hi'],
+      prompt_tokens: ["hi"],
       generated_tokens: expect.any(Array),
     });
-    expect(JSON.parse(stdout).generated_tokens.length).toBeGreaterThanOrEqual(5);
+    expect(JSON.parse(stdout).generated_tokens.length).toBeGreaterThanOrEqual(
+      5,
+    );
   });
 
-  test('list-models exposes available native adapters', async ({}, testInfo) => {
-    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['list-models', '--json'], {
-      cwd: repoRoot,
-      env: {
-        ...process.env,
-        NO_COLOR: '1',
+  test("list-models exposes available native adapters", async ({}, testInfo) => {
+    const { stdout, stderr } = await execFileAsync(
+      nativeCliPath!,
+      ["list-models", "--json"],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          NO_COLOR: "1",
+        },
       },
+    );
+
+    await testInfo.attach("stdout-native-list-models", {
+      body: stdout.trim() || "(empty)",
+      contentType: "text/plain",
+    });
+    await testInfo.attach("stderr-native-list-models", {
+      body: stderr.trim() || "(empty)",
+      contentType: "text/plain",
     });
 
-    await testInfo.attach('stdout-native-list-models', {
-      body: stdout.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-    await testInfo.attach('stderr-native-list-models', {
-      body: stderr.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-
-    expect(stderr.trim()).toBe('');
-    const payload = JSON.parse(stdout) as { models: Array<Record<string, unknown>> };
+    expect(stderr.trim()).toBe("");
+    const payload = JSON.parse(stdout) as {
+      models: Array<Record<string, unknown>>;
+    };
     expect(Array.isArray(payload.models)).toBeTruthy();
 
-    const qwen = payload.models.find((model) => model.family === 'qwen');
-    const llama = payload.models.find((model) => model.family === 'llama');
-    const deepseek = payload.models.find((model) => model.family === 'deepseek');
+    const qwen = payload.models.find((model) => model.family === "qwen");
+    const llama = payload.models.find((model) => model.family === "llama");
+    const deepseek = payload.models.find(
+      (model) => model.family === "deepseek",
+    );
 
     expect(qwen).toMatchObject({
-      family: 'qwen',
-      model: 'qwen-0.5b',
-      architecture: 'dense',
-      minimum_mode: 'NANO',
+      family: "qwen",
+      model: "qwen-0.5b",
+      architecture: "dense",
+      minimum_mode: "NANO",
       supports_moe: false,
       supports_mlx: false,
       supports_metal: true,
@@ -250,17 +305,17 @@ test.describe('Native CLI sprint 02 contract', () => {
       preferred_mode: expect.any(String),
     });
     expect(llama).toMatchObject({
-      family: 'llama',
-      model: 'llama-3.1-8b',
-      architecture: 'dense',
+      family: "llama",
+      model: "llama-3.1-8b",
+      architecture: "dense",
       supports_mlx: true,
       supports_metal: true,
       preferred_backend: expect.any(String),
     });
     expect(deepseek).toMatchObject({
-      family: 'deepseek',
-      model: 'deepseek-v2-lite',
-      architecture: 'moe',
+      family: "deepseek",
+      model: "deepseek-v2-lite",
+      architecture: "moe",
       supports_moe: true,
       supports_mlx: true,
       supports_metal: true,
@@ -268,30 +323,52 @@ test.describe('Native CLI sprint 02 contract', () => {
     });
   });
 
-  test('run accepts explicit scalar backend without fallback', async ({}, testInfo) => {
-    const fixturePath = path.join(repoRoot, 'tests', 'fixtures', 'models', 'qwen-0.5b', 'model.us4manifest');
-    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['run', '--model-path', fixturePath, '--backend', 'scalar', '--prompt', 'hi', '--max-tokens', '4', '--json'], {
-      cwd: repoRoot,
-      env: {
-        ...process.env,
-        NO_COLOR: '1',
+  test("run accepts explicit scalar backend without fallback", async ({}, testInfo) => {
+    const fixturePath = path.join(
+      repoRoot,
+      "tests",
+      "fixtures",
+      "models",
+      "qwen-0.5b",
+      "model.us4manifest",
+    );
+    const { stdout, stderr } = await execFileAsync(
+      nativeCliPath!,
+      [
+        "run",
+        "--model-path",
+        fixturePath,
+        "--backend",
+        "scalar",
+        "--prompt",
+        "hi",
+        "--max-tokens",
+        "4",
+        "--json",
+      ],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          NO_COLOR: "1",
+        },
       },
+    );
+
+    await testInfo.attach("stdout-native-scalar", {
+      body: stdout.trim() || "(empty)",
+      contentType: "text/plain",
+    });
+    await testInfo.attach("stderr-native-scalar", {
+      body: stderr.trim() || "(empty)",
+      contentType: "text/plain",
     });
 
-    await testInfo.attach('stdout-native-scalar', {
-      body: stdout.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-    await testInfo.attach('stderr-native-scalar', {
-      body: stderr.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-
-    expect(stderr.trim()).toBe('');
+    expect(stderr.trim()).toBe("");
     expect(JSON.parse(stdout)).toMatchObject({
-      model: 'qwen-0.5b-fixture',
-      backend: 'scalar',
-      backend_reason: 'requested',
+      model: "qwen-0.5b-fixture",
+      backend: "scalar",
+      backend_reason: "requested",
       fallback: false,
       shared_allocations: 0,
       metal_dispatches: 0,
@@ -299,28 +376,48 @@ test.describe('Native CLI sprint 02 contract', () => {
     });
   });
 
-  test('run can resolve model from manifest without explicit --model', async ({}, testInfo) => {
-    const fixturePath = path.join(repoRoot, 'tests', 'fixtures', 'models', 'qwen-0.5b', 'model.us4manifest');
-    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['run', '--model-path', fixturePath, '--prompt', 'hi', '--max-tokens', '4', '--json'], {
-      cwd: repoRoot,
-      env: {
-        ...process.env,
-        NO_COLOR: '1',
+  test("run can resolve model from manifest without explicit --model", async ({}, testInfo) => {
+    const fixturePath = path.join(
+      repoRoot,
+      "tests",
+      "fixtures",
+      "models",
+      "qwen-0.5b",
+      "model.us4manifest",
+    );
+    const { stdout, stderr } = await execFileAsync(
+      nativeCliPath!,
+      [
+        "run",
+        "--model-path",
+        fixturePath,
+        "--prompt",
+        "hi",
+        "--max-tokens",
+        "4",
+        "--json",
+      ],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          NO_COLOR: "1",
+        },
       },
+    );
+
+    await testInfo.attach("stdout-native-auto", {
+      body: stdout.trim() || "(empty)",
+      contentType: "text/plain",
+    });
+    await testInfo.attach("stderr-native-auto", {
+      body: stderr.trim() || "(empty)",
+      contentType: "text/plain",
     });
 
-    await testInfo.attach('stdout-native-auto', {
-      body: stdout.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-    await testInfo.attach('stderr-native-auto', {
-      body: stderr.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-
-    expect(stderr.trim()).toBe('');
+    expect(stderr.trim()).toBe("");
     expect(JSON.parse(stdout)).toMatchObject({
-      model: 'qwen-0.5b-fixture',
+      model: "qwen-0.5b-fixture",
       backend_reason: expect.stringMatching(/^auto-/),
       fallback: false,
       shared_allocations: 0,
@@ -329,85 +426,133 @@ test.describe('Native CLI sprint 02 contract', () => {
     });
   });
 
-  test('run rejects invalid backend values', async ({}, testInfo) => {
-    const fixturePath = path.join(repoRoot, 'tests', 'fixtures', 'models', 'qwen-0.5b', 'model.us4manifest');
+  test("run rejects invalid backend values", async ({}, testInfo) => {
+    const fixturePath = path.join(
+      repoRoot,
+      "tests",
+      "fixtures",
+      "models",
+      "qwen-0.5b",
+      "model.us4manifest",
+    );
     let failure: { stdout: string; stderr: string } | undefined;
 
     try {
-      await execFileAsync(nativeCliPath!, ['run', '--model-path', fixturePath, '--backend', 'nope', '--prompt', 'hi', '--json'], {
-        cwd: repoRoot,
-        env: {
-          ...process.env,
-          NO_COLOR: '1',
+      await execFileAsync(
+        nativeCliPath!,
+        [
+          "run",
+          "--model-path",
+          fixturePath,
+          "--backend",
+          "nope",
+          "--prompt",
+          "hi",
+          "--json",
+        ],
+        {
+          cwd: repoRoot,
+          env: {
+            ...process.env,
+            NO_COLOR: "1",
+          },
         },
-      });
+      );
     } catch (error) {
       failure = {
-        stdout: String((error as { stdout?: string }).stdout ?? '').trim(),
-        stderr: String((error as { stderr?: string }).stderr ?? '').trim(),
+        stdout: String((error as { stdout?: string }).stdout ?? "").trim(),
+        stderr: String((error as { stderr?: string }).stderr ?? "").trim(),
       };
     }
 
-    await testInfo.attach('stderr-native-invalid-backend', {
-      body: failure?.stderr || '(empty)',
-      contentType: 'text/plain',
+    await testInfo.attach("stderr-native-invalid-backend", {
+      body: failure?.stderr || "(empty)",
+      contentType: "text/plain",
     });
 
     expect(failure).toBeTruthy();
-    expect(failure?.stderr).toContain('Invalid --backend value');
+    expect(failure?.stderr).toContain("Invalid --backend value");
   });
 
-  test('llama honors backend fallback semantics', async ({}, testInfo) => {
-    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['run', '--model', 'llama-3.1-8b', '--backend', 'metal', '--prompt', 'hello', '--max-tokens', '4', '--json'], {
-      cwd: repoRoot,
-      env: {
-        ...process.env,
-        NO_COLOR: '1',
+  test("llama honors backend fallback semantics", async ({}, testInfo) => {
+    const { stdout, stderr } = await execFileAsync(
+      nativeCliPath!,
+      [
+        "run",
+        "--model",
+        "llama-3.1-8b",
+        "--backend",
+        "metal",
+        "--prompt",
+        "hello",
+        "--max-tokens",
+        "4",
+        "--json",
+      ],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          NO_COLOR: "1",
+        },
       },
+    );
+
+    await testInfo.attach("stdout-native-llama", {
+      body: stdout.trim() || "(empty)",
+      contentType: "text/plain",
+    });
+    await testInfo.attach("stderr-native-llama", {
+      body: stderr.trim() || "(empty)",
+      contentType: "text/plain",
     });
 
-    await testInfo.attach('stdout-native-llama', {
-      body: stdout.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-    await testInfo.attach('stderr-native-llama', {
-      body: stderr.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-
-    expect(stderr.trim()).toBe('');
+    expect(stderr.trim()).toBe("");
     expect(JSON.parse(stdout)).toMatchObject({
-      family: 'llama',
-      backend: 'scalar',
-      backend_reason: 'requested-backend-unavailable',
+      family: "llama",
+      backend: "scalar",
+      backend_reason: "requested-backend-unavailable",
       fallback: true,
       shared_allocations: 0,
       metal_dispatches: 0,
     });
   });
 
-  test('deepseek moe path emits moe family output', async ({}, testInfo) => {
-    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['run', '--model', 'deepseek-v2-lite', '--prompt', 'hi', '--max-tokens', '4', '--json'], {
-      cwd: repoRoot,
-      env: {
-        ...process.env,
-        NO_COLOR: '1',
+  test("deepseek moe path emits moe family output", async ({}, testInfo) => {
+    const { stdout, stderr } = await execFileAsync(
+      nativeCliPath!,
+      [
+        "run",
+        "--model",
+        "deepseek-v2-lite",
+        "--prompt",
+        "hi",
+        "--max-tokens",
+        "4",
+        "--json",
+      ],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          NO_COLOR: "1",
+        },
       },
+    );
+
+    await testInfo.attach("stdout-native-deepseek", {
+      body: stdout.trim() || "(empty)",
+      contentType: "text/plain",
+    });
+    await testInfo.attach("stderr-native-deepseek", {
+      body: stderr.trim() || "(empty)",
+      contentType: "text/plain",
     });
 
-    await testInfo.attach('stdout-native-deepseek', {
-      body: stdout.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-    await testInfo.attach('stderr-native-deepseek', {
-      body: stderr.trim() || '(empty)',
-      contentType: 'text/plain',
-    });
-
-    expect(stderr.trim()).toBe('');
+    expect(stderr.trim()).toBe("");
     expect(JSON.parse(stdout)).toMatchObject({
-      family: 'deepseek',
-      backend: 'scalar',
+      family: "deepseek",
+      backend: "scalar",
       shared_allocations: 0,
       metal_dispatches: 0,
       mlx_operation_count: 0,

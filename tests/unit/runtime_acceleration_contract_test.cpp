@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
 
-#include "adapters/llama/llama_adapter.h"
 #include "adapters/gemma/gemma_adapter.h"
+#include "adapters/llama/llama_adapter.h"
 #include "adapters/qwen/qwen_adapter.h"
 #include "core/runtime_context.h"
 #include "memory/unified_allocator.h"
 #include "metal/autorelease_scope.h"
 #include "metal/command_queue.h"
-#include "metal/device_info.h"
 #include "metal/dense_dispatch.h"
+#include "metal/device_info.h"
 #include "metal/kernel_library.h"
 #include "mlx/dense_plan.h"
 #include "mlx/mlx_bridge.h"
@@ -28,7 +28,7 @@ us4::HardwareProbeResult MakeAppleProbe() {
   return probe;
 }
 
-}  // namespace
+} // namespace
 
 TEST(RuntimeAccelerationContractTest, UnifiedAllocatorTracksSharedAllocations) {
   us4::UnifiedAllocator allocator;
@@ -40,40 +40,56 @@ TEST(RuntimeAccelerationContractTest, UnifiedAllocatorTracksSharedAllocations) {
   EXPECT_EQ(allocator.ResidentBytes(), 320U);
 }
 
-TEST(RuntimeAccelerationContractTest, RuntimeContextExposesMetalQueueAndMlxBridge) {
+TEST(RuntimeAccelerationContractTest,
+     RuntimeContextExposesMetalQueueAndMlxBridge) {
   us4::RuntimeContext context(MakeAppleProbe());
 
   EXPECT_TRUE(context.metalQueue().Available());
   EXPECT_EQ(context.metalQueue().Reason(), "metal-queue-ready");
+  EXPECT_EQ(context.metalQueue().Profile().stage,
+            us4::MetalInitializationStage::kQueueReady);
+  EXPECT_TRUE(context.metalQueue().Profile().queueCreated);
+  EXPECT_TRUE(context.metalQueue().Profile().requiresAutoreleaseBoundary);
   EXPECT_EQ(context.metalQueue().Device().queueLabel, "us4.metal.default");
   EXPECT_TRUE(context.metalQueue().Device().supportsUnifiedMemory);
   EXPECT_TRUE(context.mlxBridge().Available());
   EXPECT_EQ(context.mlxBridge().Reason(), "mlx-bridge-ready");
 }
 
-TEST(RuntimeAccelerationContractTest, MetalDeviceProbeAndAutoreleaseScopeStayCallable) {
+TEST(RuntimeAccelerationContractTest,
+     MetalDeviceProbeAndAutoreleaseScopeStayCallable) {
   const us4::MetalDeviceInfo device = us4::ProbeMetalDevice(MakeAppleProbe());
-  const us4::ScopedAutoreleasePool pool;
+  const us4::ScopedAutoreleasePool pool(true);
 
   EXPECT_TRUE(device.available);
   EXPECT_EQ(device.maxThreadsPerThreadgroup, 1024U);
-  EXPECT_FALSE(pool.Active());
+  EXPECT_TRUE(pool.Requested());
+  if (pool.Kind() == us4::AutoreleaseBoundaryKind::kObjectiveC) {
+    EXPECT_TRUE(pool.Active());
+  } else {
+    EXPECT_FALSE(pool.Active());
+  }
 }
 
 TEST(RuntimeAccelerationContractTest, MetalQueueRecordsSharedDispatches) {
   us4::RuntimeContext context(MakeAppleProbe());
   const auto shared = context.allocator().Allocate(512, true);
 
-  EXPECT_TRUE(context.metalQueue().Dispatch(us4::MetalKernelKind::kMatmul, 4, 32, shared));
+  EXPECT_TRUE(context.metalQueue().Dispatch(us4::MetalKernelKind::kMatmul, 4,
+                                            32, shared));
   ASSERT_EQ(context.metalQueue().DispatchCount(), 1U);
-  EXPECT_EQ(context.metalQueue().Dispatches().front().entryPoint, "us4_matmul_fp16");
-  EXPECT_EQ(context.metalQueue().Dispatches().front().relativePath, "runtime/metal/kernels/matmul.metal");
+  EXPECT_EQ(context.metalQueue().Dispatches().front().entryPoint,
+            "us4_matmul_fp16");
+  EXPECT_EQ(context.metalQueue().Dispatches().front().relativePath,
+            "runtime/metal/kernels/matmul.metal");
   EXPECT_TRUE(context.metalQueue().Dispatches().front().usesSharedAllocation);
+  EXPECT_TRUE(
+      context.metalQueue().Dispatches().front().autoreleaseBoundaryRequested);
   EXPECT_EQ(context.metalQueue().Reason(), "metal-dispatch-recorded");
 }
 
 TEST(RuntimeAccelerationContractTest, MetalKernelCatalogExposesKernelMetadata) {
-  const auto& catalog = us4::GetMetalKernelCatalog();
+  const auto &catalog = us4::GetMetalKernelCatalog();
 
   ASSERT_EQ(catalog.size(), 3U);
   EXPECT_NE(us4::FindMetalKernel(us4::MetalKernelKind::kMatmul), nullptr);
@@ -84,8 +100,10 @@ TEST(RuntimeAccelerationContractTest, MetalKernelCatalogExposesKernelMetadata) {
   EXPECT_FALSE(catalog[0].source.empty());
 }
 
-TEST(RuntimeAccelerationContractTest, DenseMetalDispatchPlanBuildsThreeStageSequence) {
-  const us4::DenseMetalDispatchPlan plan = us4::BuildDenseMetalDispatchPlan(8, 8, 16);
+TEST(RuntimeAccelerationContractTest,
+     DenseMetalDispatchPlanBuildsThreeStageSequence) {
+  const us4::DenseMetalDispatchPlan plan =
+      us4::BuildDenseMetalDispatchPlan(8, 8, 16);
 
   ASSERT_EQ(plan.steps.size(), 3U);
   EXPECT_EQ(plan.steps[0].kernel, us4::MetalKernelKind::kMatmul);
@@ -102,9 +120,12 @@ TEST(RuntimeAccelerationContractTest, MlxBridgeBuildsAndEvaluatesDensePlan) {
   EXPECT_EQ(context.mlxBridge().LastPlan()->family, "llama");
   EXPECT_TRUE(context.mlxBridge().LastPlan()->usesUnifiedAllocation);
   ASSERT_EQ(context.mlxBridge().LastPlan()->operations.size(), 3U);
-  EXPECT_EQ(context.mlxBridge().LastPlan()->operations[0].kind, us4::MlxOperationKind::kEmbeddingLookup);
-  EXPECT_EQ(context.mlxBridge().LastPlan()->operations[1].kind, us4::MlxOperationKind::kAttention);
-  EXPECT_EQ(context.mlxBridge().LastPlan()->operations[2].kind, us4::MlxOperationKind::kProjection);
+  EXPECT_EQ(context.mlxBridge().LastPlan()->operations[0].kind,
+            us4::MlxOperationKind::kEmbeddingLookup);
+  EXPECT_EQ(context.mlxBridge().LastPlan()->operations[1].kind,
+            us4::MlxOperationKind::kAttention);
+  EXPECT_EQ(context.mlxBridge().LastPlan()->operations[2].kind,
+            us4::MlxOperationKind::kProjection);
   EXPECT_TRUE(context.mlxBridge().EvaluateLastPlan());
   EXPECT_TRUE(context.mlxBridge().LastEvaluationSucceeded());
   EXPECT_EQ(context.mlxBridge().Reason(), "mlx-plan-evaluated");
@@ -119,13 +140,17 @@ TEST(RuntimeAccelerationContractTest, MlxDensePlanBuildsThreeOperations) {
   EXPECT_EQ(plan.operations[2].kind, us4::MlxOperationKind::kProjection);
 }
 
-TEST(RuntimeAccelerationContractTest, LlamaGenerationTouchesMetalScaffoldWhenSelected) {
+TEST(RuntimeAccelerationContractTest,
+     LlamaGenerationTouchesMetalScaffoldWhenSelected) {
   us4::RuntimeContext context(MakeAppleProbe());
   const us4::LlamaAdapter adapter;
 
-  const us4::GenerationResult result = adapter.Generate(
-      {.prompt = "hello", .maxTokens = 4, .asset = nullptr, .requestedBackend = us4::BackendType::kMetal},
-      context);
+  const us4::GenerationResult result =
+      adapter.Generate({.prompt = "hello",
+                        .maxTokens = 4,
+                        .asset = nullptr,
+                        .requestedBackend = us4::BackendType::kMetal},
+                       context);
 
   EXPECT_EQ(result.backend, "metal");
   EXPECT_EQ(result.sharedAllocations, 1U);
