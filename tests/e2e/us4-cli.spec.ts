@@ -1,5 +1,6 @@
 import { test, expect, type TestInfo } from '@playwright/test';
 import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
@@ -119,6 +120,240 @@ test.describe('Starter CLI smoke', () => {
         ],
         source: 'memory-tier',
       },
+    });
+  });
+});
+
+test.describe('Native CLI sprint 02 contract', () => {
+  const nativeCliCandidates = [
+    path.join(repoRoot, 'build', 'apps', 'us4-cli.exe'),
+    path.join(repoRoot, 'build', 'apps', 'us4-cli'),
+    path.join(repoRoot, 'build', 'us4-cli'),
+    path.join(repoRoot, 'build', 'us4-cli.exe'),
+    path.join(repoRoot, 'build', 'Release', 'us4-cli.exe'),
+  ];
+  const nativeCliPath = nativeCliCandidates.find((candidate) => existsSync(candidate));
+
+  test.skip(!nativeCliPath, 'native us4-cli is not available in this host');
+
+  test('run command emits generated scalar tokens', async ({}, testInfo) => {
+    const fixturePath = path.join(repoRoot, 'tests', 'fixtures', 'models', 'qwen-0.5b', 'model.us4manifest');
+    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['run', '--model', 'qwen-0.5b', '--model-path', fixturePath, '--backend', 'metal', '--prompt', 'hi', '--max-tokens', '5', '--json'], {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        NO_COLOR: '1',
+      },
+    });
+
+    await testInfo.attach('stdout-native-run', {
+      body: stdout.trim() || '(empty)',
+      contentType: 'text/plain',
+    });
+    await testInfo.attach('stderr-native-run', {
+      body: stderr.trim() || '(empty)',
+      contentType: 'text/plain',
+    });
+
+    expect(stderr.trim()).toBe('');
+    expect(JSON.parse(stdout)).toMatchObject({
+      model: 'qwen-0.5b-fixture',
+      asset_format: 'fixture-manifest',
+      backend: 'scalar',
+      backend_reason: 'requested-backend-unavailable',
+      fallback: true,
+      asset_path: expect.any(String),
+      prompt_tokens: ['hi'],
+      generated_tokens: expect.any(Array),
+    });
+    expect(JSON.parse(stdout).generated_tokens.length).toBeGreaterThanOrEqual(5);
+  });
+
+  test('list-models exposes available native adapters', async ({}, testInfo) => {
+    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['list-models', '--json'], {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        NO_COLOR: '1',
+      },
+    });
+
+    await testInfo.attach('stdout-native-list-models', {
+      body: stdout.trim() || '(empty)',
+      contentType: 'text/plain',
+    });
+    await testInfo.attach('stderr-native-list-models', {
+      body: stderr.trim() || '(empty)',
+      contentType: 'text/plain',
+    });
+
+    expect(stderr.trim()).toBe('');
+    const payload = JSON.parse(stdout) as { models: Array<Record<string, unknown>> };
+    expect(Array.isArray(payload.models)).toBeTruthy();
+
+    const qwen = payload.models.find((model) => model.family === 'qwen');
+    const llama = payload.models.find((model) => model.family === 'llama');
+    const deepseek = payload.models.find((model) => model.family === 'deepseek');
+
+    expect(qwen).toMatchObject({
+      family: 'qwen',
+      model: 'qwen-0.5b',
+      architecture: 'dense',
+      minimum_mode: 'NANO',
+      supports_moe: false,
+      supports_mlx: false,
+      supports_prompt_run: true,
+    });
+    expect(llama).toMatchObject({
+      family: 'llama',
+      model: 'llama-3.1-8b',
+      architecture: 'dense',
+      supports_mlx: true,
+      supports_metal: true,
+    });
+    expect(deepseek).toMatchObject({
+      family: 'deepseek',
+      model: 'deepseek-v2-lite',
+      architecture: 'moe',
+      supports_moe: true,
+      supports_mlx: true,
+      supports_metal: true,
+    });
+  });
+
+  test('run accepts explicit scalar backend without fallback', async ({}, testInfo) => {
+    const fixturePath = path.join(repoRoot, 'tests', 'fixtures', 'models', 'qwen-0.5b', 'model.us4manifest');
+    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['run', '--model-path', fixturePath, '--backend', 'scalar', '--prompt', 'hi', '--max-tokens', '4', '--json'], {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        NO_COLOR: '1',
+      },
+    });
+
+    await testInfo.attach('stdout-native-scalar', {
+      body: stdout.trim() || '(empty)',
+      contentType: 'text/plain',
+    });
+    await testInfo.attach('stderr-native-scalar', {
+      body: stderr.trim() || '(empty)',
+      contentType: 'text/plain',
+    });
+
+    expect(stderr.trim()).toBe('');
+    expect(JSON.parse(stdout)).toMatchObject({
+      model: 'qwen-0.5b-fixture',
+      backend: 'scalar',
+      backend_reason: 'requested',
+      fallback: false,
+    });
+  });
+
+  test('run can resolve model from manifest without explicit --model', async ({}, testInfo) => {
+    const fixturePath = path.join(repoRoot, 'tests', 'fixtures', 'models', 'qwen-0.5b', 'model.us4manifest');
+    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['run', '--model-path', fixturePath, '--prompt', 'hi', '--max-tokens', '4', '--json'], {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        NO_COLOR: '1',
+      },
+    });
+
+    await testInfo.attach('stdout-native-auto', {
+      body: stdout.trim() || '(empty)',
+      contentType: 'text/plain',
+    });
+    await testInfo.attach('stderr-native-auto', {
+      body: stderr.trim() || '(empty)',
+      contentType: 'text/plain',
+    });
+
+    expect(stderr.trim()).toBe('');
+    expect(JSON.parse(stdout)).toMatchObject({
+      model: 'qwen-0.5b-fixture',
+      backend_reason: 'auto',
+      fallback: false,
+    });
+  });
+
+  test('run rejects invalid backend values', async ({}, testInfo) => {
+    const fixturePath = path.join(repoRoot, 'tests', 'fixtures', 'models', 'qwen-0.5b', 'model.us4manifest');
+    let failure: { stdout: string; stderr: string } | undefined;
+
+    try {
+      await execFileAsync(nativeCliPath!, ['run', '--model-path', fixturePath, '--backend', 'nope', '--prompt', 'hi', '--json'], {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          NO_COLOR: '1',
+        },
+      });
+    } catch (error) {
+      failure = {
+        stdout: String((error as { stdout?: string }).stdout ?? '').trim(),
+        stderr: String((error as { stderr?: string }).stderr ?? '').trim(),
+      };
+    }
+
+    await testInfo.attach('stderr-native-invalid-backend', {
+      body: failure?.stderr || '(empty)',
+      contentType: 'text/plain',
+    });
+
+    expect(failure).toBeTruthy();
+    expect(failure?.stderr).toContain('Invalid --backend value');
+  });
+
+  test('llama honors backend fallback semantics', async ({}, testInfo) => {
+    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['run', '--model', 'llama-3.1-8b', '--backend', 'metal', '--prompt', 'hello', '--max-tokens', '4', '--json'], {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        NO_COLOR: '1',
+      },
+    });
+
+    await testInfo.attach('stdout-native-llama', {
+      body: stdout.trim() || '(empty)',
+      contentType: 'text/plain',
+    });
+    await testInfo.attach('stderr-native-llama', {
+      body: stderr.trim() || '(empty)',
+      contentType: 'text/plain',
+    });
+
+    expect(stderr.trim()).toBe('');
+    expect(JSON.parse(stdout)).toMatchObject({
+      family: 'llama',
+      backend: 'scalar',
+      backend_reason: 'requested-backend-unavailable',
+      fallback: true,
+    });
+  });
+
+  test('deepseek moe path emits moe family output', async ({}, testInfo) => {
+    const { stdout, stderr } = await execFileAsync(nativeCliPath!, ['run', '--model', 'deepseek-v2-lite', '--prompt', 'hi', '--max-tokens', '4', '--json'], {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        NO_COLOR: '1',
+      },
+    });
+
+    await testInfo.attach('stdout-native-deepseek', {
+      body: stdout.trim() || '(empty)',
+      contentType: 'text/plain',
+    });
+    await testInfo.attach('stderr-native-deepseek', {
+      body: stderr.trim() || '(empty)',
+      contentType: 'text/plain',
+    });
+
+    expect(stderr.trim()).toBe('');
+    expect(JSON.parse(stdout)).toMatchObject({
+      family: 'deepseek',
+      backend: 'scalar',
+      generated_tokens: expect.any(Array),
     });
   });
 });

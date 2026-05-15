@@ -91,4 +91,28 @@ RuntimeMode SelectRuntimeModeFromMemoryGiB(unsigned long long memory_gib) {
   return RuntimeMode::kNano;
 }
 
+int RuntimeModeRank(const RuntimeMode mode) {
+  switch (mode) {
+    case RuntimeMode::kNano:
+      return 0;
+    case RuntimeMode::kMicroPlus:
+      return 1;
+    case RuntimeMode::kMicro:
+      return 2;
+    case RuntimeMode::kUltraLow:
+      return 3;
+    case RuntimeMode::kDegraded:
+      return 4;
+    case RuntimeMode::kBalancedPlus:
+      return 5;
+    case RuntimeMode::kFull:
+      return 6;
+  }
+  return 0;
+}
+
+RuntimeMode MaxRuntimeMode(const RuntimeMode lhs, const RuntimeMode rhs) {
+  return RuntimeModeRank(lhs) >= RuntimeModeRank(rhs) ? lhs : rhs;
+}
+
 }  // namespace us4

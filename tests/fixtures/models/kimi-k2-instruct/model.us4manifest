@@ -1,0 +1,6 @@
+family=kimi
+model_name=kimi-k2-instruct-fixture
+weight_dtype=bf16
+seed=62002
+default_prompt_token=hi
+vocabulary=kimi,moe,routing,experts,local,context,apple,runtime,token,selection,responds,now,.,smart,fast,hi

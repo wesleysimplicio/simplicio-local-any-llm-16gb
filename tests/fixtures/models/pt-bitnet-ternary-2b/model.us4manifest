@@ -1,0 +1,6 @@
+family=ternary
+model_name=pt-bitnet-ternary-2b-fixture
+weight_dtype=int4
+seed=30021
+default_prompt_token=hi
+vocabulary=ternary,lookup,table,micro,local,inference,apple,runtime,responds,with,small,footprint,.,cheap,fast,hi

@@ -1,0 +1,6 @@
+family=bitnet
+model_name=bitnet-b1.58-2b-fixture
+weight_dtype=int8
+seed=15802
+default_prompt_token=hi
+vocabulary=bitnet,micro,path,local,compact,tokens,apple,runtime,packed,weights,respond,hi,.,tiny,fast,stable

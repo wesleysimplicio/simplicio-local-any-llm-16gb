@@ -1,0 +1,6 @@
+family=gemma
+model_name=gemma-2b-it-fixture
+weight_dtype=fp16
+seed=22073
+default_prompt_token=hello
+vocabulary=gemma,answers,with,cpu,scalar,reference,path,for,local,testing,hello,apple,runtime,.,clean,output

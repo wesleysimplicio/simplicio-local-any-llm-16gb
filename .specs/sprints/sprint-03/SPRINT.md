@@ -11,6 +11,12 @@ owner: us4-core
 ## Objetivo
 Integrar MLX e Metal. Command queue + kernels matmul Metal, MLX bridge, KV em memoria unificada.
 
+## Estado atual no repo em 2026-05-14
+- `runtime/core/backend_selector.{h,cpp}` ja existe e o CLI expoe `backend`, `backend_reason` e `fallback`.
+- O contrato de selecao cobre `scalar`, `neon`, `mlx`, `metal` e `ane`, com fallback automatico por hardware, mode e capability.
+- A geracao atual continua no scaffold deterministico compartilhado; `runtime/mlx/` e `runtime/metal/` ainda nao entregam execucao real.
+- O plano abaixo continua sendo a meta de entrega completa do sprint.
+
 ## Tasks
 - [ ] T03.1 — Metal device init + `runtime/metal/CommandQueue` + autorelease wrapper
 - [ ] T03.2 — `runtime/metal/kernels/matmul.metal` (FP16/BF16) + dispatch wrapper

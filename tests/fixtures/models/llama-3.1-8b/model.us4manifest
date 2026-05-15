@@ -1,0 +1,6 @@
+family=llama
+model_name=llama-3.1-8b-fixture
+weight_dtype=fp16
+seed=31800
+default_prompt_token=hello
+vocabulary=llama,apple,runtime,dense,adapter,gqa,rope,metal,local,tokens,reply,hello,.,steady,wide,context

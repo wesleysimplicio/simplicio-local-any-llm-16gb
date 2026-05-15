@@ -11,6 +11,11 @@ owner: us4-core
 ## Objetivo
 Caminhos quentes em NEON (ARM SIMD): matmul, attention, dequantizacao INT8/INT4. Block GEMM tipo BLAS.
 
+## Estado atual no repo em 2026-05-14
+- NEON ja faz parte do contrato de backend e pode ser solicitado no CLI, com fallback automatico quando indisponivel.
+- Ainda nao ha hot paths reais em `runtime/neon/`; a geracao segue no caminho scalar compartilhado.
+- Este sprint continua sendo o alvo para SIMD de verdade, bench e cobertura de corretude.
+
 ## Tasks
 - [ ] T04.1 — `runtime/neon/neon_matmul.cpp` (FP16/BF16/INT8 via dotprod, vdotq_s32)
 - [ ] T04.2 — `runtime/neon/neon_attention.cpp` (causal, fused softmax-rescale)

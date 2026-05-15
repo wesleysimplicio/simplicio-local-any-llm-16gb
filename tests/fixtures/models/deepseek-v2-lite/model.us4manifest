@@ -1,0 +1,6 @@
+family=deepseek
+model_name=deepseek-v2-lite-fixture
+weight_dtype=bf16
+seed=52002
+default_prompt_token=hi
+vocabulary=deepseek,moe,experts,route,local,apple,runtime,pager,selects,tokens,with,balance,.,fast,wide,hi

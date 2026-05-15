@@ -11,6 +11,11 @@ owner: us4-core
 ## Objetivo
 Adapter Llama 3/4 com GQA, RoPE scaling (linear/dynamic/YaRN), ALiBi opcional. Full attention path em todos backends ja existentes.
 
+## Estado atual no repo em 2026-05-14
+- `LlamaAdapter` ja esta no registry nativo e aparece no CLI.
+- O adapter declara capacidade MLX e ja se ancora em headers como `rope` e `gqa`, mas a geracao ainda delega ao `DenseAdapterBase`.
+- Loader real, corretude contra referencia e execucao Llama nos backends continuam como meta do sprint abaixo.
+
 ## Tasks
 - [ ] T07.1 — `runtime/adapters/llama/LlamaConfig` (rope_theta, rope_scaling, gqa heads)
 - [ ] T07.2 — `runtime/adapters/llama/LlamaAdapter` (forward pass, KV via pager)

@@ -1,0 +1,6 @@
+family=qwen
+model_name=qwen-0.5b-fixture
+weight_dtype=fp16
+seed=41051
+default_prompt_token=hi
+vocabulary=hello,from,us4,apple,runtime,cpu,baseline,ready,local,model,qwen,says,hi,.,fast,stable

@@ -11,6 +11,11 @@ owner: us4-core
 ## Objetivo
 MoE: DeepSeek + Kimi adapters. Expert pager (carrega experts on-demand). Top-k routing. Offload de experts cold pra RAM.
 
+## Estado atual no repo em 2026-05-14
+- `runtime/moe/Router` e `runtime/moe/ExpertPager` ja existem com cobertura unitaria de contrato.
+- `DeepSeekMoEAdapter` e `KimiMoEAdapter` ja estao no registry e exercitam uma fundacao leve de routing/pager antes de cair no scaffold compartilhado.
+- Lazy load por expert, experts roteados de verdade, telemetria e metas de corretude ainda pertencem ao escopo futuro deste sprint.
+
 ## Tasks
 - [ ] T08.1 — `runtime/moe/Router` (top-k softmax, expert selection, load balance)
 - [ ] T08.2 — `runtime/moe/ExpertPager` (page experts em unified memory, evict LRU)

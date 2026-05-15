@@ -11,6 +11,11 @@ owner: us4-core
 ## Objetivo
 BitNet 1.58-bit + Ternary (PT-BitNet) com kernels Metal + NEON. MICRO mode rodando em RAM minima.
 
+## Estado atual no repo em 2026-05-14
+- `BitNetAdapter` e `TernaryAdapter` ja estao registrados no runtime nativo e aparecem em `us4-cli list-models`.
+- Hoje eles ainda se comportam como adapters de scaffold sobre o caminho deterministico compartilhado; kernels packed, loaders reais e comportamento MICRO ainda nao pousaram.
+- O escopo abaixo continua sendo a entrega esperada para execucao low-memory de verdade.
+
 ## Tasks
 - [ ] T05.1 — `runtime/metal/kernels/bitnet_matmul.metal` (1.58-bit packed)
 - [ ] T05.2 — `runtime/neon/bitnet_matmul.cpp` (packed lookup + popcount)

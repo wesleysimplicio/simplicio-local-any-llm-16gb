@@ -11,6 +11,11 @@ owner: us4-core
 ## Objetivo
 Pager hot-cold de KV cache (unified memory hot, RAM warm, SSD cold). Prefix cache. KV summarization. Eviction policies.
 
+## Estado atual no repo em 2026-05-14
+- `runtime/kv/KvPager` e `runtime/kv/PrefixCache` ja existem com cobertura unitaria de contrato.
+- A fundacao atual e leve: nao ha `SsdColdStore`, summarizer nem orquestracao completa por mode/tier.
+- A geracao dos adapters ainda nao depende de um KV pager completo; este sprint segue como a entrega alvo para esse subsistema.
+
 ## Tasks
 - [ ] T06.1 — `runtime/kv/KvPager` (page table, LRU, hot/cold tiers)
 - [ ] T06.2 — `runtime/kv/PrefixCache` (shared prefix by hash, ref-count)

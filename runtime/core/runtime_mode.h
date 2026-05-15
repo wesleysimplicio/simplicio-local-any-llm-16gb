@@ -19,5 +19,7 @@ enum class RuntimeMode {
 std::string_view ToString(RuntimeMode mode);
 std::optional<RuntimeMode> ParseRuntimeMode(std::string_view value);
 RuntimeMode SelectRuntimeModeFromMemoryGiB(unsigned long long memory_gib);
+int RuntimeModeRank(RuntimeMode mode);
+RuntimeMode MaxRuntimeMode(RuntimeMode lhs, RuntimeMode rhs);
 
 }  // namespace us4

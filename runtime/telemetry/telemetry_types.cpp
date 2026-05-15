@@ -1,4 +1,4 @@
-#include "runtime/telemetry/telemetry_types.h"
+#include "telemetry/telemetry_types.h"
 
 namespace us4::telemetry {
 
