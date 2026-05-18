@@ -209,6 +209,8 @@ void PrintRunText(const us4::GenerationResult &result) {
       << "draft_model_path: "
       << (result.draftModelPath.empty() ? "<none>" : result.draftModelPath)
       << "\n"
+      << "speculative_strategy: " << result.speculativeStrategy << "\n"
+      << "speculative_session_scope: " << result.speculativeSessionScope << "\n"
       << "mode: " << us4::ToString(result.mode) << "\n"
       << "backend: " << result.backend << "\n"
       << "backend_reason: " << result.backendReason << "\n"
@@ -268,6 +270,14 @@ void PrintRunText(const us4::GenerationResult &result) {
       << "moe_lazy_load: " << (result.moeLazyLoad ? "true" : "false") << "\n"
       << "shared_tokenizer: " << (result.sharedTokenizer ? "true" : "false")
       << "\n"
+      << "speculative_accepted_tokens: " << result.speculativeAcceptedTokens
+      << "\n"
+      << "speculative_rejected_tokens: " << result.speculativeRejectedTokens
+      << "\n"
+      << "speculative_acceptance_rate: " << result.speculativeAcceptanceRate
+      << "\n"
+      << "speculative_fallback_token: " << result.speculativeFallbackToken
+      << "\n"
       << "moe_hit_rate: " << ComputeMoeHitRate(result) << "\n"
       << "moe_eviction_rate: " << ComputeMoeEvictionRate(result) << "\n"
       << "weight_dtype: " << result.weightDType << "\n"
@@ -308,6 +318,10 @@ void PrintRunJson(const us4::GenerationResult &result) {
       << "\"draft_model_format\":\"" << EscapeJson(result.draftModelFormat)
       << "\","
       << "\"draft_model_path\":\"" << EscapeJson(result.draftModelPath) << "\","
+      << "\"speculative_strategy\":\"" << EscapeJson(result.speculativeStrategy)
+      << "\","
+      << "\"speculative_session_scope\":\""
+      << EscapeJson(result.speculativeSessionScope) << "\","
       << "\"mode\":\"" << EscapeJson(us4::ToString(result.mode)) << "\","
       << "\"backend\":\"" << EscapeJson(result.backend) << "\","
       << "\"backend_reason\":\"" << EscapeJson(result.backendReason) << "\","
@@ -372,6 +386,14 @@ void PrintRunJson(const us4::GenerationResult &result) {
       << "\"moe_lazy_load\":" << (result.moeLazyLoad ? "true" : "false") << ","
       << "\"shared_tokenizer\":" << (result.sharedTokenizer ? "true" : "false")
       << ","
+      << "\"speculative_accepted_tokens\":" << result.speculativeAcceptedTokens
+      << ","
+      << "\"speculative_rejected_tokens\":" << result.speculativeRejectedTokens
+      << ","
+      << "\"speculative_acceptance_rate\":" << result.speculativeAcceptanceRate
+      << ","
+      << "\"speculative_fallback_token\":\""
+      << EscapeJson(result.speculativeFallbackToken) << "\","
       << "\"moe_hit_rate\":" << ComputeMoeHitRate(result) << ","
       << "\"moe_eviction_rate\":" << ComputeMoeEvictionRate(result) << ","
       << "\"weight_dtype\":\"" << EscapeJson(result.weightDType) << "\","

@@ -2,28 +2,30 @@
 
 ## Current Status
 
-Sprint 10 em execucao. T10.1 entrou com o contrato de `ContinuousBatcher`,
-fairness round-robin explicita e cobertura nativa para preservar o caminho
-single-session enquanto abrimos a frente multi-sessao.
+Sprint 10 em execucao. O fechamento de speculative decoding agora entrou na
+telemetria nativa/CLI, com acceptance rate, accepted/rejected tokens e fallback
+deterministico visiveis para os caminhos com draft model.
 
 ## Latest Checkpoint
 
 Status: done
 
 Task:
-T10.5 - Add draft model loader surface
+T10.6 - Expand speculative decoding telemetry
 
 Result:
-O loader agora preserva `draft_model_path`, `draft_model_format` e
-`shared_tokenizer` no `ModelAsset`, projeta isso no resultado nativo/CLI, e
-mantem a visibilidade do draft companion model nos caminhos fixture e GGUF.
+A telemetria speculative agora projeta `speculative_strategy`,
+`speculative_session_scope`, acceptance rate, accepted/rejected tokens e
+fallback token no resultado nativo e no CLI para os fluxos com draft model.
 
 Validation:
 `npm run lint`; `npm test -- --coverage`; `npm run pack:dry`;
-`cmake --build build --config Release`; `ctest --test-dir build --output-on-failure -C Release`
+`cmake --build build --config Release`;
+`ctest --test-dir build --output-on-failure -C Release`;
+`npx playwright test --reporter=list,html tests/e2e/us4-cli.spec.ts`
 
 Next:
-T10.6 - fechar telemetria de acceptance para speculative decoding.
+Sprint 11 - abrir `T11.1` para o backend ANE M5+.
 
 ## Checkpoints
 

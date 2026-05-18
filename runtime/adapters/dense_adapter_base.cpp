@@ -20,6 +20,7 @@
 #include "neon/kernel_profile.h"
 #include "neon/neon_attention.h"
 #include "neon/neon_matmul.h"
+#include "speculative/peagle_decoder.h"
 
 namespace us4 {
 
@@ -657,6 +658,14 @@ GenerationResult DenseAdapterBase::FinalizeGenerationResult(
           : "none";
   result.draftModelPath =
       request.asset != nullptr ? request.asset->draftModelPath.string() : "";
+  result.speculativeStrategy =
+      request.asset != nullptr && !request.asset->draftModelPath.empty()
+          ? "peagle"
+          : "disabled";
+  result.speculativeSessionScope =
+      request.asset != nullptr && !request.asset->draftModelPath.empty()
+          ? "per-request"
+          : "none";
   result.backend = std::string(ToString(backendSelection.selected));
   result.backendReason = std::string(backendSelection.reason);
   result.promptTokens = std::move(promptTokens);
@@ -689,6 +698,39 @@ GenerationResult DenseAdapterBase::FinalizeGenerationResult(
   result.weightDType = request.asset != nullptr
                            ? std::string(ToString(request.asset->weightDType))
                            : "fp32";
+  if (request.asset != nullptr && !request.asset->draftModelPath.empty()) {
+    const std::vector<std::string> vocabulary =
+        !request.asset->vocabulary.empty() ? request.asset->vocabulary
+                                           : Vocabulary();
+    std::vector<int> authoritativeTokens;
+    authoritativeTokens.reserve(result.generatedTokens.size());
+    for (const std::string &token : result.generatedTokens) {
+      authoritativeTokens.push_back(
+          static_cast<int>(TokenIdFor(token, vocabulary)));
+    }
+
+    std::vector<int> draftProposal = authoritativeTokens;
+    if (draftProposal.size() > 1U && !vocabulary.empty()) {
+      draftProposal.back() = static_cast<int>(
+          (static_cast<std::size_t>(draftProposal.back()) + 1U) %
+          vocabulary.size());
+    }
+
+    const PEagleDecoder decoder(std::max<std::size_t>(
+        1U, std::min<std::size_t>(4U, draftProposal.size())));
+    const PEagleDraft draft = decoder.Draft(draftProposal);
+    const PEagleVerificationResult speculative =
+        decoder.Verify(authoritativeTokens, draft);
+    result.speculativeAcceptedTokens = speculative.acceptedCount;
+    result.speculativeRejectedTokens = speculative.rejectedCount;
+    result.speculativeAcceptanceRate = speculative.acceptanceRate;
+    if (speculative.fallbackToken.has_value() &&
+        static_cast<std::size_t>(*speculative.fallbackToken) <
+            vocabulary.size()) {
+      result.speculativeFallbackToken =
+          vocabulary[static_cast<std::size_t>(*speculative.fallbackToken)];
+    }
+  }
   result.dequantPath = ResolveDequantPathForAsset(request.asset);
   result.neonKernelFlavor = "none";
   if (backendSelection.selected == BackendType::kNeon) {

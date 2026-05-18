@@ -34,6 +34,8 @@ struct GenerationResult {
   std::string assetPath;
   std::string draftModelFormat;
   std::string draftModelPath;
+  std::string speculativeStrategy;
+  std::string speculativeSessionScope;
   std::string backend;
   std::string backendReason;
   std::vector<std::string> promptTokens;
@@ -84,6 +86,10 @@ struct GenerationResult {
   std::size_t moeActiveExperts = 0;
   bool moeLazyLoad = false;
   bool sharedTokenizer = false;
+  std::size_t speculativeAcceptedTokens = 0;
+  std::size_t speculativeRejectedTokens = 0;
+  double speculativeAcceptanceRate = 0.0;
+  std::string speculativeFallbackToken;
   std::string weightDType;
   std::string neonKernelFlavor;
   std::string dequantPath;

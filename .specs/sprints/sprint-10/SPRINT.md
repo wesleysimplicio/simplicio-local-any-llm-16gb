@@ -17,7 +17,7 @@ Continuous batching multi-sessao. Speculative decoding P-EAGLE / EAGLE-3. Draft 
 - [x] T10.3 — `runtime/speculative/PEagleDecoder` (draft + verify)
 - [x] T10.4 — `runtime/speculative/Eagle3Decoder` (n-gram + tree verify)
 - [x] T10.5 — Draft model loader (small companion model, shared tokenizer)
-- [ ] T10.6 — Acceptance rate telemetry
+- [x] T10.6 — Acceptance rate telemetry
 
 ## Test plan
 - Unit: batcher fairness; speculative accept/reject correctness; session isolation.
