@@ -1,4 +1,5 @@
 add_library(us4_runtime_core
+  ane/ane_backend.cpp
   core/backend_selector.cpp
   core/runtime_mode.cpp
   core/hardware_probe.cpp

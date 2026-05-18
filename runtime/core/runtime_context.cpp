@@ -4,7 +4,7 @@ namespace us4 {
 
 RuntimeContext::RuntimeContext(HardwareProbeResult probe_result)
     : hardware_(std::move(probe_result)), mode_(hardware_.recommendedMode),
-      metalQueue_(hardware_), mlxBridge_(hardware_) {}
+      metalQueue_(hardware_), aneBackend_(hardware_), mlxBridge_(hardware_) {}
 
 const HardwareProbeResult &RuntimeContext::hardware() const {
   return hardware_;
@@ -23,6 +23,10 @@ MetalCommandQueue &RuntimeContext::metalQueue() { return metalQueue_; }
 const MetalCommandQueue &RuntimeContext::metalQueue() const {
   return metalQueue_;
 }
+
+AneBackend &RuntimeContext::aneBackend() { return aneBackend_; }
+
+const AneBackend &RuntimeContext::aneBackend() const { return aneBackend_; }
 
 MlxBridge &RuntimeContext::mlxBridge() { return mlxBridge_; }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ane/ane_backend.h"
 #include "cache/multimodal_cache.h"
 #include "cache/sparsity_aware_cache.h"
 #include "core/backend_selector.h"
@@ -29,6 +30,8 @@ public:
   const UnifiedAllocator &allocator() const;
   MetalCommandQueue &metalQueue();
   const MetalCommandQueue &metalQueue() const;
+  AneBackend &aneBackend();
+  const AneBackend &aneBackend() const;
   MlxBridge &mlxBridge();
   const MlxBridge &mlxBridge() const;
   KvPager &kvPager();
@@ -49,6 +52,7 @@ private:
   BackendType backend_ = BackendType::kScalarCpu;
   UnifiedAllocator allocator_;
   MetalCommandQueue metalQueue_;
+  AneBackend aneBackend_;
   MlxBridge mlxBridge_;
   KvPager kvPager_;
   PrefixCache prefixCache_;

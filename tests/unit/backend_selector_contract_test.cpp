@@ -27,6 +27,27 @@ TEST(BackendSelectorContractTest, ParsesRequestedBackendAliases) {
   EXPECT_FALSE(us4::ParseBackendType("cuda").has_value());
 }
 
+TEST(BackendSelectorContractTest, AutoSelectionPrefersAneForFullModeOnM5Hosts) {
+  us4::HardwareProbeResult probe = MakeProbe();
+  probe.chip = "Apple M5";
+  probe.hasAne = true;
+  probe.supportsCoreMl = true;
+  probe.hasMetal = true;
+  probe.hasMlx = true;
+  probe.hasNeon = true;
+  probe.neonVectorBits = 128;
+  probe.hasPerformanceCores = true;
+  probe.hasEfficiencyCores = true;
+
+  const us4::LlamaAdapter adapter;
+  const us4::BackendSelection selection =
+      us4::SelectBackend(probe, us4::RuntimeMode::kFull, adapter);
+
+  EXPECT_EQ(selection.selected, us4::BackendType::kAne);
+  EXPECT_FALSE(selection.fellBack);
+  EXPECT_EQ(selection.reason, "auto-ane");
+}
+
 TEST(BackendSelectorContractTest,
      AutoSelectionPrefersMetalBeforeOtherBackends) {
   us4::HardwareProbeResult probe = MakeProbe();
@@ -110,6 +131,27 @@ TEST(BackendSelectorContractTest, RequestedMlxFallsBackWhenModeDisallowsIt) {
       probe, us4::RuntimeMode::kMicro, adapter, us4::BackendType::kMlx);
 
   EXPECT_EQ(selection.selected, us4::BackendType::kNeon);
+  EXPECT_TRUE(selection.fellBack);
+  EXPECT_EQ(selection.reason, "requested-backend-unavailable");
+}
+
+TEST(BackendSelectorContractTest, RequestedAneFallsBackWhenModeDisallowsIt) {
+  us4::HardwareProbeResult probe = MakeProbe();
+  probe.chip = "Apple M5";
+  probe.hasAne = true;
+  probe.supportsCoreMl = true;
+  probe.hasMetal = true;
+  probe.hasMlx = true;
+  probe.hasNeon = true;
+  probe.neonVectorBits = 128;
+  probe.hasPerformanceCores = true;
+  probe.hasEfficiencyCores = true;
+
+  const us4::LlamaAdapter adapter;
+  const us4::BackendSelection selection = us4::SelectBackend(
+      probe, us4::RuntimeMode::kBalancedPlus, adapter, us4::BackendType::kAne);
+
+  EXPECT_EQ(selection.selected, us4::BackendType::kMetal);
   EXPECT_TRUE(selection.fellBack);
   EXPECT_EQ(selection.reason, "requested-backend-unavailable");
 }

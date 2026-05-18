@@ -43,6 +43,8 @@ bool LlamaAdapter::SupportsMlxBackend() const { return true; }
 
 bool LlamaAdapter::SupportsMetalBackend() const { return true; }
 
+bool LlamaAdapter::SupportsAneBackend() const { return true; }
+
 std::vector<float>
 LlamaAdapter::BuildQueryRow(const std::size_t tokenId, const std::uint32_t seed,
                             const std::size_t position,

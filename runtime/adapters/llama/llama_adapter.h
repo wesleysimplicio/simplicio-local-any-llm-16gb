@@ -11,6 +11,7 @@ public:
 
   bool SupportsMlxBackend() const override;
   bool SupportsMetalBackend() const override;
+  bool SupportsAneBackend() const override;
   GenerationResult Generate(const GenerationRequest &request,
                             const RuntimeContext &context) const override;
 

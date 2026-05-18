@@ -16,6 +16,7 @@ struct HardwareProbeResult {
   bool hasMetal = false;
   bool hasNeon = false;
   bool hasAne = false;
+  bool supportsCoreMl = false;
   unsigned int neonVectorBits = 0;
   bool hasPerformanceCores = false;
   bool hasEfficiencyCores = false;

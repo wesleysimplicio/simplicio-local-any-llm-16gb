@@ -13,6 +13,7 @@
 #include "adapters/llama/llama_adapter.h"
 #include "adapters/llama/llama_config.h"
 #include "adapters/qwen/qwen_adapter.h"
+#include "ane/ane_backend.h"
 #include "cache/multimodal_cache.h"
 #include "cache/sparsity_aware_cache.h"
 #include "core/backend_selector.h"
@@ -201,6 +202,16 @@ int main() {
                  "fallback should pick neon on arm64");
     ok &= Expect(fallbackSelection.fellBack,
                  "requested unavailable backend should mark fallback");
+
+    probe.chip = "Apple M5";
+    probe.hasAne = true;
+    probe.supportsCoreMl = true;
+    const us4::BackendSelection aneSelection =
+        us4::SelectBackend(probe, us4::RuntimeMode::kFull, llama);
+    ok &= Expect(aneSelection.selected == us4::BackendType::kAne,
+                 "m5 full mode should prefer ane");
+    ok &= Expect(aneSelection.reason == "auto-ane",
+                 "ane auto-selection reason should stay explicit");
   }
 
   {
@@ -410,6 +421,31 @@ int main() {
           !pool.Active(),
           "noop autorelease scope should remain inactive off apple hosts");
     }
+
+    us4::HardwareProbeResult aneProbe = probe;
+    aneProbe.chip = "Apple M5";
+    aneProbe.hasAne = true;
+    aneProbe.supportsCoreMl = true;
+    aneProbe.recommendedMode = us4::RuntimeMode::kFull;
+    us4::RuntimeContext aneContext(aneProbe);
+    ok &= Expect(aneContext.aneBackend().Available(),
+                 "ane backend should be available on m5 probe");
+    ok &= Expect(aneContext.aneBackend().Compile(
+                     {.kind = us4::AneModelKind::kAttentionMlp,
+                      .family = "llama",
+                      .layerName = "decoder.block.0.mlp",
+                      .tokenCount = 8U,
+                      .usesSharedTokenizer = true,
+                      .staticShapePreferred = true}),
+                 "ane backend should record compile intent");
+    ok &= Expect(
+        aneContext.aneBackend().LastCompiledModel().has_value() &&
+            aneContext.aneBackend().LastCompiledModel()->supportsPrediction,
+        "ane backend should keep compiled model prediction intent");
+    ok &= Expect(aneContext.aneBackend().Predict(3U, 1U),
+                 "ane backend should record predict intent");
+    ok &= Expect(aneContext.aneBackend().PredictionCount() == 1U,
+                 "ane backend should count predictions");
   }
 
   {

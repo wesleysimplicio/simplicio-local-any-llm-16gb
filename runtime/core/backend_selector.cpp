@@ -56,6 +56,9 @@ bool SupportsBackend(const HardwareProbeResult &hardware,
 BackendType PreferredBackend(const HardwareProbeResult &hardware,
                              const RuntimeMode mode,
                              const IUS4V6Adapter &adapter) {
+  if (SupportsBackend(hardware, mode, adapter, BackendType::kAne)) {
+    return BackendType::kAne;
+  }
   if (SupportsBackend(hardware, mode, adapter, BackendType::kMetal)) {
     return BackendType::kMetal;
   }

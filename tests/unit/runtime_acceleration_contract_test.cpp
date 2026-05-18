@@ -3,6 +3,7 @@
 #include "adapters/gemma/gemma_adapter.h"
 #include "adapters/llama/llama_adapter.h"
 #include "adapters/qwen/qwen_adapter.h"
+#include "ane/ane_backend.h"
 #include "core/runtime_context.h"
 #include "memory/unified_allocator.h"
 #include "metal/autorelease_scope.h"
@@ -54,6 +55,39 @@ TEST(RuntimeAccelerationContractTest,
   EXPECT_TRUE(context.metalQueue().Device().supportsUnifiedMemory);
   EXPECT_TRUE(context.mlxBridge().Available());
   EXPECT_EQ(context.mlxBridge().Reason(), "mlx-bridge-ready");
+  EXPECT_FALSE(context.aneBackend().Available());
+  EXPECT_EQ(context.aneBackend().Reason(), "ane-unavailable");
+}
+
+TEST(RuntimeAccelerationContractTest, AneBackendCompilesAndPredictsOnM5Probe) {
+  us4::HardwareProbeResult probe = MakeAppleProbe();
+  probe.chip = "Apple M5";
+  probe.hasAne = true;
+  probe.supportsCoreMl = true;
+  probe.recommendedMode = us4::RuntimeMode::kFull;
+
+  us4::RuntimeContext context(probe);
+  EXPECT_TRUE(context.aneBackend().Available());
+  EXPECT_EQ(context.aneBackend().Reason(), "ane-backend-ready");
+
+  const us4::AneCompilePlan plan{
+      .kind = us4::AneModelKind::kAttentionMlp,
+      .family = "llama",
+      .layerName = "decoder.block.0.mlp",
+      .tokenCount = 8U,
+      .usesSharedTokenizer = true,
+      .staticShapePreferred = true,
+  };
+  EXPECT_TRUE(context.aneBackend().Compile(plan));
+  ASSERT_TRUE(context.aneBackend().LastCompiledModel().has_value());
+  EXPECT_EQ(context.aneBackend().LastCompiledModel()->family, "llama");
+  EXPECT_EQ(context.aneBackend().LastCompiledModel()->computeUnits, "ane-only");
+  EXPECT_TRUE(
+      context.aneBackend().LastCompiledModel()->usedCoreMlCompileIntent);
+  EXPECT_TRUE(context.aneBackend().Predict(3U, 1U));
+  EXPECT_TRUE(context.aneBackend().LastPredictionSucceeded());
+  EXPECT_EQ(context.aneBackend().PredictionCount(), 1U);
+  EXPECT_EQ(context.aneBackend().Reason(), "ane-predict-recorded");
 }
 
 TEST(RuntimeAccelerationContractTest,

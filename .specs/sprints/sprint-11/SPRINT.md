@@ -1,6 +1,6 @@
 ---
 sprint: sprint-11
-status: todo
+status: in_progress
 start: 2026-10-01
 end: 2026-10-14
 owner: us4-core
@@ -12,7 +12,7 @@ owner: us4-core
 Apple Neural Engine backend para chips M5+. Offload de dense layers (attention/MLP estaticos) pro ANE. Mixed dispatch Metal+ANE. Thermal/throttle aware.
 
 ## Tasks
-- [ ] T11.1 — `runtime/ane/AneBackend` (CoreML model compile, predict)
+- [x] T11.1 — `runtime/ane/AneBackend` (CoreML model compile, predict)
 - [ ] T11.2 — `runtime/ane/LayerOffloader` (chooses which layers go to ANE)
 - [ ] T11.3 — Mixed dispatch coordinator (Metal hot path + ANE static layers)
 - [ ] T11.4 — `runtime/tuning/ThermalMonitor` (read `IOPMrootDomain`/`powermetrics`, downgrade dispatch)

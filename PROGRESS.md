@@ -2,30 +2,29 @@
 
 ## Current Status
 
-Sprint 10 em execucao. O fechamento de speculative decoding agora entrou na
-telemetria nativa/CLI, com acceptance rate, accepted/rejected tokens e fallback
-deterministico visiveis para os caminhos com draft model.
+Sprint 11 em execucao. O trilho do backend ANE abriu com contrato dedicado,
+compile/predict intent em CoreML e selecao explicita para hosts M5+ em FULL,
+sem quebrar o fallback estavel para Metal/MLX/NEON.
 
 ## Latest Checkpoint
 
 Status: done
 
 Task:
-T10.6 - Expand speculative decoding telemetry
+T11.1 - Build ane backend surface
 
 Result:
-A telemetria speculative agora projeta `speculative_strategy`,
-`speculative_session_scope`, acceptance rate, accepted/rejected tokens e
-fallback token no resultado nativo e no CLI para os fluxos com draft model.
+`AneBackend` entrou no runtime, o selector agora prefere `ane` em `FULL` para
+probes M5+, e o `RuntimeContext` ganhou a superficie de compile/predict com
+fallback explicito para hosts sem ANE.
 
 Validation:
 `npm run lint`; `npm test -- --coverage`; `npm run pack:dry`;
 `cmake --build build --config Release`;
-`ctest --test-dir build --output-on-failure -C Release`;
-`npx playwright test --reporter=list,html tests/e2e/us4-cli.spec.ts`
+`ctest --test-dir build --output-on-failure -C Release`
 
 Next:
-Sprint 11 - abrir `T11.1` para o backend ANE M5+.
+T11.2 - abrir o layer offloader para decidir quais blocos vao para ANE.
 
 ## Checkpoints
 

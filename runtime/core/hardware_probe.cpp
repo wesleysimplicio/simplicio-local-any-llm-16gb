@@ -84,6 +84,17 @@ std::string DetectChip(bool is_apple_silicon) {
 #endif
 }
 
+bool DetectAneSupport(const bool isAppleSilicon, const std::string &chip) {
+  if (ReadBoolEnv("US4_HAS_ANE", false)) {
+    return true;
+  }
+  if (!isAppleSilicon) {
+    return false;
+  }
+  return chip.find("M5") != std::string::npos ||
+         chip.find("apple-m5") != std::string::npos;
+}
+
 } // namespace
 
 HardwareProbeResult HardwareProbe::Detect() {
@@ -96,7 +107,6 @@ HardwareProbeResult HardwareProbe::Detect() {
   result.hasMlx = result.isAppleSilicon;
   result.hasMetal = result.isAppleSilicon;
   result.hasNeon = (result.architecture == "arm64");
-  result.hasAne = false;
   result.neonVectorBits =
       ReadUnsignedEnv("US4_NEON_VECTOR_BITS", result.hasNeon ? 128U : 0U);
   result.hasPerformanceCores =
@@ -104,6 +114,9 @@ HardwareProbeResult HardwareProbe::Detect() {
   result.hasEfficiencyCores =
       ReadBoolEnv("US4_HAS_EFFICIENCY_CORES", result.isAppleSilicon);
   result.chip = DetectChip(result.isAppleSilicon);
+  result.hasAne = DetectAneSupport(result.isAppleSilicon, result.chip);
+  result.supportsCoreMl =
+      result.hasAne || ReadBoolEnv("US4_SUPPORTS_COREML", false);
   result.recommendedMode =
       SelectRuntimeModeFromMemoryGiB(result.unifiedMemoryGiB);
   return result;
