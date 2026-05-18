@@ -250,11 +250,13 @@ int main() {
   }
 
   {
-    const std::array<std::filesystem::path, 2> kMoeAssets = {
+    const std::array<std::filesystem::path, 3> kMoeAssets = {
         RepoRoot() / "tests" / "fixtures" / "models" / "deepseek-v2-lite" /
             "toy-deepseek.safetensors",
         RepoRoot() / "tests" / "fixtures" / "models" / "kimi-k2-instruct" /
             "toy-kimi.safetensors",
+        RepoRoot() / "tests" / "fixtures" / "models" / "minimax-m2" /
+            "toy-minimax.safetensors",
     };
     for (const std::filesystem::path &inputPath : kMoeAssets) {
       us4::ModelAsset asset;
@@ -760,6 +762,48 @@ int main() {
                    "kimi repeat should not add extra loads for same experts");
       ok &= Expect(repeatedKimi.moePagerReuses >= 2U,
                    "kimi repeat should surface pager reuse");
+    }
+  }
+
+  {
+    const us4::IUS4V6Adapter *minimax = us4::FindAdapterByModel("minimax-m2");
+    ok &= Expect(minimax != nullptr, "minimax adapter should stay registered");
+    if (minimax != nullptr) {
+      us4::RuntimeContext moeContext(MakeProbe());
+      minimax->ConfigureRuntime(moeContext);
+      const us4::GenerationResult minimaxResult = minimax->Generate(
+          {.prompt = "image audio fusion", .maxTokens = 2}, moeContext);
+      ok &= Expect(minimaxResult.family == "minimax",
+                   "minimax generation should preserve moe family");
+      ok &= Expect(minimaxResult.moeSelectedExperts == 2U,
+                   "minimax generation should expose selected expert count");
+      ok &= Expect(minimaxResult.moeRouterEntropy > 0.0F,
+                   "minimax generation should expose router entropy");
+      ok &= Expect(minimaxResult.moeLoadBalance > 0.0F &&
+                       minimaxResult.moeLoadBalance <= 1.0F,
+                   "minimax generation should expose load balance score");
+      ok &= Expect(minimaxResult.moeSelectedMass > 0.0F &&
+                       minimaxResult.moeSelectedMass <= 1.0F,
+                   "minimax generation should expose selected expert mass");
+      ok &= Expect(minimaxResult.moePagerLoads == 2U,
+                   "minimax generation should expose pager loads");
+      ok &= Expect(minimaxResult.moePagerEvictions == 0U,
+                   "minimax generation should expose pager evictions");
+      ok &= Expect(minimaxResult.moePagerReuses == 0U,
+                   "minimax generation should expose pager reuse");
+      ok &= Expect(minimaxResult.moeResidentExperts == 2U,
+                   "minimax generation should expose resident expert count");
+      ok &=
+          Expect(minimaxResult.text.find("minimax-route") != std::string::npos,
+                 "minimax generation should surface routed expert signature");
+
+      const us4::GenerationResult repeatedMiniMax = minimax->Generate(
+          {.prompt = "image audio fusion", .maxTokens = 2}, moeContext);
+      ok &=
+          Expect(repeatedMiniMax.moePagerLoads == 2U,
+                 "minimax repeat should not add extra loads for same experts");
+      ok &= Expect(repeatedMiniMax.moePagerReuses >= 2U,
+                   "minimax repeat should surface pager reuse");
     }
   }
 

@@ -1,0 +1,12 @@
+family=minimax
+model_name=minimax-m2-fixture
+weight_dtype=bf16
+seed=72027
+default_prompt_token=hi
+vocabulary=minimax,moe,multimodal,experts,vision,audio,fusion,routing,context,local,apple,runtime,responds,balanced,wide,hi
+moe_lazy_load=true
+moe_active_experts=2
+moe_expert_shards=experts-00.safetensors,experts-01.safetensors
+tokenizer_json=tests/fixtures/models/minimax-m2/tokenizer.json
+router_style=modality-aware
+modalities=image,text,audio

@@ -1,23 +1,24 @@
 ---
 sprint: sprint-09
-status: todo
+status: in_progress
 start: 2026-09-03
 end: 2026-09-16
 owner: us4-core
 ---
 
-# Sprint 09 — MoE Advanced (Apple)
+# Sprint 09 - MoE Advanced (Apple)
 
 ## Objetivo
-MiniMax + GLM adapters. SP-MoE (speculative expert prefetch). Sparsity-aware cache. Multimodal cache (image/audio tokens).
+MiniMax + GLM adapters. SP-MoE (speculative expert prefetch). Sparsity-aware
+cache. Multimodal cache (image/audio tokens).
 
 ## Tasks
-- [ ] T09.1 — `runtime/adapters/minimax/MiniMaxAdapter`
-- [ ] T09.2 — `runtime/adapters/glm/GLMAdapter`
-- [ ] T09.3 — `runtime/moe/SpeculativePrefetch` (predict next-token experts, preload em fundo)
-- [ ] T09.4 — `runtime/cache/SparsityAwareCache` (cache hits by expert pattern hash)
-- [ ] T09.5 — `runtime/cache/MultimodalCache` (image patch tokens, audio frames)
-- [ ] T09.6 — Telemetry: prefetch hit ratio, sparsity hit ratio
+- [x] T09.1 - `runtime/adapters/minimax/MiniMaxAdapter`
+- [ ] T09.2 - `runtime/adapters/glm/GLMAdapter`
+- [ ] T09.3 - `runtime/moe/SpeculativePrefetch` (predict next-token experts, preload em fundo)
+- [ ] T09.4 - `runtime/cache/SparsityAwareCache` (cache hits by expert pattern hash)
+- [ ] T09.5 - `runtime/cache/MultimodalCache` (image patch tokens, audio frames)
+- [ ] T09.6 - Telemetry: prefetch hit ratio, sparsity hit ratio
 
 ## Test plan
 - Unit: speculative prefetch correctness (no wrong-expert leak); sparsity cache hit/miss.

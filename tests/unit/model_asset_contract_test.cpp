@@ -37,7 +37,7 @@ std::filesystem::path FixtureRoot() {
 } // namespace
 
 TEST(ModelAssetContractTest, LoadsFixtureManifestMetadataAcrossFamilies) {
-  constexpr std::array<ManifestExpectation, 7> kManifestExpectations = {{
+  constexpr std::array<ManifestExpectation, 8> kManifestExpectations = {{
       {"qwen-0.5b", "qwen", "qwen-0.5b-fixture", us4::DType::kFloat16, 41051U,
        "hi", false},
       {"gemma-2b-it", "gemma", "gemma-2b-it-fixture", us4::DType::kFloat16,
@@ -52,6 +52,8 @@ TEST(ModelAssetContractTest, LoadsFixtureManifestMetadataAcrossFamilies) {
        us4::DType::kBFloat16, 52002U, "hi", true},
       {"kimi-k2-instruct", "kimi", "kimi-k2-instruct-fixture",
        us4::DType::kBFloat16, 62002U, "hi", true},
+      {"minimax-m2", "minimax", "minimax-m2-fixture", us4::DType::kBFloat16,
+       72027U, "hi", true},
   }};
 
   for (const ManifestExpectation &expectation : kManifestExpectations) {
@@ -77,7 +79,7 @@ TEST(ModelAssetContractTest, LoadsFixtureManifestMetadataAcrossFamilies) {
 }
 
 TEST(ModelAssetContractTest, DetectsSupportedBinaryModelFormatsAcrossFamilies) {
-  constexpr std::array<FileDetectionExpectation, 7> kFileDetectionExpectations =
+  constexpr std::array<FileDetectionExpectation, 8> kFileDetectionExpectations =
       {{
           {"qwen-0.5b", "toy-qwen.gguf", us4::ModelFormat::kGguf, "qwen",
            "toy-qwen", us4::DType::kFloat16},
@@ -96,6 +98,9 @@ TEST(ModelAssetContractTest, DetectsSupportedBinaryModelFormatsAcrossFamilies) {
            us4::DType::kBFloat16},
           {"kimi-k2-instruct", "toy-kimi.safetensors",
            us4::ModelFormat::kSafetensors, "kimi", "toy-kimi",
+           us4::DType::kBFloat16},
+          {"minimax-m2", "toy-minimax.safetensors",
+           us4::ModelFormat::kSafetensors, "minimax", "toy-minimax",
            us4::DType::kBFloat16},
       }};
 
@@ -189,11 +194,13 @@ TEST(ModelAssetContractTest,
 
 TEST(ModelAssetContractTest,
      MoeAssetsSurfaceShardAwareLoaderMetadataAcrossManifestAndBinaryInputs) {
-  const std::array<std::filesystem::path, 4> kInputs = {
+  const std::array<std::filesystem::path, 6> kInputs = {
       FixtureRoot() / "deepseek-v2-lite" / "model.us4manifest",
       FixtureRoot() / "deepseek-v2-lite" / "toy-deepseek.safetensors",
       FixtureRoot() / "kimi-k2-instruct" / "model.us4manifest",
       FixtureRoot() / "kimi-k2-instruct" / "toy-kimi.safetensors",
+      FixtureRoot() / "minimax-m2" / "model.us4manifest",
+      FixtureRoot() / "minimax-m2" / "toy-minimax.safetensors",
   };
 
   for (const std::filesystem::path &inputPath : kInputs) {

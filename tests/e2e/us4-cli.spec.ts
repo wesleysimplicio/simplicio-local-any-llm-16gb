@@ -306,6 +306,9 @@ test.describe("Native CLI sprint 02 contract", () => {
              (model) => model.family === "deepseek",
          );
          const kimi = payload.models.find((model) => model.family === "kimi");
+         const minimax = payload.models.find(
+             (model) => model.family === "minimax",
+         );
 
          expect(qwen).toMatchObject({
            family : "qwen",
@@ -340,6 +343,15 @@ test.describe("Native CLI sprint 02 contract", () => {
          expect(kimi).toMatchObject({
            family : "kimi",
            model : "kimi-k2-instruct",
+           architecture : "moe",
+           supports_moe : true,
+           supports_mlx : true,
+           supports_metal : true,
+           preferred_backend : expect.any(String),
+         });
+         expect(minimax).toMatchObject({
+           family : "minimax",
+           model : "minimax-m2",
            architecture : "moe",
            supports_moe : true,
            supports_mlx : true,
@@ -847,6 +859,60 @@ test.describe("Native CLI sprint 02 contract", () => {
       generated_tokens : expect.any(Array),
     });
     expect(JSON.parse(stdout).text).toContain("kimi-route");
+  });
+
+  test("minimax moe path emits routed expert output", async ({}, testInfo) => {
+    const {stdout, stderr} = await execFileAsync(
+        nativeCliPath!,
+        [
+          "run",
+          "--model",
+          "minimax-m2",
+          "--prompt",
+          "image audio fusion",
+          "--max-tokens",
+          "4",
+          "--json",
+        ],
+        {
+          cwd : repoRoot,
+          env : {
+            ...process.env,
+            NO_COLOR : "1",
+          },
+        },
+    );
+
+    await testInfo.attach("stdout-native-minimax", {
+      body : stdout.trim() || "(empty)",
+      contentType : "text/plain",
+    });
+    await testInfo.attach("stderr-native-minimax", {
+      body : stderr.trim() || "(empty)",
+      contentType : "text/plain",
+    });
+
+    expect(stderr.trim()).toBe("");
+    expect(JSON.parse(stdout)).toMatchObject({
+      family : "minimax",
+      backend : "scalar",
+      shared_allocations : 0,
+      metal_dispatches : 0,
+      mlx_operation_count : 0,
+      kv_page_count : 1,
+      moe_selected_experts : 2,
+      moe_router_entropy : expect.any(Number),
+      moe_load_balance : expect.any(Number),
+      moe_selected_mass : expect.any(Number),
+      moe_pager_loads : 2,
+      moe_pager_evictions : 0,
+      moe_pager_reuses : 0,
+      moe_resident_experts : 2,
+      moe_hit_rate : 0,
+      moe_eviction_rate : 0,
+      generated_tokens : expect.any(Array),
+    });
+    expect(JSON.parse(stdout).text).toContain("minimax-route");
   });
 
   test("moe manifest path keeps shard-aware loader telemetry visible",

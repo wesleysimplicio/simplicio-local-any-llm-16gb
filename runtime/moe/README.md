@@ -18,6 +18,9 @@ Home de routing, paging e telemetria agregada para adapters sparse.
   experts foram escolhidos para aquele prompt.
 - `KimiMoEAdapter` segue a mesma ideia com a assinatura `kimi-route eX eY`,
   mantendo o pager observavel para prompts repetidos e para mudancas de rota.
+- `MiniMaxMoEAdapter` amplia a familia MoE advanced com a assinatura
+  `minimax-route eX eY`, priorizando prompts com pistas de visao, audio,
+  fusao e contexto amplo.
 - O contrato de loader agora preserva tambem:
   - `moe_shard_count`
   - `moe_active_experts`
