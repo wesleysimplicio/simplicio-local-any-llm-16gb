@@ -42,6 +42,7 @@
 #include "neon/kernel_profile.h"
 #include "neon/neon_attention.h"
 #include "neon/neon_matmul.h"
+#include "scheduler/continuous_batcher.h"
 #include "sprint_01_contract_placeholders.h"
 
 namespace {
@@ -1185,6 +1186,58 @@ int main() {
     const float *int4Values = int4Output.DataAsFloat32();
     ok &= Expect(int4Values != nullptr && int4Values[7] == -2.0F,
                  "neon int4 dequant should preserve tail values");
+  }
+
+  {
+    const us4::ContinuousBatcher singleBatcher(6U);
+    const us4::BatchDecision singleDecision =
+        singleBatcher.Schedule({{"solo", 9U, 1U, 0U}});
+    ok &=
+        Expect(singleDecision.singleSessionPassthrough,
+               "continuous batcher should preserve single-session passthrough");
+    ok &= Expect(
+        singleDecision.totalGrantedTokens == 6U &&
+            singleDecision.activeSessions == 1U &&
+            singleDecision.slices.size() == 1U,
+        "continuous batcher should cap single-session grant by batch size");
+    ok &=
+        Expect(singleDecision.slices.front().sessionId == "solo" &&
+                   singleDecision.slices.front().grantedTokens == 6U &&
+                   singleDecision.slices.front().roundsVisited == 1U,
+               "continuous batcher should keep passthrough attribution stable");
+
+    const us4::ContinuousBatcher fairBatcher(4U);
+    const us4::BatchDecision fairDecision =
+        fairBatcher.Schedule({{"alpha", 3U, 1U, 0U}, {"beta", 3U, 1U, 1U}});
+    ok &= Expect(!fairDecision.singleSessionPassthrough,
+                 "continuous batcher should disable passthrough for "
+                 "multi-session scheduling");
+    ok &= Expect(
+        fairDecision.totalGrantedTokens == 4U &&
+            fairDecision.activeSessions == 2U &&
+            fairDecision.fairnessRounds == 2U,
+        "continuous batcher should distribute full batch budget in two rounds");
+    ok &= Expect(fairDecision.slices.size() == 2U &&
+                     fairDecision.slices[0].sessionId == "alpha" &&
+                     fairDecision.slices[0].grantedTokens == 2U &&
+                     fairDecision.slices[1].sessionId == "beta" &&
+                     fairDecision.slices[1].grantedTokens == 2U,
+                 "continuous batcher should alternate equal sessions fairly");
+
+    const us4::ContinuousBatcher weightedBatcher(6U);
+    const us4::BatchDecision weightedDecision = weightedBatcher.Schedule(
+        {{"heavy", 8U, 2U, 0U}, {"light", 8U, 1U, 1U}});
+    ok &= Expect(weightedDecision.slices.size() == 2U &&
+                     weightedDecision.slices[0].sessionId == "heavy" &&
+                     weightedDecision.slices[0].grantedTokens == 4U &&
+                     weightedDecision.slices[1].sessionId == "light" &&
+                     weightedDecision.slices[1].grantedTokens == 2U,
+                 "continuous batcher should honor fairness weight without "
+                 "starving peers");
+    ok &=
+        Expect(weightedDecision.slices[0].roundsVisited == 2U &&
+                   weightedDecision.slices[1].roundsVisited == 2U,
+               "continuous batcher should surface rounds visited per session");
   }
 
   {

@@ -43,6 +43,7 @@ add_library(us4_runtime_core
   neon/neon_attention.cpp
   neon/kernel_profile.cpp
   neon/neon_matmul.cpp
+  scheduler/continuous_batcher.cpp
   telemetry/telemetry_types.cpp
   telemetry/telemetry_sink.cpp
 )

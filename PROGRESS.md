@@ -2,9 +2,30 @@
 
 ## Current Status
 
-Sprint 09 em execucao. T09.1 entrou no working tree com adapter MiniMax,
-fixture MoE shard-aware, contratos nativos e E2E do CLI alinhados para a
-primeira etapa do sprint.
+Sprint 10 em execucao. T10.1 entrou com o contrato de `ContinuousBatcher`,
+fairness round-robin explicita e cobertura nativa para preservar o caminho
+single-session enquanto abrimos a frente multi-sessao.
+
+## Latest Checkpoint
+
+Status: done
+
+Task:
+T10.1 - Build continuous batcher surface
+
+Result:
+`ContinuousBatcher` entrou em `runtime/scheduler` com orcamento por batch,
+fairness por rodadas, `fairnessWeight`, `arrivalOrder` e sinal explicito de
+`singleSessionPassthrough`. Os contratos ficaram cobertos em GTest e tambem no
+`runtime_contract_runner`, para o gate nativo continuar funcionando mesmo sem
+GTest local.
+
+Validation:
+`npm run lint`; `npm run pack:dry`; `cmake --build build --config Release`;
+`ctest --test-dir build --output-on-failure -C Release`
+
+Next:
+T10.2 - abrir `SessionPool` com namespace de sessao e isolamento de KV.
 
 ## Checkpoints
 
