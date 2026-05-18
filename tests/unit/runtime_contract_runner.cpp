@@ -689,6 +689,15 @@ int main() {
                  "deepseek generation should expose pager reuse");
     ok &= Expect(deepseekResult.moeResidentExperts == 2U,
                  "deepseek generation should expose resident expert count");
+    ok &= Expect(deepseekResult.text.find("moe-route") != std::string::npos,
+                 "deepseek generation should surface routed expert signature");
+
+    const us4::GenerationResult repeatedDeepseek =
+        deepseek->Generate({.prompt = "hi", .maxTokens = 2}, moeContext);
+    ok &= Expect(repeatedDeepseek.moePagerLoads == 2U,
+                 "deepseek repeat should not add extra loads for same experts");
+    ok &= Expect(repeatedDeepseek.moePagerReuses >= 2U,
+                 "deepseek repeat should surface pager reuse");
   }
 
   {

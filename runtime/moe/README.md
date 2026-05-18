@@ -13,6 +13,9 @@ Home de routing, paging e telemetria agregada para adapters sparse.
   - `moe_router_entropy`
   - `moe_load_balance`
   - `moe_selected_mass`
+- `DeepSeekMoEAdapter` tambem usa a rota selecionada para materializar uma
+  assinatura textual `moe-route eX eY`, deixando visivel no output nativo quais
+  experts foram escolhidos para aquele prompt.
 - `ExpertPager` agora projeta tambem:
   - `moe_pager_loads`
   - `moe_pager_evictions`

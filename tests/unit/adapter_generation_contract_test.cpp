@@ -51,6 +51,46 @@ TEST(AdapterGenerationContractTest,
 }
 
 TEST(AdapterGenerationContractTest,
+     DeepSeekMoeAdapterConsumesRouteMetadataAndReusesPagerWithinContext) {
+  const us4::IUS4V6Adapter *adapter =
+      us4::FindAdapterByModel("deepseek-v2-lite");
+  ASSERT_NE(adapter, nullptr);
+
+  us4::RuntimeContext context(MakeProbe());
+  adapter->ConfigureRuntime(context);
+
+  const us4::GenerationResult first = adapter->Generate(
+      {.prompt = "code logic runtime", .maxTokens = 3}, context);
+  const us4::GenerationResult second = adapter->Generate(
+      {.prompt = "code logic runtime", .maxTokens = 3}, context);
+  const us4::GenerationResult third =
+      adapter->Generate({.prompt = "wide context", .maxTokens = 3}, context);
+
+  EXPECT_EQ(first.family, "deepseek");
+  EXPECT_EQ(first.moeSelectedExperts, 2U);
+  EXPECT_GT(first.moeRouterEntropy, 0.0F);
+  EXPECT_GT(first.moeSelectedMass, 0.0F);
+  EXPECT_NE(first.text.find("moe-route"), std::string::npos);
+  EXPECT_NE(first.text.find("e0"), std::string::npos);
+  EXPECT_NE(first.text.find("e1"), std::string::npos);
+  EXPECT_EQ(first.moePagerLoads, 2U);
+  EXPECT_EQ(first.moePagerReuses, 0U);
+  EXPECT_EQ(first.moePagerEvictions, 0U);
+  EXPECT_EQ(first.moeResidentExperts, 2U);
+
+  EXPECT_EQ(second.moePagerLoads, 2U);
+  EXPECT_GE(second.moePagerReuses, 2U);
+  EXPECT_EQ(second.moePagerEvictions, 0U);
+  EXPECT_NE(second.text.find("moe-route"), std::string::npos);
+
+  EXPECT_EQ(third.moeSelectedExperts, 2U);
+  EXPECT_GE(third.moePagerLoads, 3U);
+  EXPECT_GE(third.moePagerEvictions, 1U);
+  EXPECT_EQ(third.moeResidentExperts, 2U);
+  EXPECT_NE(third.text.find("moe-route"), std::string::npos);
+}
+
+TEST(AdapterGenerationContractTest,
      DenseAdapterUsesFixtureManifestAndRequestedBackendFallback) {
   const us4::IUS4V6Adapter *adapter = us4::FindAdapterByModel("qwen-0.5b");
   ASSERT_NE(adapter, nullptr);

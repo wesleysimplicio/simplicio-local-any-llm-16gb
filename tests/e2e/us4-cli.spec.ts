@@ -780,6 +780,7 @@ test.describe("Native CLI sprint 02 contract", () => {
       moe_resident_experts : 2,
       generated_tokens : expect.any(Array),
     });
+    expect(JSON.parse(stdout).text).toContain("moe-route");
   });
 
   test(
