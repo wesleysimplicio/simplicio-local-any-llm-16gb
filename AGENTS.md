@@ -264,3 +264,17 @@ cmake --build build \
 - **Hooks do `.claude/hooks/`** rodam automaticamente: post-edit faz format/lint, pre-commit bloqueia commit vermelho.
 - **MLX é primary path** em Apple Silicon. Metal kernel só onde MLX não cobre. NEON/Accelerate é fallback. ANE é opt-in (`--ane`).
 - **Correctness > performance**. Logit diff vs referência é gate duro.
+
+<!-- codex-long-running-agent-overlay:start -->
+## Universal Long-Running Agent Overlay
+
+This section complements the repository-specific guidance already in this file. If anything here conflicts with the repo-specific rules above, the repo-specific rules win.
+
+- `PRD.md` is the task source of truth for long-running sessions.
+- `PROGRESS.md` is the persistent checkpoint log.
+- `GOAL_RESULT.md` is the final execution report.
+- Before coding, read this file, `PRD.md`, `PROGRESS.md` when it exists, `README.md`, project manifests, tests, and the relevant source folders.
+- Work in small checkpoints, run the smallest relevant validation after each meaningful change, update `PROGRESS.md`, and continue until complete or genuinely blocked.
+- Stop only when the requested work is complete, validation is documented, and `GOAL_RESULT.md` reflects the outcome.
+- Do not rewrite unrelated architecture, fake successful validation, expose secrets, or push without explicit operator instruction for the active session.
+<!-- codex-long-running-agent-overlay:end -->
