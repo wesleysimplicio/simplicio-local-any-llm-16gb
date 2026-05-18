@@ -44,6 +44,7 @@
 #include "neon/neon_matmul.h"
 #include "scheduler/continuous_batcher.h"
 #include "scheduler/session_pool.h"
+#include "speculative/peagle_decoder.h"
 #include "sprint_01_contract_placeholders.h"
 
 namespace {
@@ -1239,6 +1240,36 @@ int main() {
         Expect(weightedDecision.slices[0].roundsVisited == 2U &&
                    weightedDecision.slices[1].roundsVisited == 2U,
                "continuous batcher should surface rounds visited per session");
+  }
+
+  {
+    const us4::PEagleDecoder decoder(4U);
+    const us4::PEagleDraft acceptedDraft = decoder.Draft({7, 8, 9, 10, 11});
+    const us4::PEagleVerificationResult acceptedResult =
+        decoder.Verify({7, 8, 9, 10, 12}, acceptedDraft);
+    ok &= Expect(acceptedDraft.tokens.size() == 4U,
+                 "peagle decoder should clamp draft breadth");
+    ok &= Expect(acceptedResult.acceptedCount == 4U &&
+                     acceptedResult.rejectedCount == 0U &&
+                     acceptedResult.allAccepted,
+                 "peagle decoder should keep fully accepted drafts explicit");
+    ok &= Expect(acceptedResult.matchesAuthoritativePath,
+                 "peagle decoder should preserve authoritative equivalence "
+                 "when accepted");
+
+    const us4::PEagleDraft mismatchDraft = decoder.Draft({4, 5, 6, 7});
+    const us4::PEagleVerificationResult mismatchResult =
+        decoder.Verify({4, 5, 42, 8}, mismatchDraft);
+    ok &= Expect(
+        mismatchResult.acceptedCount == 2U &&
+            mismatchResult.rejectedCount == 2U &&
+            mismatchResult.fallbackToken.has_value() &&
+            *mismatchResult.fallbackToken == 42,
+        "peagle decoder should commit accepted prefix plus fallback token");
+    ok &= Expect(
+        mismatchResult.matchesAuthoritativePath &&
+            mismatchResult.committedTokens == std::vector<int>({4, 5, 42}),
+        "peagle decoder should stay equivalent to the authoritative path");
   }
 
   {

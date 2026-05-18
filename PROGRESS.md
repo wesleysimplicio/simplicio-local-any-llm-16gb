@@ -11,20 +11,20 @@ single-session enquanto abrimos a frente multi-sessao.
 Status: done
 
 Task:
-T10.2 - Build session pool surface
+T10.3 - Build peagle speculative decoder surface
 
 Result:
-`SessionPool` entrou em `runtime/scheduler` com namespace explicito de KV e
-prefix por sessao, ownership de prompt isolado e release sem vazamento entre
-sessoes. O `RuntimeContext` agora expoe esse pool e o contrato ficou coberto em
-GTest e tambem no `runtime_contract_runner`.
+`PEagleDecoder` entrou em `runtime/speculative` com janela de draft
+configuravel, verify explicito por prefixo aceito + fallback no primeiro
+mismatch, e sinal claro de equivalencia com o caminho autoritativo
+nao-speculative.
 
 Validation:
 `npm run lint`; `npm test -- --coverage`; `npm run pack:dry`;
 `cmake --build build --config Release`; `ctest --test-dir build --output-on-failure -C Release`
 
 Next:
-T10.3 - abrir `PEagleDecoder` em `runtime/speculative` com draft/verify.
+T10.4 - abrir `Eagle3Decoder` com verify em n-gram/tree.
 
 ## Checkpoints
 
