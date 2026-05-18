@@ -11,20 +11,19 @@ single-session enquanto abrimos a frente multi-sessao.
 Status: done
 
 Task:
-T10.3 - Build peagle speculative decoder surface
+T10.4 - Build eagle3 speculative decoder surface
 
 Result:
-`PEagleDecoder` entrou em `runtime/speculative` com janela de draft
-configuravel, verify explicito por prefixo aceito + fallback no primeiro
-mismatch, e sinal claro de equivalencia com o caminho autoritativo
-nao-speculative.
+`Eagle3Decoder` entrou em `runtime/speculative` com verify por arvore,
+clamp de breadth/depth, escolha do ramo com maior prefixo compartilhado e
+fallback explicito para preservar equivalencia com o caminho autoritativo.
 
 Validation:
 `npm run lint`; `npm test -- --coverage`; `npm run pack:dry`;
 `cmake --build build --config Release`; `ctest --test-dir build --output-on-failure -C Release`
 
 Next:
-T10.4 - abrir `Eagle3Decoder` com verify em n-gram/tree.
+T10.5 - abrir o draft model loader com tokenizer compartilhado.
 
 ## Checkpoints
 

@@ -12,5 +12,14 @@ Home do contrato de speculative decoding.
     equivalencia observavel com o caminho autoritativo nao -
     speculative
 
-        O foco aqui ainda e corretude de superficie.EAGLE -
-    3 e telemetria de acceptance entram nos proximos slices do Sprint 10.
+        ##Eagle3Decoder
+
+`Eagle3Decoder` amplia isso para verify por arvore :
+
+    -clamp de breadth /
+    depth -
+    escolha do ramo com maior prefixo compartilhado -
+    fallback explicito para manter equivalencia com o caminho autoritativo
+
+        O foco aqui ainda e corretude de superficie.Telemetria de acceptance e
+            loader do draft model entram nos proximos slices do Sprint 10.

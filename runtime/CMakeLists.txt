@@ -45,6 +45,7 @@ add_library(us4_runtime_core
   neon/neon_matmul.cpp
   scheduler/continuous_batcher.cpp
   scheduler/session_pool.cpp
+  speculative/eagle3_decoder.cpp
   speculative/peagle_decoder.cpp
   telemetry/telemetry_types.cpp
   telemetry/telemetry_sink.cpp

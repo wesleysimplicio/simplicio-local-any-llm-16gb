@@ -44,6 +44,7 @@
 #include "neon/neon_matmul.h"
 #include "scheduler/continuous_batcher.h"
 #include "scheduler/session_pool.h"
+#include "speculative/eagle3_decoder.h"
 #include "speculative/peagle_decoder.h"
 #include "sprint_01_contract_placeholders.h"
 
@@ -1240,6 +1241,24 @@ int main() {
         Expect(weightedDecision.slices[0].roundsVisited == 2U &&
                    weightedDecision.slices[1].roundsVisited == 2U,
                "continuous batcher should surface rounds visited per session");
+  }
+
+  {
+    const us4::Eagle3Decoder decoder(3U, 4U);
+    const us4::Eagle3DraftTree tree =
+        decoder.BuildTree({{4, 5, 6, 7}, {4, 5, 42, 8}, {1, 2, 3, 4}});
+    const us4::Eagle3VerificationResult result =
+        decoder.Verify({4, 5, 42, 9}, tree);
+    ok &= Expect(tree.branches.size() == 3U,
+                 "eagle3 decoder should preserve configured branch breadth");
+    ok &= Expect(
+        result.chosenBranchIndex == 1U && result.acceptedDepth == 3U &&
+            result.rejectedBranches == 2U,
+        "eagle3 decoder should pick the branch with the longest shared prefix");
+    ok &= Expect(
+        result.matchesAuthoritativePath &&
+            result.committedTokens == std::vector<int>({4, 5, 42, 9}),
+        "eagle3 decoder should remain equivalent to the authoritative path");
   }
 
   {

@@ -12,6 +12,7 @@ set(us4_runtime_contract_test_sources
   telemetry_contract_smoke_test.cpp
   scheduler_contract_test.cpp
   session_pool_contract_test.cpp
+  eagle3_contract_test.cpp
   speculative_contract_test.cpp
   backend_selector_contract_test.cpp
   benchmark_observability_contract_test.cpp
