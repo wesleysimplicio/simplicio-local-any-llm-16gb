@@ -55,6 +55,9 @@ TEST(MoeContractTest, ExpertPagerRetainsMostFrequentlyTouchedExperts) {
   EXPECT_TRUE(pager.IsResident("expert-a"));
   EXPECT_TRUE(pager.IsResident("expert-c"));
   EXPECT_FALSE(pager.IsResident("expert-b"));
+  EXPECT_EQ(pager.LoadCount(), 3U);
+  EXPECT_EQ(pager.ReuseCount(), 1U);
+  EXPECT_EQ(pager.EvictionCount(), 1U);
 }
 
 TEST(MoeContractTest, ExpertPagerIgnoresUnknownResidencyQueries) {
@@ -62,4 +65,21 @@ TEST(MoeContractTest, ExpertPagerIgnoresUnknownResidencyQueries) {
   pager.Touch("expert-a");
 
   EXPECT_FALSE(pager.IsResident("expert-missing"));
+}
+
+TEST(MoeContractTest, ExpertPagerSnapshotKeepsVisibleResidentState) {
+  us4::ExpertPager pager(2);
+  pager.Touch("expert-a");
+  pager.Touch("expert-b");
+  pager.Touch("expert-a");
+
+  const us4::ExpertPagerSnapshot snapshot = pager.Snapshot();
+
+  EXPECT_EQ(snapshot.residentCount, 2U);
+  EXPECT_EQ(snapshot.loadCount, 2U);
+  EXPECT_EQ(snapshot.reuseCount, 1U);
+  EXPECT_EQ(snapshot.evictionCount, 0U);
+  ASSERT_EQ(snapshot.residents.size(), 2U);
+  EXPECT_EQ(snapshot.residents[0], "expert-a");
+  EXPECT_EQ(snapshot.residents[1], "expert-b");
 }

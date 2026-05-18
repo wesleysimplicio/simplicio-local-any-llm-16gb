@@ -22,13 +22,16 @@ routing. Offload de experts cold pra RAM.
   routing/pager, mas agora tambem expoem telemetria MoE agregada no resultado
   nativo (`moe_selected_experts`, `moe_router_entropy`, `moe_load_balance`,
   `moe_selected_mass`).
-- `runtime/moe/ExpertPager` ainda permanece no escopo do proximo slice; lazy
-  load por expert, shards e corretude externa continuam pendentes neste sprint.
+- `runtime/moe/ExpertPager` agora expõe `load`, `eviction`, `reuse` e
+  `residentCount` de forma visível, com `ExpertPagerSnapshot` preservando os
+  experts residentes desta chamada.
+- Lazy load por expert, shards e corretude externa continuam pendentes neste
+  sprint.
 
 ## Tasks
 
 - [x] T08.1 - `runtime/moe/Router` (top-k softmax, expert selection, load balance)
-- [ ] T08.2 - `runtime/moe/ExpertPager` (page experts em unified memory, evict LRU)
+- [x] T08.2 - `runtime/moe/ExpertPager` (page experts em unified memory, evict LRU)
 - [ ] T08.3 - `runtime/adapters/deepseek/DeepSeekMoEAdapter` (config, shared experts, routed experts)
 - [ ] T08.4 - `runtime/adapters/kimi/KimiMoEAdapter`
 - [ ] T08.5 - Loader MoE: lazy load por expert (sharded weights)

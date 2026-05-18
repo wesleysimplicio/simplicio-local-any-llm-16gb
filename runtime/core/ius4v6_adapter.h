@@ -54,6 +54,10 @@ struct GenerationResult {
   float moeRouterEntropy = 0.0F;
   float moeLoadBalance = 0.0F;
   float moeSelectedMass = 0.0F;
+  std::size_t moePagerLoads = 0;
+  std::size_t moePagerEvictions = 0;
+  std::size_t moePagerReuses = 0;
+  std::size_t moeResidentExperts = 0;
   std::string weightDType;
   std::string neonKernelFlavor;
   std::string dequantPath;

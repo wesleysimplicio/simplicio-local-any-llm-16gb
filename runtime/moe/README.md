@@ -13,5 +13,10 @@ Home de routing, paging e telemetria agregada para adapters sparse.
   - `moe_router_entropy`
   - `moe_load_balance`
   - `moe_selected_mass`
-- `ExpertPager` continua simples neste momento; o proximo slice aprofunda
-  eviction e comportamento visivel de residency.
+- `ExpertPager` agora projeta tambem:
+  - `moe_pager_loads`
+  - `moe_pager_evictions`
+  - `moe_pager_reuses`
+  - `moe_resident_experts`
+- Lazy load por shard e residency mais rica ainda pertencem aos proximos
+  slices.

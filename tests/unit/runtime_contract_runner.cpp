@@ -493,6 +493,16 @@ int main() {
                  "expert pager should enforce resident limit");
     ok &= Expect(pager.IsResident("expert-a"),
                  "expert pager should keep hot expert resident");
+    ok &= Expect(pager.LoadCount() == 3U,
+                 "expert pager should count visible loads");
+    ok &= Expect(pager.ReuseCount() == 1U,
+                 "expert pager should count visible reuse");
+    ok &= Expect(pager.EvictionCount() == 1U,
+                 "expert pager should count visible evictions");
+    const us4::ExpertPagerSnapshot pagerSnapshot = pager.Snapshot();
+    ok &= Expect(pagerSnapshot.residentCount == 2U &&
+                     pagerSnapshot.residents.size() == 2U,
+                 "expert pager snapshot should expose resident state");
   }
 
   {
@@ -671,6 +681,14 @@ int main() {
     ok &= Expect(deepseekResult.moeSelectedMass > 0.0F &&
                      deepseekResult.moeSelectedMass <= 1.0F,
                  "deepseek generation should expose selected expert mass");
+    ok &= Expect(deepseekResult.moePagerLoads == 2U,
+                 "deepseek generation should expose pager loads");
+    ok &= Expect(deepseekResult.moePagerEvictions == 0U,
+                 "deepseek generation should expose pager evictions");
+    ok &= Expect(deepseekResult.moePagerReuses == 0U,
+                 "deepseek generation should expose pager reuse");
+    ok &= Expect(deepseekResult.moeResidentExperts == 2U,
+                 "deepseek generation should expose resident expert count");
   }
 
   {

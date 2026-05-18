@@ -25,6 +25,8 @@ DeepSeekMoEAdapter::Generate(const GenerationRequest &request,
     mutableContext.expertPager().Touch("deepseek-expert-" +
                                        std::to_string(expert.expert));
   }
+  const ExpertPagerSnapshot pagerSnapshot =
+      mutableContext.expertPager().Snapshot();
   GenerationResult result = DenseAdapterBase::Generate(request, context);
   result.family = "deepseek";
   result.text = "moe " + result.text;
@@ -32,6 +34,10 @@ DeepSeekMoEAdapter::Generate(const GenerationRequest &request,
   result.moeRouterEntropy = routing.entropy;
   result.moeLoadBalance = routing.loadBalance;
   result.moeSelectedMass = routing.selectedMass;
+  result.moePagerLoads = pagerSnapshot.loadCount;
+  result.moePagerEvictions = pagerSnapshot.evictionCount;
+  result.moePagerReuses = pagerSnapshot.reuseCount;
+  result.moeResidentExperts = pagerSnapshot.residentCount;
   return result;
 }
 
