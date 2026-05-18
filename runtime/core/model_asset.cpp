@@ -198,6 +198,9 @@ std::string InferFamilyFromStem(const std::string &stem) {
   if (normalized.find("deepseek") != std::string::npos) {
     return "deepseek";
   }
+  if (normalized.find("glm") != std::string::npos) {
+    return "glm";
+  }
   if (normalized.find("kimi") != std::string::npos) {
     return "kimi";
   }

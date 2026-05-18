@@ -21,6 +21,8 @@ Home de routing, paging e telemetria agregada para adapters sparse.
 - `MiniMaxMoEAdapter` amplia a familia MoE advanced com a assinatura
   `minimax-route eX eY`, priorizando prompts com pistas de visao, audio,
   fusao e contexto amplo.
+- `GlmMoEAdapter` adiciona a assinatura `glm-route eX eY`, com heuristicas
+  focadas em tools, reasoning, codigo e contexto longo para a frente GLM.
 - O contrato de loader agora preserva tambem:
   - `moe_shard_count`
   - `moe_active_experts`

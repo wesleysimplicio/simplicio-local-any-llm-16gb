@@ -1,0 +1,12 @@
+family=glm
+model_name=glm-5.1-fixture
+weight_dtype=bf16
+seed=51045
+default_prompt_token=hi
+vocabulary=glm,moe,planner,experts,reason,tools,context,code,vision,runtime,local,apple,wide,assist,fast,hi
+moe_lazy_load=true
+moe_active_experts=2
+moe_expert_shards=experts-00.safetensors,experts-01.safetensors
+tokenizer_json=tests/fixtures/models/glm-5.1/tokenizer.json
+router_style=tool-reason-aware
+modalities=text,vision

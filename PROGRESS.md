@@ -112,6 +112,27 @@ Validation:
 Next:
 Fechar PR/merge de T09.1 e seguir para T09.2 (GLM adapter surface).
 
+### Checkpoint 6
+
+Status: in_progress
+
+Task:
+T09.2 - Add glm adapter surface
+
+Result:
+`GlmMoEAdapter` entrou no runtime nativo, registrado no adapter registry,
+com assinatura `glm-route eX eY`, fixture `glm-5.1` shard-aware, inferencia de
+familia no loader e contratos unit/native/E2E para manter o adapter visivel.
+
+Validation:
+`npm run lint`; `npm test -- --coverage`; `cmake --build build --config Release`;
+`ctest --test-dir build --output-on-failure -C Release`;
+`npx playwright test --reporter=list,html`; `npm run pack:dry`;
+`build\\runtime\\benchmarks\\dense_baseline.exe`
+
+Next:
+Fechar PR/merge de T09.2 e seguir para T09.3 (speculative prefetch).
+
 ## Blockers
 
 Nenhum bloqueio funcional. O ambiente local continua sem GTest instalado, entao

@@ -305,6 +305,7 @@ test.describe("Native CLI sprint 02 contract", () => {
          const deepseek = payload.models.find(
              (model) => model.family === "deepseek",
          );
+         const glm = payload.models.find((model) => model.family === "glm");
          const kimi = payload.models.find((model) => model.family === "kimi");
          const minimax = payload.models.find(
              (model) => model.family === "minimax",
@@ -334,6 +335,15 @@ test.describe("Native CLI sprint 02 contract", () => {
          expect(deepseek).toMatchObject({
            family : "deepseek",
            model : "deepseek-v2-lite",
+           architecture : "moe",
+           supports_moe : true,
+           supports_mlx : true,
+           supports_metal : true,
+           preferred_backend : expect.any(String),
+         });
+         expect(glm).toMatchObject({
+           family : "glm",
+           model : "glm-5.1",
            architecture : "moe",
            supports_moe : true,
            supports_mlx : true,
@@ -805,6 +815,60 @@ test.describe("Native CLI sprint 02 contract", () => {
       generated_tokens : expect.any(Array),
     });
     expect(JSON.parse(stdout).text).toContain("moe-route");
+  });
+
+  test("glm moe path emits routed expert output", async ({}, testInfo) => {
+    const {stdout, stderr} = await execFileAsync(
+        nativeCliPath!,
+        [
+          "run",
+          "--model",
+          "glm-5.1",
+          "--prompt",
+          "tool reason vision",
+          "--max-tokens",
+          "4",
+          "--json",
+        ],
+        {
+          cwd : repoRoot,
+          env : {
+            ...process.env,
+            NO_COLOR : "1",
+          },
+        },
+    );
+
+    await testInfo.attach("stdout-native-glm", {
+      body : stdout.trim() || "(empty)",
+      contentType : "text/plain",
+    });
+    await testInfo.attach("stderr-native-glm", {
+      body : stderr.trim() || "(empty)",
+      contentType : "text/plain",
+    });
+
+    expect(stderr.trim()).toBe("");
+    expect(JSON.parse(stdout)).toMatchObject({
+      family : "glm",
+      backend : "scalar",
+      shared_allocations : 0,
+      metal_dispatches : 0,
+      mlx_operation_count : 0,
+      kv_page_count : 1,
+      moe_selected_experts : 2,
+      moe_router_entropy : expect.any(Number),
+      moe_load_balance : expect.any(Number),
+      moe_selected_mass : expect.any(Number),
+      moe_pager_loads : 2,
+      moe_pager_evictions : 0,
+      moe_pager_reuses : 0,
+      moe_resident_experts : 2,
+      moe_hit_rate : 0,
+      moe_eviction_rate : 0,
+      generated_tokens : expect.any(Array),
+    });
+    expect(JSON.parse(stdout).text).toContain("glm-route");
   });
 
   test("kimi moe path emits routed expert output", async ({}, testInfo) => {

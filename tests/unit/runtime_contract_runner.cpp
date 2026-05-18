@@ -250,9 +250,11 @@ int main() {
   }
 
   {
-    const std::array<std::filesystem::path, 3> kMoeAssets = {
+    const std::array<std::filesystem::path, 4> kMoeAssets = {
         RepoRoot() / "tests" / "fixtures" / "models" / "deepseek-v2-lite" /
             "toy-deepseek.safetensors",
+        RepoRoot() / "tests" / "fixtures" / "models" / "glm-5.1" /
+            "toy-glm.safetensors",
         RepoRoot() / "tests" / "fixtures" / "models" / "kimi-k2-instruct" /
             "toy-kimi.safetensors",
         RepoRoot() / "tests" / "fixtures" / "models" / "minimax-m2" /
@@ -722,6 +724,46 @@ int main() {
                  "deepseek repeat should not add extra loads for same experts");
     ok &= Expect(repeatedDeepseek.moePagerReuses >= 2U,
                  "deepseek repeat should surface pager reuse");
+  }
+
+  {
+    const us4::IUS4V6Adapter *glm = us4::FindAdapterByModel("glm-5.1");
+    ok &= Expect(glm != nullptr, "glm adapter should stay registered");
+    if (glm != nullptr) {
+      us4::RuntimeContext moeContext(MakeProbe());
+      glm->ConfigureRuntime(moeContext);
+      const us4::GenerationResult glmResult = glm->Generate(
+          {.prompt = "tool reason vision", .maxTokens = 2}, moeContext);
+      ok &= Expect(glmResult.family == "glm",
+                   "glm generation should preserve moe family");
+      ok &= Expect(glmResult.moeSelectedExperts == 2U,
+                   "glm generation should expose selected expert count");
+      ok &= Expect(glmResult.moeRouterEntropy > 0.0F,
+                   "glm generation should expose router entropy");
+      ok &= Expect(glmResult.moeLoadBalance > 0.0F &&
+                       glmResult.moeLoadBalance <= 1.0F,
+                   "glm generation should expose load balance score");
+      ok &= Expect(glmResult.moeSelectedMass > 0.0F &&
+                       glmResult.moeSelectedMass <= 1.0F,
+                   "glm generation should expose selected expert mass");
+      ok &= Expect(glmResult.moePagerLoads == 2U,
+                   "glm generation should expose pager loads");
+      ok &= Expect(glmResult.moePagerEvictions == 0U,
+                   "glm generation should expose pager evictions");
+      ok &= Expect(glmResult.moePagerReuses == 0U,
+                   "glm generation should expose pager reuse");
+      ok &= Expect(glmResult.moeResidentExperts == 2U,
+                   "glm generation should expose resident expert count");
+      ok &= Expect(glmResult.text.find("glm-route") != std::string::npos,
+                   "glm generation should surface routed expert signature");
+
+      const us4::GenerationResult repeatedGlm = glm->Generate(
+          {.prompt = "tool reason vision", .maxTokens = 2}, moeContext);
+      ok &= Expect(repeatedGlm.moePagerLoads == 2U,
+                   "glm repeat should not add extra loads for same experts");
+      ok &= Expect(repeatedGlm.moePagerReuses >= 2U,
+                   "glm repeat should surface pager reuse");
+    }
   }
 
   {

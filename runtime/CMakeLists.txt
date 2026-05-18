@@ -15,6 +15,7 @@ add_library(us4_runtime_core
   adapters/deepseek/deepseek_moe_adapter.cpp
   adapters/qwen/qwen_adapter.cpp
   adapters/gemma/gemma_adapter.cpp
+  adapters/glm/glm_moe_adapter.cpp
   adapters/kimi/kimi_moe_adapter.cpp
   adapters/llama/llama_config.cpp
   adapters/llama/llama_adapter.cpp
