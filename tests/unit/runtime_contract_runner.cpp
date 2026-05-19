@@ -15,6 +15,7 @@
 #include "adapters/qwen/qwen_adapter.h"
 #include "ane/ane_backend.h"
 #include "ane/layer_offloader.h"
+#include "ane/mixed_dispatch.h"
 #include "cache/multimodal_cache.h"
 #include "cache/sparsity_aware_cache.h"
 #include "core/backend_selector.h"
@@ -49,6 +50,7 @@
 #include "speculative/eagle3_decoder.h"
 #include "speculative/peagle_decoder.h"
 #include "sprint_01_contract_placeholders.h"
+#include "tuning/thermal_monitor.h"
 
 namespace {
 
@@ -473,6 +475,54 @@ int main() {
     ok &= Expect(!fallbackLayer.eligible && fallbackLayer.fallbackToMetal &&
                      fallbackLayer.reason == "ane-router-cpu",
                  "ane layer offloader should keep router layers off ANE");
+    const us4::MixedDispatchPlan mixedPlan =
+        aneContext.mixedDispatch().BuildPlan(
+            "llama", 16U, 4096U, us4::DType::kFloat16, us4::RuntimeMode::kFull);
+    ok &= Expect(aneContext.mixedDispatch().Available(),
+                 "mixed dispatch should be available on m5 probe");
+    ok &= Expect(mixedPlan.stages.size() == 3U,
+                 "mixed dispatch plan should keep 3 canonical stages");
+    ok &= Expect(
+        mixedPlan.stages.front().backend == us4::DispatchBackend::kAne,
+        "mixed dispatch should prefer ane for eligible full-mode stages");
+    const auto aneShared = aneContext.allocator().Allocate(2048U, true);
+    const us4::MixedDispatchTelemetry mixedTelemetry =
+        aneContext.mixedDispatch().Execute(
+            mixedPlan, aneContext.layerOffloader(), aneContext.aneBackend(),
+            aneContext.metalQueue(), aneShared);
+    ok &= Expect(mixedTelemetry.aneStages == 3U &&
+                     mixedTelemetry.metalStages == 0U &&
+                     mixedTelemetry.strategy == "ane-only",
+                 "mixed dispatch should execute fully on ane when all stages "
+                 "are eligible");
+    const us4::MixedDispatchPlan fallbackPlan =
+        aneContext.mixedDispatch().BuildPlan(
+            "llama", 16U, 4096U, us4::DType::kInt8, us4::RuntimeMode::kFull);
+    const us4::MixedDispatchTelemetry fallbackTelemetry =
+        aneContext.mixedDispatch().Execute(
+            fallbackPlan, aneContext.layerOffloader(), aneContext.aneBackend(),
+            aneContext.metalQueue(), aneShared);
+    ok &= Expect(fallbackTelemetry.metalStages == 3U &&
+                     fallbackTelemetry.aneStages == 0U &&
+                     fallbackTelemetry.strategy == "metal-only",
+                 "mixed dispatch should fall back to metal for low-bit plans");
+
+    us4::HardwareProbeResult thermalProbe = aneProbe;
+    thermalProbe.unifiedMemoryGiB = 24ULL;
+    thermalProbe.recommendedMode = us4::RuntimeMode::kFull;
+    us4::RuntimeContext thermalContext(thermalProbe);
+    ok &= Expect(thermalContext.thermalMonitor().Available(),
+                 "thermal monitor should be available on apple-like probes");
+    ok &= Expect(thermalContext.thermalMonitor().Sample().level ==
+                     us4::ThermalPressureLevel::kElevated,
+                 "thermal monitor should surface elevated pressure");
+    ok &= Expect(thermalContext.mode() == us4::RuntimeMode::kBalancedPlus,
+                 "thermal monitor should downgrade full mode under elevated "
+                 "pressure");
+    thermalContext.SetMode(us4::RuntimeMode::kDegraded);
+    ok &= Expect(!thermalContext.thermalMonitor().LastDecision().downgraded &&
+                     thermalContext.mode() == us4::RuntimeMode::kDegraded,
+                 "thermal monitor should leave already lower modes intact");
   }
 
   {

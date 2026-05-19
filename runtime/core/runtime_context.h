@@ -2,6 +2,7 @@
 
 #include "ane/ane_backend.h"
 #include "ane/layer_offloader.h"
+#include "ane/mixed_dispatch.h"
 #include "cache/multimodal_cache.h"
 #include "cache/sparsity_aware_cache.h"
 #include "core/backend_selector.h"
@@ -16,6 +17,7 @@
 #include "moe/expert_pager.h"
 #include "moe/router.h"
 #include "scheduler/session_pool.h"
+#include "tuning/thermal_monitor.h"
 
 namespace us4 {
 
@@ -35,6 +37,8 @@ public:
   const AneBackend &aneBackend() const;
   LayerOffloader &layerOffloader();
   const LayerOffloader &layerOffloader() const;
+  MixedDispatchCoordinator &mixedDispatch();
+  const MixedDispatchCoordinator &mixedDispatch() const;
   MlxBridge &mlxBridge();
   const MlxBridge &mlxBridge() const;
   KvPager &kvPager();
@@ -46,6 +50,8 @@ public:
   SparsityAwareCache &sparsityCache();
   MultimodalCache &multimodalCache();
   SessionPool &sessionPool();
+  ThermalMonitor &thermalMonitor();
+  const ThermalMonitor &thermalMonitor() const;
   void SetMode(RuntimeMode mode);
   void SetBackend(BackendType backend);
 
@@ -57,6 +63,7 @@ private:
   MetalCommandQueue metalQueue_;
   AneBackend aneBackend_;
   LayerOffloader layerOffloader_;
+  MixedDispatchCoordinator mixedDispatch_;
   MlxBridge mlxBridge_;
   KvPager kvPager_;
   PrefixCache prefixCache_;
@@ -67,6 +74,7 @@ private:
   SparsityAwareCache sparsityCache_;
   MultimodalCache multimodalCache_;
   SessionPool sessionPool_;
+  ThermalMonitor thermalMonitor_;
 };
 
 } // namespace us4

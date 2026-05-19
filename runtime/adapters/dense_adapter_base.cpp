@@ -107,30 +107,18 @@ void RecordBackendScaffold(const IUS4V6Adapter &adapter,
     break;
   case BackendType::kScalarCpu:
   case BackendType::kNeon:
+    break;
   case BackendType::kAne:
-    if (mutableContext.layerOffloader().Available()) {
-      const OffloadDecision attentionDecision =
-          mutableContext.layerOffloader().Decide(
-              {.family = std::string(adapter.Family()),
-               .layerName = "decoder.block.0.attention_out",
-               .layerType = OffloadLayerType::kAttentionOutput,
-               .mode = context.mode(),
-               .tokenCount = std::max<std::size_t>(request.maxTokens, 1U),
-               .hiddenSize = kHiddenSize,
-               .weightDType = request.asset != nullptr
-                                  ? request.asset->weightDType
-                                  : DType::kFloat32,
-               .staticShape = true});
-      if (attentionDecision.eligible) {
-        (void)mutableContext.aneBackend().Compile(
-            {.kind = AneModelKind::kAttentionMlp,
-             .family = std::string(adapter.Family()),
-             .layerName = "decoder.block.0.attention_out",
-             .tokenCount = std::max<std::size_t>(request.maxTokens, 1U),
-             .usesSharedTokenizer =
-                 request.asset != nullptr && request.asset->sharedTokenizer,
-             .staticShapePreferred = true});
-      }
+    if (mutableContext.mixedDispatch().Available()) {
+      (void)mutableContext.mixedDispatch().Execute(
+          mutableContext.mixedDispatch().BuildPlan(
+              std::string(adapter.Family()),
+              std::max<std::size_t>(request.maxTokens, 1U), kHiddenSize,
+              request.asset != nullptr ? request.asset->weightDType
+                                       : DType::kFloat32,
+              context.mode()),
+          mutableContext.layerOffloader(), mutableContext.aneBackend(),
+          mutableContext.metalQueue(), allocation);
     }
     break;
   }
@@ -770,6 +758,30 @@ GenerationResult DenseAdapterBase::FinalizeGenerationResult(
   }
   result.metalDevice = context.metalQueue().Device().deviceName;
   result.metalQueueLabel = context.metalQueue().Device().queueLabel;
+  if (backendSelection.selected == BackendType::kAne &&
+      context.mixedDispatch().Available()) {
+    result.mixedDispatchMetalStages = context.metalQueue().DispatchCount();
+    result.mixedDispatchAneStages =
+        mutableContext.aneBackend().PredictionCount();
+    result.anePredictionCalls = mutableContext.aneBackend().PredictionCount();
+    result.aneCompiledLayers =
+        mutableContext.aneBackend().LastCompiledModel().has_value() ? 1U : 0U;
+
+    if (result.mixedDispatchAneStages > 0U &&
+        result.mixedDispatchMetalStages > 0U) {
+      result.mixedDispatchStrategy = "metal-ane-mixed";
+    } else if (result.mixedDispatchAneStages > 0U) {
+      result.mixedDispatchStrategy = "ane-only";
+    } else {
+      result.mixedDispatchStrategy = "metal-only";
+    }
+  } else {
+    result.mixedDispatchStrategy = "disabled";
+  }
+  result.thermalPressureLevel =
+      std::string(ToString(context.thermalMonitor().LastDecision().level));
+  result.thermalReason = context.thermalMonitor().LastDecision().reason;
+  result.thermalDowngraded = context.thermalMonitor().LastDecision().downgraded;
   result.mode = context.mode();
   result.fellBack = backendSelection.fellBack;
   return result;

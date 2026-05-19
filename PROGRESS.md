@@ -11,6 +11,50 @@ sem quebrar o fallback estavel para Metal/MLX/NEON.
 Status: done
 
 Task:
+T11.4 - Build thermal monitor surface
+
+Result:
+`ThermalMonitor` entrou em `runtime/tuning` com amostragem derivada do probe,
+decisao de downgrade e exposicao no `RuntimeContext`. O runtime agora limita
+modos sob pressao `elevated` e `critical`, e o `us4-cli run` mostra
+`thermal_pressure_level`, `thermal_reason` e `thermal_downgraded`.
+
+Validation:
+`npm run lint`; `npm test -- --coverage`; `npm run pack:dry`;
+`cmake --build build --config Release`;
+`ctest --test-dir build --output-on-failure -C Release`;
+`npx playwright test --reporter=list,html tests/e2e/us4-cli.spec.ts`;
+`build\\runtime\\benchmarks\\dense_baseline.exe`
+
+Next:
+T11.5 - adicionar evidencia de benchmark ANE/Metal e documentar limites em
+hosts sem M5 real.
+
+Status: done
+
+Task:
+T11.3 - Build mixed metal ane dispatch surface
+
+Result:
+`MixedDispatchCoordinator` entrou em `runtime/ane`, o `RuntimeContext` passou
+a expor esse coordenador, e o caminho ANE do `DenseAdapterBase` agora executa
+um plano explicito de estagios Metal/ANE em vez de cair num scaffold opaco. O
+`GenerationResult` e o `us4-cli run` agora mostram estrategia, contagem de
+estagios Metal/ANE, layers compiladas e chamadas de predicao para manter o
+fallback visivel.
+
+Validation:
+`npm run lint`; `npm test -- --coverage`; `npm run pack:dry`;
+`cmake --build build --config Release`;
+`ctest --test-dir build --output-on-failure -C Release`;
+`npx playwright test --reporter=list,html tests/e2e/us4-cli.spec.ts`
+
+Next:
+T11.4 - adicionar `ThermalMonitor` e gates de degradacao termica.
+
+Status: done
+
+Task:
 T11.2 - Build ane layer offloader surface
 
 Result:

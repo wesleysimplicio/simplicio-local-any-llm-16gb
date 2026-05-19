@@ -95,6 +95,14 @@ struct GenerationResult {
   std::string dequantPath;
   std::string metalDevice;
   std::string metalQueueLabel;
+  std::string mixedDispatchStrategy;
+  std::size_t mixedDispatchMetalStages = 0;
+  std::size_t mixedDispatchAneStages = 0;
+  std::size_t aneCompiledLayers = 0;
+  std::size_t anePredictionCalls = 0;
+  std::string thermalPressureLevel;
+  std::string thermalReason;
+  bool thermalDowngraded = false;
   RuntimeMode mode = RuntimeMode::kNano;
   bool fellBack = false;
 };

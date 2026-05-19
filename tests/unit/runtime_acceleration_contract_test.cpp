@@ -5,6 +5,7 @@
 #include "adapters/qwen/qwen_adapter.h"
 #include "ane/ane_backend.h"
 #include "ane/layer_offloader.h"
+#include "ane/mixed_dispatch.h"
 #include "core/runtime_context.h"
 #include "memory/unified_allocator.h"
 #include "metal/autorelease_scope.h"
@@ -14,6 +15,7 @@
 #include "metal/kernel_library.h"
 #include "mlx/dense_plan.h"
 #include "mlx/mlx_bridge.h"
+#include "tuning/thermal_monitor.h"
 
 namespace {
 
@@ -128,6 +130,63 @@ TEST(RuntimeAccelerationContractTest,
   EXPECT_FALSE(routerFallback.eligible);
   EXPECT_TRUE(routerFallback.fallbackToMetal);
   EXPECT_EQ(routerFallback.reason, "ane-router-cpu");
+}
+
+TEST(RuntimeAccelerationContractTest,
+     MixedDispatchCoordinatorBuildsAndExecutesAneEligiblePlan) {
+  us4::HardwareProbeResult probe = MakeAppleProbe();
+  probe.chip = "Apple M5";
+  probe.hasAne = true;
+  probe.supportsCoreMl = true;
+  probe.recommendedMode = us4::RuntimeMode::kFull;
+
+  us4::RuntimeContext context(probe);
+  ASSERT_TRUE(context.mixedDispatch().Available());
+  EXPECT_EQ(context.mixedDispatch().Reason(), "mixed-dispatch-ready");
+
+  const us4::MixedDispatchPlan plan = context.mixedDispatch().BuildPlan(
+      "llama", 16U, 4096U, us4::DType::kFloat16, us4::RuntimeMode::kFull);
+  ASSERT_EQ(plan.stages.size(), 3U);
+  EXPECT_EQ(plan.stages[0].backend, us4::DispatchBackend::kAne);
+  EXPECT_EQ(plan.stages[1].backend, us4::DispatchBackend::kAne);
+  EXPECT_EQ(plan.stages[2].backend, us4::DispatchBackend::kAne);
+
+  const auto shared = context.allocator().Allocate(4096U, true);
+  const us4::MixedDispatchTelemetry telemetry = context.mixedDispatch().Execute(
+      plan, context.layerOffloader(), context.aneBackend(),
+      context.metalQueue(), shared);
+
+  EXPECT_EQ(telemetry.aneStages, 3U);
+  EXPECT_EQ(telemetry.metalStages, 0U);
+  EXPECT_EQ(telemetry.compiledLayers, 3U);
+  EXPECT_EQ(telemetry.predictionCalls, 3U);
+  EXPECT_EQ(telemetry.strategy, "ane-only");
+  EXPECT_EQ(context.aneBackend().PredictionCount(), 3U);
+}
+
+TEST(RuntimeAccelerationContractTest,
+     ThermalMonitorDowngradesFullModeUnderElevatedPressure) {
+  us4::HardwareProbeResult probe = MakeAppleProbe();
+  probe.chip = "Apple M5";
+  probe.hasAne = true;
+  probe.supportsCoreMl = true;
+  probe.unifiedMemoryGiB = 24;
+  probe.recommendedMode = us4::RuntimeMode::kFull;
+
+  us4::RuntimeContext context(probe);
+  EXPECT_TRUE(context.thermalMonitor().Available());
+  EXPECT_EQ(context.thermalMonitor().Sample().level,
+            us4::ThermalPressureLevel::kElevated);
+  EXPECT_EQ(context.thermalMonitor().LastDecision().requestedMode,
+            us4::RuntimeMode::kFull);
+  EXPECT_EQ(context.thermalMonitor().LastDecision().effectiveMode,
+            us4::RuntimeMode::kBalancedPlus);
+  EXPECT_TRUE(context.thermalMonitor().LastDecision().downgraded);
+  EXPECT_EQ(context.mode(), us4::RuntimeMode::kBalancedPlus);
+
+  context.SetMode(us4::RuntimeMode::kDegraded);
+  EXPECT_EQ(context.mode(), us4::RuntimeMode::kDegraded);
+  EXPECT_FALSE(context.thermalMonitor().LastDecision().downgraded);
 }
 
 TEST(RuntimeAccelerationContractTest,

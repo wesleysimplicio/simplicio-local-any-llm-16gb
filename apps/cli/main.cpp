@@ -283,6 +283,16 @@ void PrintRunText(const us4::GenerationResult &result) {
       << "weight_dtype: " << result.weightDType << "\n"
       << "neon_kernel_flavor: " << result.neonKernelFlavor << "\n"
       << "dequant_path: " << result.dequantPath << "\n"
+      << "mixed_dispatch_strategy: " << result.mixedDispatchStrategy << "\n"
+      << "mixed_dispatch_metal_stages: " << result.mixedDispatchMetalStages
+      << "\n"
+      << "mixed_dispatch_ane_stages: " << result.mixedDispatchAneStages << "\n"
+      << "ane_compiled_layers: " << result.aneCompiledLayers << "\n"
+      << "ane_prediction_calls: " << result.anePredictionCalls << "\n"
+      << "thermal_pressure_level: " << result.thermalPressureLevel << "\n"
+      << "thermal_reason: " << result.thermalReason << "\n"
+      << "thermal_downgraded: " << (result.thermalDowngraded ? "true" : "false")
+      << "\n"
       << "metal_device: " << result.metalDevice << "\n"
       << "metal_queue_label: " << result.metalQueueLabel << "\n"
       << "prompt_tokens: " << result.promptTokens.size() << "\n"
@@ -400,6 +410,19 @@ void PrintRunJson(const us4::GenerationResult &result) {
       << "\"neon_kernel_flavor\":\"" << EscapeJson(result.neonKernelFlavor)
       << "\","
       << "\"dequant_path\":\"" << EscapeJson(result.dequantPath) << "\","
+      << "\"mixed_dispatch_strategy\":\""
+      << EscapeJson(result.mixedDispatchStrategy) << "\","
+      << "\"mixed_dispatch_metal_stages\":" << result.mixedDispatchMetalStages
+      << ","
+      << "\"mixed_dispatch_ane_stages\":" << result.mixedDispatchAneStages
+      << ","
+      << "\"ane_compiled_layers\":" << result.aneCompiledLayers << ","
+      << "\"ane_prediction_calls\":" << result.anePredictionCalls << ","
+      << "\"thermal_pressure_level\":\""
+      << EscapeJson(result.thermalPressureLevel) << "\","
+      << "\"thermal_reason\":\"" << EscapeJson(result.thermalReason) << "\","
+      << "\"thermal_downgraded\":"
+      << (result.thermalDowngraded ? "true" : "false") << ","
       << "\"metal_device\":\"" << EscapeJson(result.metalDevice) << "\","
       << "\"metal_queue_label\":\"" << EscapeJson(result.metalQueueLabel)
       << "\","

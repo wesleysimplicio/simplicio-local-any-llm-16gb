@@ -5,7 +5,10 @@ namespace us4 {
 RuntimeContext::RuntimeContext(HardwareProbeResult probe_result)
     : hardware_(std::move(probe_result)), mode_(hardware_.recommendedMode),
       metalQueue_(hardware_), aneBackend_(hardware_),
-      layerOffloader_(hardware_), mlxBridge_(hardware_) {}
+      layerOffloader_(hardware_), mixedDispatch_(hardware_),
+      mlxBridge_(hardware_), thermalMonitor_(hardware_) {
+  mode_ = thermalMonitor_.Decide(mode_).effectiveMode;
+}
 
 const HardwareProbeResult &RuntimeContext::hardware() const {
   return hardware_;
@@ -35,6 +38,14 @@ const LayerOffloader &RuntimeContext::layerOffloader() const {
   return layerOffloader_;
 }
 
+MixedDispatchCoordinator &RuntimeContext::mixedDispatch() {
+  return mixedDispatch_;
+}
+
+const MixedDispatchCoordinator &RuntimeContext::mixedDispatch() const {
+  return mixedDispatch_;
+}
+
 MlxBridge &RuntimeContext::mlxBridge() { return mlxBridge_; }
 
 const MlxBridge &RuntimeContext::mlxBridge() const { return mlxBridge_; }
@@ -57,7 +68,15 @@ MultimodalCache &RuntimeContext::multimodalCache() { return multimodalCache_; }
 
 SessionPool &RuntimeContext::sessionPool() { return sessionPool_; }
 
-void RuntimeContext::SetMode(RuntimeMode mode) { mode_ = mode; }
+ThermalMonitor &RuntimeContext::thermalMonitor() { return thermalMonitor_; }
+
+const ThermalMonitor &RuntimeContext::thermalMonitor() const {
+  return thermalMonitor_;
+}
+
+void RuntimeContext::SetMode(RuntimeMode mode) {
+  mode_ = thermalMonitor_.Decide(mode).effectiveMode;
+}
 
 void RuntimeContext::SetBackend(BackendType backend) { backend_ = backend; }
 

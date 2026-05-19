@@ -1,6 +1,7 @@
 add_library(us4_runtime_core
   ane/ane_backend.cpp
   ane/layer_offloader.cpp
+  ane/mixed_dispatch.cpp
   core/backend_selector.cpp
   core/runtime_mode.cpp
   core/hardware_probe.cpp
@@ -51,6 +52,7 @@ add_library(us4_runtime_core
   speculative/peagle_decoder.cpp
   telemetry/telemetry_types.cpp
   telemetry/telemetry_sink.cpp
+  tuning/thermal_monitor.cpp
 )
 
 target_include_directories(us4_runtime_core
