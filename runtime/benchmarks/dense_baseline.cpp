@@ -194,6 +194,29 @@ int main() {
     return 1;
   }
 
+  // Sprint 04 T04.6: explicit NEON re-bench rows for Qwen and Gemma so the
+  // evidence file always exposes scalar vs neon for the same dense adapters.
+  if (!RunCase(probe, "dense-qwen/scalar-requested", "qwen-0.5b", std::nullopt,
+               us4::BackendType::kScalar)
+           .has_value()) {
+    return 1;
+  }
+  if (!RunCase(probe, "dense-qwen/neon-requested", "qwen-0.5b", std::nullopt,
+               us4::BackendType::kNeon)
+           .has_value()) {
+    return 1;
+  }
+  if (!RunCase(probe, "dense-gemma/scalar-requested", "gemma-2b-it", std::nullopt,
+               us4::BackendType::kScalar)
+           .has_value()) {
+    return 1;
+  }
+  if (!RunCase(probe, "dense-gemma/neon-requested", "gemma-2b-it", std::nullopt,
+               us4::BackendType::kNeon)
+           .has_value()) {
+    return 1;
+  }
+
   const std::optional<us4::ModelAsset> llamaFixtureAsset =
       LoadOptionalAsset(repoRoot / "tests" / "fixtures" / "models" /
                         "llama-3.1-8b" / "model.us4manifest");

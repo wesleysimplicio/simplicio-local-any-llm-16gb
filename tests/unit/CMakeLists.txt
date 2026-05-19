@@ -18,9 +18,16 @@ set(us4_runtime_contract_test_sources
   benchmark_observability_contract_test.cpp
   model_asset_contract_test.cpp
   kv_contract_test.cpp
+  eviction_policy_contract_test.cpp
   moe_contract_test.cpp
+  moe_extended_contract_test.cpp
+  moe_advanced_contract_test.cpp
+  ane_contract_test.cpp
+  tuning_contract_test.cpp
   neon_dequant_contract_test.cpp
   neon_contract_test.cpp
+  block_gemm_contract_test.cpp
+  lowbit_contract_test.cpp
   runtime_acceleration_contract_test.cpp
   gqa_attention_contract_test.cpp
   rope_contract_test.cpp

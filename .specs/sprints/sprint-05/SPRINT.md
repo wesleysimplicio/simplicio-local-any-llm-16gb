@@ -1,6 +1,6 @@
 ---
 sprint: sprint-05
-status: todo
+status: done
 start: 2026-07-09
 end: 2026-07-22
 owner: us4-core
@@ -17,13 +17,13 @@ BitNet 1.58-bit + Ternary (PT-BitNet) com kernels Metal + NEON. MICRO mode rodan
 - O escopo abaixo continua sendo a entrega esperada para execucao low-memory de verdade.
 
 ## Tasks
-- [ ] T05.1 — `runtime/metal/kernels/bitnet_matmul.metal` (1.58-bit packed)
-- [ ] T05.2 — `runtime/neon/bitnet_matmul.cpp` (packed lookup + popcount)
-- [ ] T05.3 — `runtime/adapters/bitnet/BitNetAdapter` (load packed weights, scale layers)
-- [ ] T05.4 — `runtime/adapters/ternary/TernaryAdapter` (PT-BitNet ternary -1/0/+1)
-- [ ] T05.5 — Ternary lookup tables (LUT 256-entry for 4-ternary chunks)
-- [ ] T05.6 — Loader: BitNet GGUF variant + ternary safetensors
-- [ ] T05.7 — RuntimeMode MICRO trigger (RAM<=8GB -> ternary preferido)
+- [x] T05.1 — `runtime/metal/kernels/bitnet_matmul.metal` (1.58-bit packed)
+- [x] T05.2 — `runtime/neon/bitnet_matmul.cpp` (packed lookup + popcount)
+- [x] T05.3 — `runtime/adapters/bitnet/BitNetAdapter` (load packed weights, scale layers)
+- [x] T05.4 — `runtime/adapters/ternary/TernaryAdapter` (PT-BitNet ternary -1/0/+1)
+- [x] T05.5 — Ternary lookup tables (LUT 256-entry for 4-ternary chunks)
+- [x] T05.6 — Loader: BitNet GGUF variant + ternary safetensors
+- [x] T05.7 — RuntimeMode MICRO trigger (RAM<=8GB -> ternary preferido)
 
 ## Test plan
 - Unit: BitNet matmul Metal vs scalar reference (atol 5e-3); ternary LUT correctness.

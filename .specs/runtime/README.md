@@ -12,6 +12,7 @@
 | [`HARDWARE-PROBE.md`](HARDWARE-PROBE.md) | Responsabilidades do `HardwareProbe`, taxonomia de modos e mapeamento memoria-tier. |
 | [`TELEMETRY.md`](TELEMETRY.md) | Categorias de telemetria, output e gates por fase de maturidade. |
 | [`PLAYWRIGHT-SMOKE.md`](PLAYWRIGHT-SMOKE.md) | Escopo, alvos e evidencias minimas do smoke E2E. |
+| [`CLI-POLISH.md`](CLI-POLISH.md) | Surface CLI completa planejada para v1.0 + plano E2E. |
 
 ## Regras
 

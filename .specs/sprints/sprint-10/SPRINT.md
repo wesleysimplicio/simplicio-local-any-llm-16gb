@@ -1,6 +1,6 @@
 ---
 sprint: sprint-10
-status: in_progress
+status: done
 start: 2026-09-17
 end: 2026-09-30
 owner: us4-core

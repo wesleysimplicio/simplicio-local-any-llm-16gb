@@ -1,6 +1,7 @@
 add_library(us4_runtime_core
   ane/ane_backend.cpp
   ane/layer_offloader.cpp
+  ane/mixed_dispatch.cpp
   core/backend_selector.cpp
   core/runtime_mode.cpp
   core/hardware_probe.cpp
@@ -11,6 +12,7 @@ add_library(us4_runtime_core
   core/tensor.cpp
   cpu/scalar_matmul.cpp
   cpu/scalar_attention.cpp
+  cpu/ternary_lut.cpp
   adapters/dense_adapter_base.cpp
   adapters/adapter_registry.cpp
   adapters/bitnet/bitnet_adapter.cpp
@@ -25,6 +27,7 @@ add_library(us4_runtime_core
   adapters/ternary/ternary_adapter.cpp
   cache/multimodal_cache.cpp
   cache/sparsity_aware_cache.cpp
+  kv/eviction_policy.cpp
   kv/kv_pager.cpp
   kv/prefix_cache.cpp
   kv/ssd_cold_store.cpp
@@ -38,8 +41,13 @@ add_library(us4_runtime_core
   mlx/dense_plan.cpp
   mlx/mlx_bridge.cpp
   moe/expert_pager.cpp
+  moe/moe_telemetry.cpp
   moe/router.cpp
+  moe/router_metrics.cpp
+  moe/shard_loader.cpp
   moe/speculative_prefetch.cpp
+  neon/bitnet_matmul.cpp
+  neon/block_gemm.cpp
   neon/dequant_int4.cpp
   neon/dequant_int8.cpp
   neon/neon_attention.cpp
@@ -47,10 +55,15 @@ add_library(us4_runtime_core
   neon/neon_matmul.cpp
   scheduler/continuous_batcher.cpp
   scheduler/session_pool.cpp
+  speculative/draft_model_loader.cpp
   speculative/eagle3_decoder.cpp
   speculative/peagle_decoder.cpp
+  speculative/speculative_telemetry.cpp
   telemetry/telemetry_types.cpp
   telemetry/telemetry_sink.cpp
+  tuning/auto_tuner.cpp
+  tuning/profile_cache.cpp
+  tuning/thermal_monitor.cpp
 )
 
 target_include_directories(us4_runtime_core

@@ -1,6 +1,6 @@
 ---
 sprint: sprint-04
-status: in_progress
+status: done
 start: 2026-06-25
 end: 2026-07-08
 owner: us4-core
@@ -45,12 +45,12 @@ Caminhos quentes em NEON (ARM SIMD): matmul, attention, dequantizacao INT8/INT4.
 
 ## Tasks
 
-- [ ] T04.1 — `runtime/neon/neon_matmul.cpp` (FP16/BF16/INT8 via dotprod, vdotq_s32)
-- [ ] T04.2 — `runtime/neon/neon_attention.cpp` (causal, fused softmax-rescale)
+- [x] T04.1 — `runtime/neon/neon_matmul.cpp` (FP16/BF16/INT8 via dotprod, vdotq_s32)
+- [x] T04.2 — `runtime/neon/neon_attention.cpp` (causal, fused softmax-rescale)
 - [x] T04.3 — `runtime/neon/dequant_int8.cpp` + `dequant_int4.cpp` (group-wise scales)
-- [ ] T04.4 — Block GEMM tiling 8x8 / 4x16 + cache-aware prefetch
+- [x] T04.4 — Block GEMM tiling 8x8 / 4x16 + cache-aware prefetch
 - [x] T04.5 — Auto-select NEON vs scalar via probe (vector width, cluster type P/E)
-- [ ] T04.6 — Re-bench Qwen/Gemma com NEON vs scalar
+- [x] T04.6 — Re-bench Qwen/Gemma com NEON vs scalar
 
 ## Test plan
 

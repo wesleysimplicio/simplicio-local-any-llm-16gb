@@ -1,6 +1,6 @@
 ---
 sprint: sprint-06
-status: todo
+status: done
 start: 2026-07-23
 end: 2026-08-05
 owner: us4-core
@@ -23,13 +23,13 @@ Pager hot-cold de KV cache (unified memory hot, RAM warm, SSD cold). Prefix cach
 
 ## Tasks
 
-- [ ] T06.1 — `runtime/kv/KvPager` (page table, LRU, hot/cold tiers)
-- [ ] T06.2 — `runtime/kv/PrefixCache` (shared prefix by hash, ref-count)
-- [ ] T06.3 — `runtime/kv/SsdColdStore` (mmap, async flush)
-- [ ] T06.4 — `runtime/kv/Summarizer` (compress old tokens to summary vector)
-- [ ] T06.5 — Eviction policy: LRU + frequency hybrid, cost-aware
-- [ ] T06.6 — Adapter hooks: append, lookup, evict, summarize
-- [ ] T06.7 — Telemetry: hit-rate hot/warm/cold + summarize ratio
+- [x] T06.1 — `runtime/kv/KvPager` (page table, LRU, hot/cold tiers)
+- [x] T06.2 — `runtime/kv/PrefixCache` (shared prefix by hash, ref-count)
+- [x] T06.3 — `runtime/kv/SsdColdStore` (mmap, async flush)
+- [x] T06.4 — `runtime/kv/Summarizer` (compress old tokens to summary vector)
+- [x] T06.5 — Eviction policy: LRU + frequency hybrid, cost-aware
+- [x] T06.6 — Adapter hooks: append, lookup, evict, summarize
+- [x] T06.7 — Telemetry: hit-rate hot/warm/cold + summarize ratio
 
 ## Test plan
 
