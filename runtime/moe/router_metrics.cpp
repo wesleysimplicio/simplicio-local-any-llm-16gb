@@ -51,8 +51,12 @@ float RouterLoadBalanceLoss(const std::vector<float> &logits,
     return 0.0F;
   }
   const auto probs = Softmax(logits);
-  const float idealLoad =
-      static_cast<float>(k) / static_cast<float>(probs.size());
+  // The router softmax is a probability distribution that sums to 1, so a
+  // perfectly balanced router assigns 1/N of the routing mass to each expert
+  // regardless of how many (k) are ultimately selected. The ideal per-expert
+  // load is therefore 1/N, not k/N -- the latter exceeds 1 once k > 1 and makes
+  // the loss non-zero even for a uniform router.
+  const float idealLoad = 1.0F / static_cast<float>(probs.size());
   float loss = 0.0F;
   for (const float probability : probs) {
     const float gap = probability - idealLoad;

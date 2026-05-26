@@ -40,7 +40,7 @@ TEST(ModelAssetContractTest, LoadsFixtureManifestMetadataAcrossFamilies) {
   constexpr std::array<ManifestExpectation, 9> kManifestExpectations = {{
       {"qwen-0.5b", "qwen", "qwen-0.5b-fixture", us4::DType::kFloat16, 41051U,
        "hi", false},
-      {"gemma-2b-it", "gemma", "gemma-2b-it-fixture", us4::DType::kFloat16,
+      {"gemma-2b-it", "gemma", "gemma-2b-it-fixture", us4::DType::kBFloat16,
        22073U, "hello", false},
       {"llama-3.1-8b", "llama", "llama-3.1-8b-fixture", us4::DType::kFloat16,
        31800U, "hello", true},
@@ -87,7 +87,7 @@ TEST(ModelAssetContractTest, DetectsSupportedBinaryModelFormatsAcrossFamilies) {
            "toy-qwen", us4::DType::kFloat16},
           {"gemma-2b-it", "toy-gemma.safetensors",
            us4::ModelFormat::kSafetensors, "gemma", "toy-gemma",
-           us4::DType::kFloat16},
+           us4::DType::kBFloat16},
           {"llama-3.1-8b", "toy-llama.gguf", us4::ModelFormat::kGguf, "llama",
            "toy-llama", us4::DType::kFloat16},
           {"bitnet-b1.58-2b", "toy-bitnet.gguf", us4::ModelFormat::kGguf,

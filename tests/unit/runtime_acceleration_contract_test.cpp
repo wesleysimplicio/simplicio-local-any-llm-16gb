@@ -25,9 +25,11 @@ us4::HardwareProbeResult MakeAppleProbe() {
   probe.architecture = "arm64";
   probe.chip = "apple-m";
   probe.unifiedMemoryGiB = 36;
+  probe.isAppleSilicon = true;
   probe.hasMetal = true;
   probe.hasMlx = true;
   probe.hasNeon = true;
+  probe.hasPerformanceCores = true;
   probe.recommendedMode = us4::RuntimeMode::kBalancedPlus;
   return probe;
 }
