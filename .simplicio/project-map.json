@@ -1,0 +1,3602 @@
+{
+  "schema": "simplicio.project-map/v1",
+  "version": 1,
+  "generated_at": "2026-05-30T20:28:56.069Z",
+  "update_mode": "full",
+  "product": {
+    "name": "us4-v6-simplicio-apple",
+    "stack": "node",
+    "project_mode": "root"
+  },
+  "files": [
+    {
+      "path": "_BOOTSTRAP.md",
+      "language": "markdown",
+      "size_bytes": 2103,
+      "last_modified": "2026-05-27T03:22:58.045Z",
+      "file_hash": "ab9ac3d37fbb997e330db2c1c22b1caba43e7a9040a9a1ab0db3eef4f4d7f0de",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".agents/_template.agent.md",
+      "language": "markdown",
+      "size_bytes": 1249,
+      "last_modified": "2026-05-27T03:22:58.027Z",
+      "file_hash": "5eb35a660c5ba18df9daba2a3cc4aa07d5e40b76a1d8b91cf61e009a54a24e08",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".agents/architect.agent.md",
+      "language": "markdown",
+      "size_bytes": 4106,
+      "last_modified": "2026-05-27T03:22:58.028Z",
+      "file_hash": "ac90998f7fd820db5966c5420180c33df9559411279eee1c2d1530e0f8061ded",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".agents/ralph-loop.agent.md",
+      "language": "markdown",
+      "size_bytes": 12921,
+      "last_modified": "2026-05-27T03:22:58.028Z",
+      "file_hash": "ad1385af9a2c5dd3ff100879bcf4075cfddbfdee2f7284ff3d676a93146e7f02",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".agents/README.md",
+      "language": "markdown",
+      "size_bytes": 3480,
+      "last_modified": "2026-05-27T03:22:58.027Z",
+      "file_hash": "3fc3bb35ad1983275fb658e923567ee825068830b2e3ed3b095b71d56bc7bada",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".agents/reviewer.agent.md",
+      "language": "markdown",
+      "size_bytes": 4211,
+      "last_modified": "2026-05-27T03:22:58.028Z",
+      "file_hash": "375a30565f9546566e207d28d393d79d6aacf751b0a29c1da3542bba80cf1a3f",
+      "git_status": "clean",
+      "roles": [
+        "ui"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".agents/tdd.agent.md",
+      "language": "markdown",
+      "size_bytes": 3783,
+      "last_modified": "2026-05-27T03:22:58.028Z",
+      "file_hash": "7af0937c9b72fbc5c56f0f5812e051fcb0b503c248b06f6d02402f3092d65b98",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".claude/hooks/post-edit.ps1",
+      "language": "powershell",
+      "size_bytes": 1067,
+      "last_modified": "2026-05-27T03:22:58.028Z",
+      "file_hash": "b35d43aa930881562e1a90731713dca1dfb97bffa49d13e1ff99d50b2d3b59a9",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".claude/hooks/post-edit.sh",
+      "language": "shell",
+      "size_bytes": 827,
+      "last_modified": "2026-05-27T03:22:58.028Z",
+      "file_hash": "cace03da4dae5ca54265aedd619142c652b0c04bf7e31c06b1e76a85c6121c46",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".claude/hooks/pre-commit.ps1",
+      "language": "powershell",
+      "size_bytes": 1175,
+      "last_modified": "2026-05-27T03:22:58.028Z",
+      "file_hash": "460f9ccb2fcda1ec7efe740f45f97f93c5e5e89359d90103085a81b391266dc0",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".claude/hooks/pre-commit.sh",
+      "language": "shell",
+      "size_bytes": 894,
+      "last_modified": "2026-05-27T03:22:58.028Z",
+      "file_hash": "ce7b55b57f18eaff33c0ca6f124824e7ea7bde017368cbb64874a375c5a7d3fb",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".claude/hooks/session-start-skills.sh",
+      "language": "shell",
+      "size_bytes": 1730,
+      "last_modified": "2026-05-27T03:22:58.029Z",
+      "file_hash": "4e2c7bd62867f4e6ed1680ac071d5559f9f0e1d1467408127733f22a70e4f4d1",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".claude/settings.json",
+      "language": "json",
+      "size_bytes": 1304,
+      "last_modified": "2026-05-27T03:22:58.029Z",
+      "file_hash": "84ed8de18717ae50fbfb7c1abe86d1eaea6ce771e90e8100b59c8a10d83227a3",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".claude/settings.local.json",
+      "language": "json",
+      "size_bytes": 522,
+      "last_modified": "2026-05-27T05:58:35.480Z",
+      "file_hash": "b34ebadaa7034db4db573ca7e13798dc85ebc0e62d1a137aec298271e5eec804",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".codex/config.toml",
+      "language": "toml",
+      "size_bytes": 575,
+      "last_modified": "2026-05-27T03:22:58.029Z",
+      "file_hash": "b3203e687a4aebc7567f960af0cc6d6acb46fbe4596142e4ffcd8db52fb33ce6",
+      "git_status": "clean",
+      "roles": [
+        "config"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.32
+    },
+    {
+      "path": ".codex/hooks.json",
+      "language": "json",
+      "size_bytes": 745,
+      "last_modified": "2026-05-27T03:22:58.029Z",
+      "file_hash": "b0d2c243a06073031decac19c073cf004c25a58db5f62659fe5feb0490160185",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".codex/hooks/post-edit.ps1",
+      "language": "powershell",
+      "size_bytes": 1067,
+      "last_modified": "2026-05-27T03:22:58.029Z",
+      "file_hash": "b35d43aa930881562e1a90731713dca1dfb97bffa49d13e1ff99d50b2d3b59a9",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".codex/hooks/post-edit.sh",
+      "language": "shell",
+      "size_bytes": 827,
+      "last_modified": "2026-05-27T03:22:58.029Z",
+      "file_hash": "cace03da4dae5ca54265aedd619142c652b0c04bf7e31c06b1e76a85c6121c46",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".codex/hooks/pre-commit.ps1",
+      "language": "powershell",
+      "size_bytes": 1175,
+      "last_modified": "2026-05-27T03:22:58.029Z",
+      "file_hash": "460f9ccb2fcda1ec7efe740f45f97f93c5e5e89359d90103085a81b391266dc0",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".codex/hooks/pre-commit.sh",
+      "language": "shell",
+      "size_bytes": 894,
+      "last_modified": "2026-05-27T03:22:58.029Z",
+      "file_hash": "ce7b55b57f18eaff33c0ca6f124824e7ea7bde017368cbb64874a375c5a7d3fb",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".codex/hooks/session-start-skills.sh",
+      "language": "shell",
+      "size_bytes": 1730,
+      "last_modified": "2026-05-27T03:22:58.029Z",
+      "file_hash": "4e2c7bd62867f4e6ed1680ac071d5559f9f0e1d1467408127733f22a70e4f4d1",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".DS_Store",
+      "language": "text",
+      "size_bytes": 6148,
+      "last_modified": "2026-05-27T05:18:41.062Z",
+      "file_hash": "2965e797a577a7ae323473d236777ef88d378481c5cdf3e35d25cd0646957278",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".gitattributes",
+      "language": "text",
+      "size_bytes": 1648,
+      "last_modified": "2026-05-27T03:22:58.029Z",
+      "file_hash": "96f80145439bb304a8df03985942d66e71688880c62cd648f8c2cee4018fc049",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/CODEOWNERS",
+      "language": "text",
+      "size_bytes": 19,
+      "last_modified": "2026-05-27T03:22:58.030Z",
+      "file_hash": "92ec0744a28967e8b4d132dd259fd428aff8e4406aa6a5c13d336cfdf2c55cb8",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/copilot-instructions.md",
+      "language": "markdown",
+      "size_bytes": 4779,
+      "last_modified": "2026-05-27T03:22:58.030Z",
+      "file_hash": "5d00c72362b99bca4c26d7ae5c6cffb644ebe780a09e6267efdb8187b087a421",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/copilot/agents/_template.agent.md",
+      "language": "markdown",
+      "size_bytes": 1249,
+      "last_modified": "2026-05-27T03:22:58.030Z",
+      "file_hash": "5eb35a660c5ba18df9daba2a3cc4aa07d5e40b76a1d8b91cf61e009a54a24e08",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/copilot/agents/architect.agent.md",
+      "language": "markdown",
+      "size_bytes": 4106,
+      "last_modified": "2026-05-27T03:22:58.030Z",
+      "file_hash": "ac90998f7fd820db5966c5420180c33df9559411279eee1c2d1530e0f8061ded",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/copilot/agents/ralph-loop.agent.md",
+      "language": "markdown",
+      "size_bytes": 12921,
+      "last_modified": "2026-05-27T03:22:58.030Z",
+      "file_hash": "ad1385af9a2c5dd3ff100879bcf4075cfddbfdee2f7284ff3d676a93146e7f02",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/copilot/agents/reviewer.agent.md",
+      "language": "markdown",
+      "size_bytes": 4211,
+      "last_modified": "2026-05-27T03:22:58.030Z",
+      "file_hash": "375a30565f9546566e207d28d393d79d6aacf751b0a29c1da3542bba80cf1a3f",
+      "git_status": "clean",
+      "roles": [
+        "ui"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/copilot/agents/tdd.agent.md",
+      "language": "markdown",
+      "size_bytes": 3783,
+      "last_modified": "2026-05-27T03:22:58.031Z",
+      "file_hash": "7af0937c9b72fbc5c56f0f5812e051fcb0b503c248b06f6d02402f3092d65b98",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug.md",
+      "language": "markdown",
+      "size_bytes": 1786,
+      "last_modified": "2026-05-27T03:22:58.030Z",
+      "file_hash": "3be023dbefc0062af774949946ef8cf59e122b73d5d41bbba45d0d84751657f6",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature.md",
+      "language": "markdown",
+      "size_bytes": 1686,
+      "last_modified": "2026-05-27T03:22:58.030Z",
+      "file_hash": "68f31941467f7322699d13b8947d0b9239b9050fba9460df410adfe857a25992",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "language": "markdown",
+      "size_bytes": 2209,
+      "last_modified": "2026-05-27T03:22:58.030Z",
+      "file_hash": "a00b5059ebdab28826809a0e5397c4d5c6eaf4cf0547b357c0671a6c909a4bd5",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "language": "yaml",
+      "size_bytes": 14505,
+      "last_modified": "2026-05-27T03:22:58.031Z",
+      "file_hash": "91445c48bc85d4d0d0ac43af942ff8a95941c0bbc5703fec2f0d9b73840a6173",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/workflows/dod.yml",
+      "language": "yaml",
+      "size_bytes": 12297,
+      "last_modified": "2026-05-27T03:22:58.031Z",
+      "file_hash": "cada809ea2b45668b773ace5f0a60ea900d2bdd658131b639366de5f0b92e86c",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".github/workflows/scaffold-self-check.yml",
+      "language": "yaml",
+      "size_bytes": 4033,
+      "last_modified": "2026-05-27T03:22:58.031Z",
+      "file_hash": "e92e03615ed23c6fbe7661912b5bbbf77f142165cf5310a6ee73f5814e2fd935",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".gitignore",
+      "language": "text",
+      "size_bytes": 829,
+      "last_modified": "2026-05-27T04:25:47.229Z",
+      "file_hash": "e7b1c2ef38dba32bd6158af4bae62fe4ded6d07fddb29a70c50ac95d30c7cd0e",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".pytest_cache/.gitignore",
+      "language": "text",
+      "size_bytes": 37,
+      "last_modified": "2026-05-29T21:28:36.455Z",
+      "file_hash": "3ed731b65d06150c138e2dadb0be0697550888a6b47eb8c45ecc9adba8b8e9bd",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".pytest_cache/README.md",
+      "language": "markdown",
+      "size_bytes": 302,
+      "last_modified": "2026-05-29T21:28:36.455Z",
+      "file_hash": "73fd6fccdd802c419a6b2d983d6c3173b7da97558ac4b589edec2dfe443db9ad",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".pytest_cache/v/cache/nodeids",
+      "language": "text",
+      "size_bytes": 2,
+      "last_modified": "2026-05-30T20:28:02.393Z",
+      "file_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".ruff_cache/.gitignore",
+      "language": "text",
+      "size_bytes": 35,
+      "last_modified": "2026-05-27T03:54:10.122Z",
+      "file_hash": "9e3a60f1e6ec4ae60215c11d54b171392745ec25e9dded433d5bd921363af316",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".ruff_cache/0.15.12/10953000304710497579",
+      "language": "text",
+      "size_bytes": 103,
+      "last_modified": "2026-05-27T04:06:47.198Z",
+      "file_hash": "e1932940592748ecc4ffe351b04358e96e6899d85fb4a23a29ade22b50ab0923",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".skills/_template/SKILL.md",
+      "language": "markdown",
+      "size_bytes": 2973,
+      "last_modified": "2026-05-27T03:22:58.031Z",
+      "file_hash": "449fc6a7bcbec3836b0e0201fb1381e5d9e27be46cc0eae153f855d207d1a6bd",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".skills/caveman/SKILL.md",
+      "language": "markdown",
+      "size_bytes": 3396,
+      "last_modified": "2026-05-27T03:22:58.031Z",
+      "file_hash": "d05f7d2b79b3bda5cf8a51c1b512e5dda1644075437920bca3cb4b3f9cffe6c0",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".skills/conventional-commits/SKILL.md",
+      "language": "markdown",
+      "size_bytes": 4983,
+      "last_modified": "2026-05-27T03:22:58.031Z",
+      "file_hash": "c2e13301791dfadd06b03fe9d0333b3ca0af5ee9a7e9a5b2f49f0769e315291d",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".skills/everything-claude-code/SKILL.md",
+      "language": "markdown",
+      "size_bytes": 6265,
+      "last_modified": "2026-05-27T03:22:58.032Z",
+      "file_hash": "0702c5023aa143840ede7a32600c88cab53c526cbabe66bb9290fc7054252b9f",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".skills/playwright-e2e/SKILL.md",
+      "language": "markdown",
+      "size_bytes": 6167,
+      "last_modified": "2026-05-27T03:22:58.032Z",
+      "file_hash": "6a1eda7e23b596e474b4d43b727982b3c504b177d6d7a3c23f14d161e3b72d7c",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".skills/ralph-loop/SKILL.md",
+      "language": "markdown",
+      "size_bytes": 5157,
+      "last_modified": "2026-05-27T03:22:58.032Z",
+      "file_hash": "3a88cc8d1d84822967125a067f03431c5e2bbc5ed80cc9628211e3322f23a6b2",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".skills/README.md",
+      "language": "markdown",
+      "size_bytes": 5467,
+      "last_modified": "2026-05-27T03:22:58.031Z",
+      "file_hash": "30209deb5358d534b61df3a36bfd2987dcb02a9c322a978b7247c7a4db6a6bdc",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": ".specs/architecture/ADR-001-mlx-primary-backend.md",
+      "language": "markdown",
+      "size_bytes": 736,
+      "last_modified": "2026-05-27T03:22:58.032Z",
+      "file_hash": "e677eb838c133be2de5506ac81a142469bb4b5ccdd4b1f8aefde8d40066781ba",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/architecture/ADR-002-runtime-boundaries-and-adapter-contract.md",
+      "language": "markdown",
+      "size_bytes": 853,
+      "last_modified": "2026-05-27T03:22:58.032Z",
+      "file_hash": "3bdbd8bbf80aeb245ff1b20d6b57e7be46a1058305414df9d9c6289ab9821750",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/architecture/ADR-003-backend-selection-strategy.md",
+      "language": "markdown",
+      "size_bytes": 1639,
+      "last_modified": "2026-05-27T03:22:58.032Z",
+      "file_hash": "677234f914fb5aa94ca979f4ac31567f2ac8c5f9285e04c3c17d6576a4bdac6b",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/architecture/ADR-004-bitnet-packed-format.md",
+      "language": "markdown",
+      "size_bytes": 2539,
+      "last_modified": "2026-05-27T03:22:58.032Z",
+      "file_hash": "82aaf313bcf0c8c24051298044fa664c5aebfabcad0739445ad3e3c73dc86cac",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/architecture/ADR-005-kv-cache-architecture.md",
+      "language": "markdown",
+      "size_bytes": 2178,
+      "last_modified": "2026-05-27T03:22:58.033Z",
+      "file_hash": "0201d337626fbeab0f01b7ca47b36fb7db2039eff591d814a7228f75f7e593af",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/architecture/ADR-006-moe-expert-paging.md",
+      "language": "markdown",
+      "size_bytes": 2216,
+      "last_modified": "2026-05-27T03:22:58.033Z",
+      "file_hash": "39c3ae827ec796df73e02bf17c535a6cf9cc3834d6c55d901451afb469cd0af6",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/architecture/ADR-007-speculative-decoding.md",
+      "language": "markdown",
+      "size_bytes": 2201,
+      "last_modified": "2026-05-27T03:22:58.033Z",
+      "file_hash": "f51f4886ff128c04a83d78ecd308d7958a03c73ad68dd794413a319ead3a83b5",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/architecture/ADR-008-ane-layer-offload.md",
+      "language": "markdown",
+      "size_bytes": 2017,
+      "last_modified": "2026-05-27T03:22:58.033Z",
+      "file_hash": "daa6d2eef972a28d88032376985ecc4d37fe7200e6b1b32e1f823cf371285611",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/architecture/ADR-009-router-load-balance-target.md",
+      "language": "markdown",
+      "size_bytes": 3593,
+      "last_modified": "2026-05-27T03:22:58.033Z",
+      "file_hash": "eb31d1e5d1d70ae150407e7a2e67fa45a8233f192e4381f121757dd3eaa3d716",
+      "git_status": "clean",
+      "roles": [
+        "route",
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/architecture/ADR-template.md",
+      "language": "markdown",
+      "size_bytes": 2241,
+      "last_modified": "2026-05-27T03:22:58.033Z",
+      "file_hash": "e9bc19c466d42bcf78c3be3e596aeef106679d8dcdfccb86b52b65569a1f41b8",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/architecture/DESIGN.md",
+      "language": "markdown",
+      "size_bytes": 4554,
+      "last_modified": "2026-05-27T03:22:58.033Z",
+      "file_hash": "3b388ac87f284e7bd8c930635e18e49005a1e0212fb78176ed7cc4e040a6f65f",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/architecture/PATTERNS.md",
+      "language": "markdown",
+      "size_bytes": 3968,
+      "last_modified": "2026-05-27T03:22:58.033Z",
+      "file_hash": "a154c25a5455030a2ec008e603093bacd81bb358a47cd3d3d39da9582e654244",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/product/DOMAIN.md",
+      "language": "markdown",
+      "size_bytes": 2651,
+      "last_modified": "2026-05-27T03:22:58.033Z",
+      "file_hash": "81b197e8777e4c14488b95cf85f1b4781c89a8ca157d58acf1a9d5cd75da757a",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/product/PERSONAS.md",
+      "language": "markdown",
+      "size_bytes": 1695,
+      "last_modified": "2026-05-27T03:22:58.033Z",
+      "file_hash": "8a5d9ef15fb4451066d0cb656f37d852d8ad98e398e53756d6888cb586b4c7e4",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/product/VISION.md",
+      "language": "markdown",
+      "size_bytes": 2901,
+      "last_modified": "2026-05-27T03:22:58.033Z",
+      "file_hash": "1547836b15e2c9f11985a59a7496d3efa2e2fc68c3b40a381c082d4903bc6f27",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/README.md",
+      "language": "markdown",
+      "size_bytes": 1807,
+      "last_modified": "2026-05-27T03:22:58.032Z",
+      "file_hash": "9afb4779c3eb55fa4d36ff26134ba20b87afc229f97c809846868379a3cffe71",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/runtime/CLI-CONTRACT.md",
+      "language": "markdown",
+      "size_bytes": 4076,
+      "last_modified": "2026-05-27T03:22:58.034Z",
+      "file_hash": "4ddf192b9dad3c770a1fb882a820a1b8ad9962e85c27d6d662ad3d106ec9000e",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/runtime/CLI-POLISH.md",
+      "language": "markdown",
+      "size_bytes": 2207,
+      "last_modified": "2026-05-27T03:22:58.034Z",
+      "file_hash": "758d56965916b278b9a232fda23cddcaf421f99726976824c2d87056ba722536",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/runtime/HARDWARE-PROBE.md",
+      "language": "markdown",
+      "size_bytes": 4348,
+      "last_modified": "2026-05-27T03:22:58.034Z",
+      "file_hash": "a9a9dbe53b9979ebc1eea1ba00426217a7f53b7308a7ba4a01a6cb49edd8de32",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/runtime/PLAYWRIGHT-SMOKE.md",
+      "language": "markdown",
+      "size_bytes": 3519,
+      "last_modified": "2026-05-27T03:22:58.034Z",
+      "file_hash": "41fbd1ee3eebf930a871fa3a5f9a35605420ae966acbcf8856ed1b8f218330b5",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/runtime/README.md",
+      "language": "markdown",
+      "size_bytes": 1231,
+      "last_modified": "2026-05-27T04:15:54.778Z",
+      "file_hash": "f52bca835fb0bf7edb4082749eabd3f7aae2cbf7973e23308e48fd52044ad1d1",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/runtime/SERVE-OPENAI.md",
+      "language": "markdown",
+      "size_bytes": 10954,
+      "last_modified": "2026-05-29T21:27:37.508Z",
+      "file_hash": "d3996681a64aa92d19de6fff3247fc199ad78a6a9eb76c98793d07b78eba1e86",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/runtime/TELEMETRY.md",
+      "language": "markdown",
+      "size_bytes": 4353,
+      "last_modified": "2026-05-27T03:22:58.034Z",
+      "file_hash": "96cd8b382dbd426c70a364d4cbaabdd7e3d95ad575b1ef129678c326c50ba4de",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/BACKLOG.md",
+      "language": "markdown",
+      "size_bytes": 1798,
+      "last_modified": "2026-05-27T03:22:58.034Z",
+      "file_hash": "23dc67a2b05a16ad0a8de1d6f31371febe6788bfd08e7d86e22c173feb2cb76a",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-01/SPRINT.md",
+      "language": "markdown",
+      "size_bytes": 1801,
+      "last_modified": "2026-05-27T03:22:58.034Z",
+      "file_hash": "055013532dd0abaae91ba7be0c25f34babda881b7ac7cfe9d98982dd1c2acbc1",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-01/T01.0-agentic-starter.task.md",
+      "language": "markdown",
+      "size_bytes": 2374,
+      "last_modified": "2026-05-27T03:22:58.034Z",
+      "file_hash": "f5f835bd2344b818798747ad06623128d55cd1d52febc87956967c6ad509b554",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-01/T01.1-runtime-scaffold.task.md",
+      "language": "markdown",
+      "size_bytes": 1254,
+      "last_modified": "2026-05-27T03:22:58.034Z",
+      "file_hash": "41ca6f860f9eede0e65da5efda14658690c97a9d7e8c34b4afd20f5576dd7750",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-01/T01.2-cli-contract.task.md",
+      "language": "markdown",
+      "size_bytes": 868,
+      "last_modified": "2026-05-27T03:22:58.035Z",
+      "file_hash": "6d471148a23af574ae9c62b11141158f0edcf42439e3a6b89a2f84da0a2c5b72",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-01/T01.3-adapter-contract.task.md",
+      "language": "markdown",
+      "size_bytes": 1131,
+      "last_modified": "2026-05-27T03:22:58.035Z",
+      "file_hash": "d6f4d6960c718d8fb2fbe994ea0c047e4ca50e5c23a5e744efc97f05bb040729",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-01/T01.4-probe-and-mode.task.md",
+      "language": "markdown",
+      "size_bytes": 984,
+      "last_modified": "2026-05-27T03:22:58.035Z",
+      "file_hash": "933e7a0ffa312b75831156c5f261a50b311eb6e8c733178eb01485edee1bbd86",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-01/T01.5-telemetry-and-gates.task.md",
+      "language": "markdown",
+      "size_bytes": 939,
+      "last_modified": "2026-05-27T03:22:58.035Z",
+      "file_hash": "d60933edfd5ebeecfb093906e977ec0131bb7f1c2872c5b862e3070d5ba68f7f",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-01/T01.6-ci-transition.task.md",
+      "language": "markdown",
+      "size_bytes": 1157,
+      "last_modified": "2026-05-27T03:22:58.035Z",
+      "file_hash": "0f09cf18de2fec526b690ec7b2474fd9dbfe45765e04902de5d404183c218a70",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-01/T01.7-playwright-smoke.task.md",
+      "language": "markdown",
+      "size_bytes": 1005,
+      "last_modified": "2026-05-27T03:22:58.035Z",
+      "file_hash": "bcbd2d1e23b95b441bddf10b9a6b8ad70f460302b908194cf75887eaddf818f4",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-01/T01.8-adrs.task.md",
+      "language": "markdown",
+      "size_bytes": 981,
+      "last_modified": "2026-05-27T03:22:58.035Z",
+      "file_hash": "046c65aa3b1b74e3914d7ebb3997f60de13342ba3200b9e6ad012f82eb925018",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-02/SPRINT.md",
+      "language": "markdown",
+      "size_bytes": 2043,
+      "last_modified": "2026-05-27T03:22:58.035Z",
+      "file_hash": "8d5543f3d55f7828601e4871c3a5eae19f54efb64fa63c0ada1606ee4e7693fa",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-02/T02.1-tensor-core.task.md",
+      "language": "markdown",
+      "size_bytes": 590,
+      "last_modified": "2026-05-27T03:22:58.035Z",
+      "file_hash": "adb98adb8db0e861c831ef936fcfe02bfe525bfd08a1373e8b5fb4eb27a2d48a",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-02/T02.2-scalar-matmul.task.md",
+      "language": "markdown",
+      "size_bytes": 578,
+      "last_modified": "2026-05-27T03:22:58.035Z",
+      "file_hash": "3f7dd94879324648720dd9e2d990c17104fedeedf69d0836515ad878f1166f1e",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-02/T02.3-scalar-attention.task.md",
+      "language": "markdown",
+      "size_bytes": 598,
+      "last_modified": "2026-05-27T03:22:58.035Z",
+      "file_hash": "abe87b8f8fa7aef79bb3ffd1e6de65e5d7bbcbf5203da2734e83f6f38dd594b9",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-02/T02.4-dense-adapter-base.task.md",
+      "language": "markdown",
+      "size_bytes": 619,
+      "last_modified": "2026-05-27T03:22:58.035Z",
+      "file_hash": "446e5a569e9e503c320d8a4516d2adca11e7b9f56803e69ad887f15a2a41a860",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-02/T02.5-qwen-adapter.task.md",
+      "language": "markdown",
+      "size_bytes": 587,
+      "last_modified": "2026-05-27T03:22:58.036Z",
+      "file_hash": "9db572f9a353b3bcb635299805e69e633f6e810fcb6b67c719b1e7ac4172e52b",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-02/T02.6-gemma-adapter.task.md",
+      "language": "markdown",
+      "size_bytes": 591,
+      "last_modified": "2026-05-27T03:22:58.036Z",
+      "file_hash": "398aff8156caa478aab469702fb3222d360dcb95a7d225125862e5bb79cdebcc",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-02/T02.7-loader-minimal.task.md",
+      "language": "markdown",
+      "size_bytes": 633,
+      "last_modified": "2026-05-27T03:22:58.036Z",
+      "file_hash": "430fc190ff522456f079c3d892465962b0edf0a47151ac94bd4a10874b2c1fb2",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-02/T02.8-dense-benchmark.task.md",
+      "language": "markdown",
+      "size_bytes": 617,
+      "last_modified": "2026-05-27T03:22:58.036Z",
+      "file_hash": "ae38baa619076b1ba6df2dd4ebf6be919fcac051da3a71b2586f6bfb741f15d7",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-03/SPRINT.md",
+      "language": "markdown",
+      "size_bytes": 3313,
+      "last_modified": "2026-05-27T03:22:58.036Z",
+      "file_hash": "c377abfbd776efcf4da31bc072be92cc1c725a5a296bbd6169ec6278fb95467f",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-03/T03.1-metal-init.task.md",
+      "language": "markdown",
+      "size_bytes": 590,
+      "last_modified": "2026-05-27T03:22:58.036Z",
+      "file_hash": "525d77dfe3c359df410f67529d91bfba1d4712c38b89ded5771d3075e4262590",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-03/T03.2-metal-matmul-scaffold.task.md",
+      "language": "markdown",
+      "size_bytes": 661,
+      "last_modified": "2026-05-27T03:22:58.036Z",
+      "file_hash": "c70d38bce557cb71324e5664fb87c8d5bb9213108496f9ca053afce2fcd94438",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-03/T03.3-metal-softmax-rmsnorm-scaffold.task.md",
+      "language": "markdown",
+      "size_bytes": 633,
+      "last_modified": "2026-05-27T03:22:58.036Z",
+      "file_hash": "dd65e4b85f61c0acf9344e0be416e7b74ffaff6bce7e3ef1b8d256092b1c4977",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-03/T03.4-mlx-bridge-scaffold.task.md",
+      "language": "markdown",
+      "size_bytes": 599,
+      "last_modified": "2026-05-27T03:22:58.036Z",
+      "file_hash": "81d6f9c87da231a9bf7ed226157c0cc89a0ef152935f500b65afe758f9111875",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-03/T03.5-unified-allocator.task.md",
+      "language": "markdown",
+      "size_bytes": 646,
+      "last_modified": "2026-05-27T03:22:58.036Z",
+      "file_hash": "f18c040730708486cd069090ddda05a337401a73d7bb8c450dbb620c96e5ae6b",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-03/T03.6-enable-metal-capability.task.md",
+      "language": "markdown",
+      "size_bytes": 682,
+      "last_modified": "2026-05-27T03:22:58.036Z",
+      "file_hash": "1323a76b6ff4f690c8fe0bd5e52ec40e950f16e33a4fd1b3e144f23202e9dfc1",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-03/T03.7-backend-selector-modes.task.md",
+      "language": "markdown",
+      "size_bytes": 657,
+      "last_modified": "2026-05-27T03:22:58.036Z",
+      "file_hash": "49feede11c65992c605b30489a878aa2bb8658cb1f78b47991a98f6d913de7b4",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-04/SPRINT.md",
+      "language": "markdown",
+      "size_bytes": 3815,
+      "last_modified": "2026-05-27T03:22:58.037Z",
+      "file_hash": "5ab18a9813f6bd1b8a899e3237e66cc97319dd2b00eb3e516a1f6abde4f2bde8",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-04/T04.1-neon-matmul-hotpath.task.md",
+      "language": "markdown",
+      "size_bytes": 1364,
+      "last_modified": "2026-05-27T03:22:58.037Z",
+      "file_hash": "faead1cfbf313fc454b240b8ad22534396e8b3aaab674ef563690431ba525c0e",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-04/T04.2-neon-attention-hotpath.task.md",
+      "language": "markdown",
+      "size_bytes": 1249,
+      "last_modified": "2026-05-27T03:22:58.037Z",
+      "file_hash": "1fc056db4fb196535f1aa00afdb44639e5b37422bd4a831a3b0333d84c2972c6",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-04/T04.4-block-gemm-tiling.task.md",
+      "language": "markdown",
+      "size_bytes": 1364,
+      "last_modified": "2026-05-27T03:22:58.037Z",
+      "file_hash": "fcaf0c65e48953c62cb3ee928c8954c0e43758aa7f8e528f1397b61a1dbd56a8",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-04/T04.6-neon-rebench.task.md",
+      "language": "markdown",
+      "size_bytes": 1280,
+      "last_modified": "2026-05-27T03:22:58.037Z",
+      "file_hash": "c1ebf764d1ef7ab93c290502d3c97c2394473da7ccd761b4948667336a9cee59",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-05/SPRINT.md",
+      "language": "markdown",
+      "size_bytes": 1662,
+      "last_modified": "2026-05-27T03:22:58.037Z",
+      "file_hash": "b78c143198eb05594068cb7bc88a9128031255e692ef8f848d7ca6f87eea7174",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-05/T05.1-bitnet-metal-kernel.task.md",
+      "language": "markdown",
+      "size_bytes": 568,
+      "last_modified": "2026-05-27T03:22:58.037Z",
+      "file_hash": "3a21302ad143980100a8c574cf4694c263ec2b8d401556f723b8fc7f7e6f7661",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-05/T05.2-bitnet-neon-kernel.task.md",
+      "language": "markdown",
+      "size_bytes": 563,
+      "last_modified": "2026-05-27T03:22:58.037Z",
+      "file_hash": "25339ff3ea091d6b76fca2998526e3b6283c0d2e1d47fb5e1496466980878d54",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-05/T05.3-bitnet-adapter.task.md",
+      "language": "markdown",
+      "size_bytes": 614,
+      "last_modified": "2026-05-27T03:22:58.037Z",
+      "file_hash": "ba4965fa96d41c519df83ec9dd3d6fca1584a0175492e951ebc385beba34f6a1",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-05/T05.4-ternary-adapter.task.md",
+      "language": "markdown",
+      "size_bytes": 608,
+      "last_modified": "2026-05-27T03:22:58.037Z",
+      "file_hash": "3d3dbcbc5742ff953680fb0a499a08de9de9e3de27d2023c0884030b1bb454ae",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-05/T05.5-ternary-lut.task.md",
+      "language": "markdown",
+      "size_bytes": 522,
+      "last_modified": "2026-05-27T03:22:58.037Z",
+      "file_hash": "a6a39bc736b4680e3d59e0ded50d8ebabb06e5acbd621e417ad185b8dbedba30",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-05/T05.6-lowbit-loader.task.md",
+      "language": "markdown",
+      "size_bytes": 931,
+      "last_modified": "2026-05-27T03:22:58.037Z",
+      "file_hash": "6293050d994a772eea2947191ad8ea8c6a1db7b2572d1566db00facc9acdb0b3",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-05/T05.7-micro-trigger.task.md",
+      "language": "markdown",
+      "size_bytes": 633,
+      "last_modified": "2026-05-27T03:22:58.038Z",
+      "file_hash": "8c6186ef8a8088a0d463e97af2786f5cd83f486987e1788fcc5bca3796eb5230",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-06/SPRINT.md",
+      "language": "markdown",
+      "size_bytes": 2178,
+      "last_modified": "2026-05-27T03:22:58.038Z",
+      "file_hash": "1bf37414c8972a44c539a09d66ee9742c952bbc6acffb4ddca4168d42b859a73",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-06/T06.1-kv-pager-tiers.task.md",
+      "language": "markdown",
+      "size_bytes": 724,
+      "last_modified": "2026-05-27T03:22:58.038Z",
+      "file_hash": "b72b4574b1cc58f48d47fb0dfd5a69ea4ceaa46a595afaf1b9aa71a3c311376d",
+      "git_status": "clean",
+      "roles": [
+        "route",
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-06/T06.2-prefix-cache-dedup.task.md",
+      "language": "markdown",
+      "size_bytes": 714,
+      "last_modified": "2026-05-27T03:22:58.038Z",
+      "file_hash": "670bb181b6e38372d2295fff6ad0b78a9b4841993d8f01430c16e4603ef1ea68",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-06/T06.3-ssd-cold-store.task.md",
+      "language": "markdown",
+      "size_bytes": 799,
+      "last_modified": "2026-05-27T03:22:58.038Z",
+      "file_hash": "cc015ce8f511fc1fdc3b1b899796de28014659978f0642c31972a702aa54857f",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-06/T06.4-kv-summarizer.task.md",
+      "language": "markdown",
+      "size_bytes": 741,
+      "last_modified": "2026-05-27T03:22:58.038Z",
+      "file_hash": "07ed4dbc2e80bdedd5bd25756ed55021fcaf55bf436271c71151e64baf7f9a6f",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-06/T06.5-kv-eviction-policy.task.md",
+      "language": "markdown",
+      "size_bytes": 1090,
+      "last_modified": "2026-05-27T03:22:58.038Z",
+      "file_hash": "5e9e93b5efc9eb3bba76d3a4782c430fbbacda009f77786e55db6e2a43c5b456",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-06/T06.6-adapter-kv-hooks.task.md",
+      "language": "markdown",
+      "size_bytes": 841,
+      "last_modified": "2026-05-27T03:22:58.038Z",
+      "file_hash": "9c1fe5446102d67b650e9fcbd47fe652173a3457a62392d2ded81fb2eccbac73",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-06/T06.7-kv-telemetry.task.md",
+      "language": "markdown",
+      "size_bytes": 741,
+      "last_modified": "2026-05-27T03:22:58.038Z",
+      "file_hash": "a3720acb2575d915ef64a4e4026888f9d2103cd5fb48bbd4f8ea1453de4b7766",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-07/SPRINT.md",
+      "language": "markdown",
+      "size_bytes": 3528,
+      "last_modified": "2026-05-27T03:22:58.039Z",
+      "file_hash": "78498010a881b28239d8af749c510f70a420902d45d8a0ea2b945a18ad5748ca",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-07/T07.5-llama-loader.task.md",
+      "language": "markdown",
+      "size_bytes": 818,
+      "last_modified": "2026-05-27T03:22:58.039Z",
+      "file_hash": "85c343c1ef4c0d0c8ba382c896c791c30a0e77a70b551027f585f8173bec1dff",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-07/T07.6-llama-bench.task.md",
+      "language": "markdown",
+      "size_bytes": 1232,
+      "last_modified": "2026-05-27T03:22:58.039Z",
+      "file_hash": "1f1e6cf165e220c955115e3d1f3a53d65d8f6030a9caedc065aef4344ebbb7da",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-08/SPRINT.md",
+      "language": "markdown",
+      "size_bytes": 2692,
+      "last_modified": "2026-05-27T03:22:58.039Z",
+      "file_hash": "c1d1d8f16eac45735f2560609859fa863289911def4b653d623c2f6f459478a2",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-08/T08.1-router-topk.task.md",
+      "language": "markdown",
+      "size_bytes": 1040,
+      "last_modified": "2026-05-27T03:22:58.039Z",
+      "file_hash": "911f063b22d5f9d8bb9671efb361fcab4db3de2627f64a33b98d449e1d31337c",
+      "git_status": "clean",
+      "roles": [
+        "route",
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-08/T08.2-expert-pager.task.md",
+      "language": "markdown",
+      "size_bytes": 860,
+      "last_modified": "2026-05-27T03:22:58.039Z",
+      "file_hash": "95364ebc15558347b6fb632958eeaecd160bb8ccebeb65e9774621b84d5d097c",
+      "git_status": "clean",
+      "roles": [
+        "route",
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-08/T08.3-deepseek-moe-adapter.task.md",
+      "language": "markdown",
+      "size_bytes": 913,
+      "last_modified": "2026-05-27T03:22:58.039Z",
+      "file_hash": "62d16f168f295204a6f72d94ad93cda9a05da3242685f1cf23568bf42adee845",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-08/T08.4-kimi-moe-adapter.task.md",
+      "language": "markdown",
+      "size_bytes": 844,
+      "last_modified": "2026-05-27T03:22:58.039Z",
+      "file_hash": "29c0885886a76ee6906b3bbd247618b7035349402f670fe3514f3ba31c37182d",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-08/T08.5-moe-loader.task.md",
+      "language": "markdown",
+      "size_bytes": 905,
+      "last_modified": "2026-05-27T03:22:58.039Z",
+      "file_hash": "a69d2195607bcb3440c1db3299e8e2cdbf8e593a981dda20a5c745bbbf0e74e7",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-08/T08.6-moe-telemetry.task.md",
+      "language": "markdown",
+      "size_bytes": 876,
+      "last_modified": "2026-05-27T03:22:58.040Z",
+      "file_hash": "677d2098d2cdce026365cb6bdb9163642c63861d496013c7f1eb0c1049fc7b34",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-09/SPRINT.md",
+      "language": "markdown",
+      "size_bytes": 1106,
+      "last_modified": "2026-05-27T03:22:58.040Z",
+      "file_hash": "51a58740d8d222124f7d65392cda9c02876ff2f4bb4d0a9187e4d6a44f464355",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-09/T09.1-minimax-adapter.task.md",
+      "language": "markdown",
+      "size_bytes": 606,
+      "last_modified": "2026-05-27T03:22:58.040Z",
+      "file_hash": "7c105776913d7486ade660a3c98943b17532e818b9d6fec001005c51debc16d8",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-09/T09.2-glm-adapter.task.md",
+      "language": "markdown",
+      "size_bytes": 575,
+      "last_modified": "2026-05-27T03:22:58.040Z",
+      "file_hash": "d83f8370c5707644d5640b3d95aba2017988ee8ce82994273b8cc4201a3cc61d",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-09/T09.3-speculative-prefetch.task.md",
+      "language": "markdown",
+      "size_bytes": 602,
+      "last_modified": "2026-05-27T03:22:58.040Z",
+      "file_hash": "6ed05c2097014f1143303314477add5f6f45f15070561c111d40dc1687b13c8d",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-09/T09.4-sparsity-cache.task.md",
+      "language": "markdown",
+      "size_bytes": 609,
+      "last_modified": "2026-05-27T03:22:58.040Z",
+      "file_hash": "e57947ee107d19da4a66a623ce75c6eaa560eca94dcc71809415abf07b1f3e2d",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-09/T09.5-multimodal-cache.task.md",
+      "language": "markdown",
+      "size_bytes": 687,
+      "last_modified": "2026-05-27T03:22:58.040Z",
+      "file_hash": "23b35a9b1735f27ae42d39a456c43464ce1040c737431518b316ad79a3758fc2",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-09/T09.6-prefetch-telemetry.task.md",
+      "language": "markdown",
+      "size_bytes": 657,
+      "last_modified": "2026-05-27T03:22:58.040Z",
+      "file_hash": "3ca6eb314c7d739083eb77afd932585089fc52de4eee1cff715a80744b6f507d",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-10/SPRINT.md",
+      "language": "markdown",
+      "size_bytes": 1166,
+      "last_modified": "2026-05-27T03:22:58.041Z",
+      "file_hash": "1ff6ee7db0734fbb28513cbcdf0070d0b9c74d0d50cdd13838d4b55fdfbc6dae",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-10/T10.1-continuous-batcher.task.md",
+      "language": "markdown",
+      "size_bytes": 676,
+      "last_modified": "2026-05-27T03:22:58.041Z",
+      "file_hash": "c5961029fbabe23102dfb1f8fb535fb43800e5297d4083bc30c33173cb30f1b9",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-10/T10.2-session-pool.task.md",
+      "language": "markdown",
+      "size_bytes": 646,
+      "last_modified": "2026-05-27T03:22:58.041Z",
+      "file_hash": "b9f26309ce5200bab134f4b707bbb820671f6fc7017b7f32dbce794ceb5a781d",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-10/T10.3-peagle-decoder.task.md",
+      "language": "markdown",
+      "size_bytes": 714,
+      "last_modified": "2026-05-27T03:22:58.041Z",
+      "file_hash": "1cabe03c30e968cda4e95df1cec9220f4b3ddf3679482d0ffa1e8e9faf33531b",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-10/T10.4-eagle3-decoder.task.md",
+      "language": "markdown",
+      "size_bytes": 706,
+      "last_modified": "2026-05-27T03:22:58.041Z",
+      "file_hash": "9e8acdc5d35add893812bfbd2609aab5a471c1ff1ba95547177cfd7f01fb6b4f",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-10/T10.5-draft-model-loader.task.md",
+      "language": "markdown",
+      "size_bytes": 661,
+      "last_modified": "2026-05-27T03:22:58.041Z",
+      "file_hash": "d177247144dbfe4849ca45fa10d06a26e83caf6fe3065373c70e242282888f67",
+      "git_status": "clean",
+      "roles": [
+        "domain",
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.57
+    },
+    {
+      "path": ".specs/sprints/sprint-10/T10.6-speculative-telemetry.task.md",
+      "language": "markdown",
+      "size_bytes": 870,
+      "last_modified": "2026-05-27T03:22:58.041Z",
+      "file_hash": "2f1949e0e9d569a39e467984284bfb67a5e1d20afa1868be80779f94b6224d74",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-11/SPRINT.md",
+      "language": "markdown",
+      "size_bytes": 1166,
+      "last_modified": "2026-05-27T03:22:58.041Z",
+      "file_hash": "d5c18e610db6dfda3cb4db69633c04c284634503e76d2ab88caa0eddb04d4503",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-11/T11.1-ane-backend.task.md",
+      "language": "markdown",
+      "size_bytes": 917,
+      "last_modified": "2026-05-27T03:22:58.041Z",
+      "file_hash": "d41ab2031e41fbd2612da27357da6f1aa6e11a96264cb67eb50ac89f43c6bd5b",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-11/T11.2-layer-offloader.task.md",
+      "language": "markdown",
+      "size_bytes": 920,
+      "last_modified": "2026-05-27T03:22:58.042Z",
+      "file_hash": "1aa1dcf007a20bfa3de0d35a475c289d929012090cc3c0dfa3b4d1141c98f30a",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-11/T11.3-mixed-dispatch.task.md",
+      "language": "markdown",
+      "size_bytes": 1526,
+      "last_modified": "2026-05-27T03:22:58.042Z",
+      "file_hash": "8cf56757c1bd9c09967518922bb457b7b4ea29ccf0eff9d638803c8c677e5f39",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-11/T11.4-thermal-monitor.task.md",
+      "language": "markdown",
+      "size_bytes": 1217,
+      "last_modified": "2026-05-27T03:22:58.042Z",
+      "file_hash": "195c77cea7424d0ea057a170085b59b8fd0da0b370e4ea7b172f95139684bd5d",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-11/T11.5-ane-bench.task.md",
+      "language": "markdown",
+      "size_bytes": 515,
+      "last_modified": "2026-05-27T03:22:58.042Z",
+      "file_hash": "c2bdb699880b3bc6e622bd09dd64205e415cced2901deb31d58f194e4c082775",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-11/T11.6-ane-fallback.task.md",
+      "language": "markdown",
+      "size_bytes": 513,
+      "last_modified": "2026-05-27T03:22:58.042Z",
+      "file_hash": "8794705b952330528a80552199904ca2d6245a1b29d23247540372ffa9b424f5",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-12/SPRINT.md",
+      "language": "markdown",
+      "size_bytes": 2030,
+      "last_modified": "2026-05-27T03:22:58.042Z",
+      "file_hash": "0020e615c158f6af2b334658097ffbabfc4c8a698c51008f94565ebbb253c8af",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-12/T12.1-auto-tuner.task.md",
+      "language": "markdown",
+      "size_bytes": 487,
+      "last_modified": "2026-05-27T03:22:58.042Z",
+      "file_hash": "0ba54a7f22481d928fab7090e4454370ec2f80d7bb65e546f27cb1d380befaa5",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-12/T12.2-profile-cache.task.md",
+      "language": "markdown",
+      "size_bytes": 460,
+      "last_modified": "2026-05-27T03:22:58.042Z",
+      "file_hash": "ab64aae55cc538fd0232178c33d71ea29c929b6088c9747d5f5b149f8d88d802",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-12/T12.3-benchmark-matrix.task.md",
+      "language": "markdown",
+      "size_bytes": 488,
+      "last_modified": "2026-05-27T03:22:58.042Z",
+      "file_hash": "65301b5a6f8dfabd8586c80c84b909451470649396f0b96cde97bf887af5de7c",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-12/T12.4-cli-polish.task.md",
+      "language": "markdown",
+      "size_bytes": 535,
+      "last_modified": "2026-05-27T03:22:58.042Z",
+      "file_hash": "892e2ebe5fbd0ee93733b5349403a8dd9a5caa6ea26e54db05a09305e5efad9b",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-12/T12.5-final-docs.task.md",
+      "language": "markdown",
+      "size_bytes": 482,
+      "last_modified": "2026-05-27T03:22:58.043Z",
+      "file_hash": "19df738138d65b0ae6ff42e0e1f02825ba3cb1a1790652ea14c206df6ba85a6f",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-12/T12.6-release-v1.task.md",
+      "language": "markdown",
+      "size_bytes": 559,
+      "last_modified": "2026-05-27T03:22:58.043Z",
+      "file_hash": "6e4765740c0ed14221c02bdde8717e10ed610dfe6029729c5d6e39dd3378dedc",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/sprint-12/T12.7-migration-guide.task.md",
+      "language": "markdown",
+      "size_bytes": 501,
+      "last_modified": "2026-05-27T03:22:58.043Z",
+      "file_hash": "8978663481e9d657730b71171d079648b7845c911d825332ed0adc93fe66147b",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/task-template.md",
+      "language": "markdown",
+      "size_bytes": 761,
+      "last_modified": "2026-05-27T03:22:58.043Z",
+      "file_hash": "e681ffdd8a0d147272b8968565fc858186cbc31df852fcc9f0060a9e1db3f8db",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/sprints/TIMELINE.md",
+      "language": "markdown",
+      "size_bytes": 1815,
+      "last_modified": "2026-05-27T03:22:58.034Z",
+      "file_hash": "471ecf9d4091dd071291309f8715ba341cc2cffcd23a44a6ec9e8dc85ce7989d",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/workflow/CONTRIBUTING.md",
+      "language": "markdown",
+      "size_bytes": 1422,
+      "last_modified": "2026-05-27T03:22:58.043Z",
+      "file_hash": "2e56003411b627bfb040b3fbe0958fd50cbec99af90109d4fe395bce3c6fd1ae",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/workflow/MIGRATION.md",
+      "language": "markdown",
+      "size_bytes": 1940,
+      "last_modified": "2026-05-27T03:22:58.043Z",
+      "file_hash": "4374b33fccaa5b9e31a9c2e0f0859777c704229d65935c5fccd71dfaf221c961",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/workflow/RELEASE-V1.md",
+      "language": "markdown",
+      "size_bytes": 1725,
+      "last_modified": "2026-05-27T03:22:58.043Z",
+      "file_hash": "742cd3ce7521e9747f7507aa7e7f274ed4efcc122af2444583fd1df3ad114af2",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/workflow/RELEASE.md",
+      "language": "markdown",
+      "size_bytes": 2117,
+      "last_modified": "2026-05-27T03:22:58.043Z",
+      "file_hash": "df05ed70af16aea05309d632e43bbd1328782106cf4bfc180159179a23f58ddf",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": ".specs/workflow/WORKFLOW.md",
+      "language": "markdown",
+      "size_bytes": 3003,
+      "last_modified": "2026-05-27T03:22:58.044Z",
+      "file_hash": "8198105ae0a479012bfa9b9220bbe85105c0820ad00ef30baed01596229ad967",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": "AGENTS.md",
+      "language": "markdown",
+      "size_bytes": 13706,
+      "last_modified": "2026-05-27T03:22:58.044Z",
+      "file_hash": "e135a0020f4ac8719f5786a5ae5ed87e246004f9306db2a924be7586be16c8f9",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "apps/CMakeLists.txt",
+      "language": "txt",
+      "size_bytes": 276,
+      "last_modified": "2026-05-27T03:22:58.045Z",
+      "file_hash": "ba9241bf09544ac8d9918af18aaeee2e70c356bd7d3eff97a725c004e071fdaf",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "bin/cli.js",
+      "language": "javascript",
+      "size_bytes": 32690,
+      "last_modified": "2026-05-27T03:22:58.050Z",
+      "file_hash": "fa578fd74e5672d8f44544230379efbd18ffb36fea4274a1b7054360bdaea14d",
+      "git_status": "clean",
+      "roles": [
+        "entrypoint"
+      ],
+      "imports": [
+        "node:child_process",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "node:readline"
+      ],
+      "exports": [
+        "ask",
+        "buildProbe",
+        "chooseCli",
+        "commandExists",
+        "copyTemplate",
+        "copyToClipboard",
+        "detectAneEligibility",
+        "detectExistingInstructionFiles",
+        "detectProductName",
+        "detectProjectMode",
+        "detectProjects",
+        "detectStack",
+        "execHandoff",
+        "existsIn",
+        "handleGitignore",
+        "handleRuntimeFlags",
+        "listDir",
+        "looksBinary",
+        "normalizeMemoryGiB",
+        "printHelp",
+        "printRuntimeText",
+        "readJsonField",
+        "readSafe",
+        "readTomlField",
+        "readYamlField",
+        "selectRuntimeMode",
+        "substitute",
+        "substituteInFile",
+        "walk",
+        "writeMeta"
+      ],
+      "importance": 0.73
+    },
+    {
+      "path": "bootstrap.ps1",
+      "language": "powershell",
+      "size_bytes": 21644,
+      "last_modified": "2026-05-30T20:27:34.495Z",
+      "file_hash": "0848c027f08fa13159fcd0c8f2b6e260b4ff7dcd44c30de8acb4d868c6037296",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [
+        "Choose",
+        "Copy",
+        "Detect",
+        "Handle",
+        "Has",
+        "Read",
+        "Require",
+        "Substitute"
+      ],
+      "importance": 0.2
+    },
+    {
+      "path": "bootstrap.sh",
+      "language": "shell",
+      "size_bytes": 22839,
+      "last_modified": "2026-05-30T20:27:34.494Z",
+      "file_hash": "50ef4a9561a5264746dddb28e8323b4f7e518404ca063bb72cee1d8a540182f3",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "CHANGELOG.md",
+      "language": "markdown",
+      "size_bytes": 8760,
+      "last_modified": "2026-05-30T20:18:37.484Z",
+      "file_hash": "7ffdccdf631e12bc56543d8f56a3424156a53d3e28170cfc2c7d5df60af2172d",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "CLAUDE.md",
+      "language": "markdown",
+      "size_bytes": 13943,
+      "last_modified": "2026-05-27T03:22:58.044Z",
+      "file_hash": "a55784067bb70c668c6fbb451b15dd84a6407ec6e4c7a3ed3e7668628108f37d",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "CMakeLists.txt",
+      "language": "txt",
+      "size_bytes": 1100,
+      "last_modified": "2026-05-30T20:27:34.493Z",
+      "file_hash": "3824020abb95d070b568aaf73ca4b73e6e37237a917c250ffa995ed84a9e008e",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "GOAL_RESULT.md",
+      "language": "markdown",
+      "size_bytes": 2547,
+      "last_modified": "2026-05-27T03:22:58.044Z",
+      "file_hash": "fea0d5a5779a670f817092443a2991406c31f1002b91d5948582bc2ee53c000b",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "INIT.md",
+      "language": "markdown",
+      "size_bytes": 3259,
+      "last_modified": "2026-05-27T03:22:58.044Z",
+      "file_hash": "5de0c71e5d34eedca0d3a660f4d635e0fc06911a2daf392f68226ac863c95870",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "package-lock.json",
+      "language": "json",
+      "size_bytes": 2427,
+      "last_modified": "2026-05-30T20:18:43.760Z",
+      "file_hash": "9522a6628c974ceca68ba7ed889bd0eaf2a7e4cd8ef2157f7bf18152155ff06b",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "package.json",
+      "language": "json",
+      "size_bytes": 1818,
+      "last_modified": "2026-05-30T20:18:37.485Z",
+      "file_hash": "8c1cb2446db97f689dc545cd192b681a718e6204050a3d8f581f24949a40810e",
+      "git_status": "clean",
+      "roles": [
+        "config"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.32
+    },
+    {
+      "path": "playwright.config.ts",
+      "language": "typescript",
+      "size_bytes": 906,
+      "last_modified": "2026-05-27T03:22:58.052Z",
+      "file_hash": "a97b09585cc37e94b2e6712963eace16ac308511cce84e72406c0f49def985a7",
+      "git_status": "clean",
+      "roles": [
+        "config"
+      ],
+      "imports": [
+        "@playwright/test"
+      ],
+      "exports": [],
+      "importance": 0.4
+    },
+    {
+      "path": "PRD.md",
+      "language": "markdown",
+      "size_bytes": 794,
+      "last_modified": "2026-05-27T03:22:58.044Z",
+      "file_hash": "04d99c00c6938903e61f87f239b7a283e921e1d73e0f4e96c9a86fd0a78fd707",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "PROGRESS.md",
+      "language": "markdown",
+      "size_bytes": 13497,
+      "last_modified": "2026-05-27T03:22:58.044Z",
+      "file_hash": "9653f802a161aa403b7fe52f6017be8ebab57f407d7de02e43acf5f13fa6eb91",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "size_bytes": 18073,
+      "last_modified": "2026-05-29T21:27:30.769Z",
+      "file_hash": "b4201d246960972094249b5a48cba78c7422e3ac5f4aeced1c0d96ece2e43519",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "README.pt-BR.md",
+      "language": "markdown",
+      "size_bytes": 7095,
+      "last_modified": "2026-05-27T03:22:58.044Z",
+      "file_hash": "5c099a4f1d58a2d21d855593acfd69ffe61a7745a342e41fba383b4b492c8668",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/adapters/README.md",
+      "language": "markdown",
+      "size_bytes": 147,
+      "last_modified": "2026-05-27T03:22:58.053Z",
+      "file_hash": "02388d00503e0d76e96287c3b15c57f52e124ea014fccdf4e9e0ca826824b58d",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/ane/README.md",
+      "language": "markdown",
+      "size_bytes": 510,
+      "last_modified": "2026-05-27T03:22:58.056Z",
+      "file_hash": "b620b59e636d2894748eb9e9d33229eaf257708e3af111220f731b386a4681f2",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/benchmarks/CMakeLists.txt",
+      "language": "txt",
+      "size_bytes": 681,
+      "last_modified": "2026-05-27T03:22:58.057Z",
+      "file_hash": "119c1c3cfbd15d1c958d74d0d18dbea1eb7168a382003dd79f37e7f700565eb9",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/benchmarks/correctness/CMakeLists.txt",
+      "language": "txt",
+      "size_bytes": 342,
+      "last_modified": "2026-05-27T03:22:58.057Z",
+      "file_hash": "29f7cd85d1bc1e13d1c900f6963b73457a5282d69bdc8f843d8ceb55309d32e4",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/benchmarks/README.md",
+      "language": "markdown",
+      "size_bytes": 2299,
+      "last_modified": "2026-05-27T03:22:58.057Z",
+      "file_hash": "a517a89d1ec5d15fc63d949ad751e8fb3569c1b8880830a4bfad41202d611254",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/cache/README.md",
+      "language": "markdown",
+      "size_bytes": 460,
+      "last_modified": "2026-05-27T03:22:58.058Z",
+      "file_hash": "15198095acc26e335eee5636a4172465468a0bdf396a8693b95782b545959c90",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/CMakeLists.txt",
+      "language": "txt",
+      "size_bytes": 2103,
+      "last_modified": "2026-05-27T03:22:58.052Z",
+      "file_hash": "60c5bf676199c1a95e6fb1a5b06e760a12a04f69fa0cba4a3f26630fc83586a6",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/cpu/README.md",
+      "language": "markdown",
+      "size_bytes": 339,
+      "last_modified": "2026-05-27T03:22:58.061Z",
+      "file_hash": "aafdb5fe8590a1599e9b0745d0c6b8add93ec7fd689412328de0e136f3a31fa8",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/kv/README.md",
+      "language": "markdown",
+      "size_bytes": 857,
+      "last_modified": "2026-05-27T03:22:58.062Z",
+      "file_hash": "62e447649c5dbee20f35c8001b23e2b6b9fd0866692ff890a295601040232605",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/memory/README.md",
+      "language": "markdown",
+      "size_bytes": 95,
+      "last_modified": "2026-05-27T03:22:58.062Z",
+      "file_hash": "d4c9b0e631ca93a1f1937d39988cb5d8dfa6c83ee59f4fb5fcd9185ee92c33f4",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/metal/README.md",
+      "language": "markdown",
+      "size_bytes": 959,
+      "last_modified": "2026-05-27T03:22:58.063Z",
+      "file_hash": "7f0fb372b3eeae68f2ea8b706af2770474bd39f0b9f1e75b641e754f12c82732",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/mlx/README.md",
+      "language": "markdown",
+      "size_bytes": 572,
+      "last_modified": "2026-05-27T03:22:58.064Z",
+      "file_hash": "804f89c5cdd9aa9c14abbfaa66a4cb73e030e6c22f12dd25bffa2b089ecc2906",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/moe/README.md",
+      "language": "markdown",
+      "size_bytes": 2396,
+      "last_modified": "2026-05-27T03:22:58.065Z",
+      "file_hash": "25bbed5cdd7949a1fa6d552e35d73cd75135033fa9c2f88c32950512edf1bfc7",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/neon/README.md",
+      "language": "markdown",
+      "size_bytes": 2539,
+      "last_modified": "2026-05-27T03:22:58.066Z",
+      "file_hash": "21bb7342fa9055f576b3a06fc0a1c7a7047b7b0533cd4a6de4609668f2256863",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/README.md",
+      "language": "markdown",
+      "size_bytes": 8709,
+      "last_modified": "2026-05-27T03:22:58.052Z",
+      "file_hash": "9f0ae19fcceb312bd8e498230d522a321d5f953910895bdb2267c2b2ca9da0bf",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/scheduler/README.md",
+      "language": "markdown",
+      "size_bytes": 567,
+      "last_modified": "2026-05-27T03:22:58.067Z",
+      "file_hash": "17d03eab857c0e92c26bb118aa5355628fd0d39898d5b3d8189f63e4017e23e3",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/speculative/README.md",
+      "language": "markdown",
+      "size_bytes": 755,
+      "last_modified": "2026-05-27T03:22:58.068Z",
+      "file_hash": "e9231a7fad4ff9f1bb2d31eda5f94dbd51e685a45e34ee9120933137c05894f8",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/STARTER-TO-RUNTIME.md",
+      "language": "markdown",
+      "size_bytes": 2075,
+      "last_modified": "2026-05-27T03:22:58.053Z",
+      "file_hash": "5d4272019b00ad72b6171a834ac9a7f894ae4856c628849c91e5961e01617e7d",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "runtime/tuning/README.md",
+      "language": "markdown",
+      "size_bytes": 597,
+      "last_modified": "2026-05-27T03:22:58.069Z",
+      "file_hash": "d7b70eb1e52988f96ee701e9ad6acc0d9d6ac729a3a22f45bc9f7ac1d8e71e93",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "scripts/coverage.sh",
+      "language": "shell",
+      "size_bytes": 3478,
+      "last_modified": "2026-05-27T03:22:58.069Z",
+      "file_hash": "093268dafc2c7973b1e30f24842bd80e82d4dd1bd392a3b2931337d1e75b1f54",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "scripts/openai_serve.py",
+      "language": "python",
+      "size_bytes": 24080,
+      "last_modified": "2026-05-27T06:00:53.568Z",
+      "file_hash": "54a1000793aaca8c9b15dd9de1676d8e2f4e5b3089547454f8f37da26bd637d4",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [
+        "__future__",
+        "atexit",
+        "http.server",
+        "ipaddress",
+        "json",
+        "logging",
+        "mlx_embeddings",
+        "mlx_lm",
+        "os",
+        "shlex",
+        "signal",
+        "socket",
+        "subprocess",
+        "sys",
+        "threading",
+        "time",
+        "typing",
+        "urllib.error",
+        "urllib.request"
+      ],
+      "exports": [
+        "EmbeddingsBackend",
+        "Settings",
+        "Us4Handler",
+        "__init__",
+        "_build_models_payload",
+        "_extract_vectors",
+        "_handle_embeddings",
+        "_init_embeddings",
+        "_install_signal_handlers",
+        "_proxy_upstream",
+        "_sanitize_path",
+        "_send_error",
+        "_send_json",
+        "_shutdown",
+        "_spawn_upstream",
+        "_terminate_proc",
+        "_truthy",
+        "_wait_upstream_ready",
+        "_warn_if_non_loopback",
+        "chat_model",
+        "do_GET",
+        "do_POST",
+        "embed",
+        "ensure_loaded",
+        "log_message",
+        "main",
+        "spawns_chat_subprocess",
+        "upstream_health_url",
+        "upstream_port",
+        "upstream_url"
+      ],
+      "importance": 0.28
+    },
+    {
+      "path": "scripts/requirements-serve.txt",
+      "language": "txt",
+      "size_bytes": 243,
+      "last_modified": "2026-05-27T04:24:14.306Z",
+      "file_hash": "40ee5886c9352c423550a2197e75f46e8fd936ea0f74cd6146817f8320647d79",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [],
+      "importance": 0.12
+    },
+    {
+      "path": "test/cli.test.js",
+      "language": "javascript",
+      "size_bytes": 10169,
+      "last_modified": "2026-05-27T03:22:58.070Z",
+      "file_hash": "f62fdbe2a44bc54c148a58e88f252983bee66555536991ae04303c99bfd1f5d7",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [
+        "node:assert/strict",
+        "node:child_process",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "node:test"
+      ],
+      "exports": [
+        "makeTempProject",
+        "runCli"
+      ],
+      "importance": 0.53
+    },
+    {
+      "path": "test/run-tests.js",
+      "language": "javascript",
+      "size_bytes": 4387,
+      "last_modified": "2026-05-27T03:22:58.070Z",
+      "file_hash": "988b8a561b7a5bf3154c6e649e204c0da1575aae0fedf6ac251c6ddc816cb270",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "exports": [
+        "countCoveredLines",
+        "isCountedLine",
+        "makeSummary",
+        "nextTemplateLiteralState",
+        "writeCoverageSummary"
+      ],
+      "importance": 0.53
+    },
+    {
+      "path": "tests/CMakeLists.txt",
+      "language": "txt",
+      "size_bytes": 1072,
+      "last_modified": "2026-05-27T03:22:58.070Z",
+      "file_hash": "bb367adb0d0be2bf1260fa4a26ee6fa75d69f9fa6179ea5010e6bdcd8f8d4bbe",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": "tests/e2e/README.md",
+      "language": "markdown",
+      "size_bytes": 1410,
+      "last_modified": "2026-05-27T03:22:58.070Z",
+      "file_hash": "94d202110d7ad04b19f6f652e5d72f884cb0edf97d6539cadcd8a2088d4b90a0",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": "tests/e2e/us4-cli-serve.spec.ts",
+      "language": "typescript",
+      "size_bytes": 5952,
+      "last_modified": "2026-05-27T04:05:58.341Z",
+      "file_hash": "d1c84871c9ce2c34f2721f0b207476eec518849fb457d0824e087576effcfc5d",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [
+        "@playwright/test",
+        "node:child_process",
+        "node:fs",
+        "node:net",
+        "node:path",
+        "node:timers/promises"
+      ],
+      "exports": [
+        "attach",
+        "freePort",
+        "getJson",
+        "postJson",
+        "waitReady"
+      ],
+      "importance": 0.53
+    },
+    {
+      "path": "tests/e2e/us4-cli.spec.ts",
+      "language": "typescript",
+      "size_bytes": 38200,
+      "last_modified": "2026-05-27T03:22:58.070Z",
+      "file_hash": "5640b152b97eb74bb984ca0c0000b079865434b3a27e6ef3d450982c96831c18",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [
+        "@playwright/test",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "node:util"
+      ],
+      "exports": [
+        "attachCommand",
+        "runCli"
+      ],
+      "importance": 0.53
+    },
+    {
+      "path": "tests/fixtures/models/bitnet-b1.58-2b/tokenizer.json",
+      "language": "json",
+      "size_bytes": 84,
+      "last_modified": "2026-05-27T03:22:58.071Z",
+      "file_hash": "f26bd3f8ce8ab63e0c8f19d33cfe82aa6bc924734d3020d1f50d88cdd7ee0a15",
+      "git_status": "clean",
+      "roles": [
+        "domain",
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.57
+    },
+    {
+      "path": "tests/fixtures/models/glm-5.1/tokenizer.json",
+      "language": "json",
+      "size_bytes": 69,
+      "last_modified": "2026-05-27T03:22:58.072Z",
+      "file_hash": "9966ee419a1d73d0a83730c2e66c89fda51ec0272e77d47960dcf6ac8de1bf74",
+      "git_status": "clean",
+      "roles": [
+        "domain",
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.57
+    },
+    {
+      "path": "tests/fixtures/models/llama-3.1-8b/tokenizer.json",
+      "language": "json",
+      "size_bytes": 83,
+      "last_modified": "2026-05-27T03:22:58.073Z",
+      "file_hash": "0f6deab4d90960607e4d88a0e04379238351b28614b36f5c03ce399593207381",
+      "git_status": "clean",
+      "roles": [
+        "domain",
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.57
+    },
+    {
+      "path": "tests/fixtures/models/minimax-m2/tokenizer.json",
+      "language": "json",
+      "size_bytes": 73,
+      "last_modified": "2026-05-27T03:22:58.073Z",
+      "file_hash": "de0a16a434bf7462eb0361ab4c8722542950e2925411a9be249b745fc1986210",
+      "git_status": "clean",
+      "roles": [
+        "domain",
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.57
+    },
+    {
+      "path": "tests/fixtures/models/pt-bitnet-ternary-2b/tokenizer.json",
+      "language": "json",
+      "size_bytes": 85,
+      "last_modified": "2026-05-27T03:22:58.073Z",
+      "file_hash": "04f69d405fde252daa9aaef906ead262d2b8a321bd7c67e569cf353398c8d9c7",
+      "git_status": "clean",
+      "roles": [
+        "domain",
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.57
+    },
+    {
+      "path": "tests/unit/CMakeLists.txt",
+      "language": "txt",
+      "size_bytes": 2920,
+      "last_modified": "2026-05-27T03:22:58.074Z",
+      "file_hash": "6ac1e41f4bb0638da9fec0627ee16c7dc5f49972af02f3e5cfeaefd618ba72e7",
+      "git_status": "clean",
+      "roles": [
+        "test"
+      ],
+      "imports": [],
+      "exports": [],
+      "importance": 0.37
+    },
+    {
+      "path": "US4-V6-simplicio.md",
+      "language": "markdown",
+      "size_bytes": 19830,
+      "last_modified": "2026-05-27T03:22:58.045Z",
+      "file_hash": "a0514618850bb770ee776bbe21817aa951d274be0a8c896a19e4360d14484c94",
+      "git_status": "clean",
+      "roles": [],
+      "imports": [],
+      "exports": [
+        "IUS4V6Adapter",
+        "US4RuntimeMode",
+        "US4SpeculativeExpertPrefetcher"
+      ],
+      "importance": 0.2
+    }
+  ],
+  "entry_points": [
+    "bin/cli.js"
+  ],
+  "test_files": [
+    ".specs/architecture/ADR-001-mlx-primary-backend.md",
+    ".specs/architecture/ADR-002-runtime-boundaries-and-adapter-contract.md",
+    ".specs/architecture/ADR-003-backend-selection-strategy.md",
+    ".specs/architecture/ADR-004-bitnet-packed-format.md",
+    ".specs/architecture/ADR-005-kv-cache-architecture.md",
+    ".specs/architecture/ADR-006-moe-expert-paging.md",
+    ".specs/architecture/ADR-007-speculative-decoding.md",
+    ".specs/architecture/ADR-008-ane-layer-offload.md",
+    ".specs/architecture/ADR-009-router-load-balance-target.md",
+    ".specs/architecture/ADR-template.md",
+    ".specs/architecture/DESIGN.md",
+    ".specs/architecture/PATTERNS.md",
+    ".specs/product/DOMAIN.md",
+    ".specs/product/PERSONAS.md",
+    ".specs/product/VISION.md",
+    ".specs/README.md",
+    ".specs/runtime/CLI-CONTRACT.md",
+    ".specs/runtime/CLI-POLISH.md",
+    ".specs/runtime/HARDWARE-PROBE.md",
+    ".specs/runtime/PLAYWRIGHT-SMOKE.md",
+    ".specs/runtime/README.md",
+    ".specs/runtime/SERVE-OPENAI.md",
+    ".specs/runtime/TELEMETRY.md",
+    ".specs/sprints/BACKLOG.md",
+    ".specs/sprints/sprint-01/SPRINT.md",
+    ".specs/sprints/sprint-01/T01.0-agentic-starter.task.md",
+    ".specs/sprints/sprint-01/T01.1-runtime-scaffold.task.md",
+    ".specs/sprints/sprint-01/T01.2-cli-contract.task.md",
+    ".specs/sprints/sprint-01/T01.3-adapter-contract.task.md",
+    ".specs/sprints/sprint-01/T01.4-probe-and-mode.task.md",
+    ".specs/sprints/sprint-01/T01.5-telemetry-and-gates.task.md",
+    ".specs/sprints/sprint-01/T01.6-ci-transition.task.md",
+    ".specs/sprints/sprint-01/T01.7-playwright-smoke.task.md",
+    ".specs/sprints/sprint-01/T01.8-adrs.task.md",
+    ".specs/sprints/sprint-02/SPRINT.md",
+    ".specs/sprints/sprint-02/T02.1-tensor-core.task.md",
+    ".specs/sprints/sprint-02/T02.2-scalar-matmul.task.md",
+    ".specs/sprints/sprint-02/T02.3-scalar-attention.task.md",
+    ".specs/sprints/sprint-02/T02.4-dense-adapter-base.task.md",
+    ".specs/sprints/sprint-02/T02.5-qwen-adapter.task.md",
+    ".specs/sprints/sprint-02/T02.6-gemma-adapter.task.md",
+    ".specs/sprints/sprint-02/T02.7-loader-minimal.task.md",
+    ".specs/sprints/sprint-02/T02.8-dense-benchmark.task.md",
+    ".specs/sprints/sprint-03/SPRINT.md",
+    ".specs/sprints/sprint-03/T03.1-metal-init.task.md",
+    ".specs/sprints/sprint-03/T03.2-metal-matmul-scaffold.task.md",
+    ".specs/sprints/sprint-03/T03.3-metal-softmax-rmsnorm-scaffold.task.md",
+    ".specs/sprints/sprint-03/T03.4-mlx-bridge-scaffold.task.md",
+    ".specs/sprints/sprint-03/T03.5-unified-allocator.task.md",
+    ".specs/sprints/sprint-03/T03.6-enable-metal-capability.task.md",
+    ".specs/sprints/sprint-03/T03.7-backend-selector-modes.task.md",
+    ".specs/sprints/sprint-04/SPRINT.md",
+    ".specs/sprints/sprint-04/T04.1-neon-matmul-hotpath.task.md",
+    ".specs/sprints/sprint-04/T04.2-neon-attention-hotpath.task.md",
+    ".specs/sprints/sprint-04/T04.4-block-gemm-tiling.task.md",
+    ".specs/sprints/sprint-04/T04.6-neon-rebench.task.md",
+    ".specs/sprints/sprint-05/SPRINT.md",
+    ".specs/sprints/sprint-05/T05.1-bitnet-metal-kernel.task.md",
+    ".specs/sprints/sprint-05/T05.2-bitnet-neon-kernel.task.md",
+    ".specs/sprints/sprint-05/T05.3-bitnet-adapter.task.md",
+    ".specs/sprints/sprint-05/T05.4-ternary-adapter.task.md",
+    ".specs/sprints/sprint-05/T05.5-ternary-lut.task.md",
+    ".specs/sprints/sprint-05/T05.6-lowbit-loader.task.md",
+    ".specs/sprints/sprint-05/T05.7-micro-trigger.task.md",
+    ".specs/sprints/sprint-06/SPRINT.md",
+    ".specs/sprints/sprint-06/T06.1-kv-pager-tiers.task.md",
+    ".specs/sprints/sprint-06/T06.2-prefix-cache-dedup.task.md",
+    ".specs/sprints/sprint-06/T06.3-ssd-cold-store.task.md",
+    ".specs/sprints/sprint-06/T06.4-kv-summarizer.task.md",
+    ".specs/sprints/sprint-06/T06.5-kv-eviction-policy.task.md",
+    ".specs/sprints/sprint-06/T06.6-adapter-kv-hooks.task.md",
+    ".specs/sprints/sprint-06/T06.7-kv-telemetry.task.md",
+    ".specs/sprints/sprint-07/SPRINT.md",
+    ".specs/sprints/sprint-07/T07.5-llama-loader.task.md",
+    ".specs/sprints/sprint-07/T07.6-llama-bench.task.md",
+    ".specs/sprints/sprint-08/SPRINT.md",
+    ".specs/sprints/sprint-08/T08.1-router-topk.task.md",
+    ".specs/sprints/sprint-08/T08.2-expert-pager.task.md",
+    ".specs/sprints/sprint-08/T08.3-deepseek-moe-adapter.task.md",
+    ".specs/sprints/sprint-08/T08.4-kimi-moe-adapter.task.md",
+    ".specs/sprints/sprint-08/T08.5-moe-loader.task.md",
+    ".specs/sprints/sprint-08/T08.6-moe-telemetry.task.md",
+    ".specs/sprints/sprint-09/SPRINT.md",
+    ".specs/sprints/sprint-09/T09.1-minimax-adapter.task.md",
+    ".specs/sprints/sprint-09/T09.2-glm-adapter.task.md",
+    ".specs/sprints/sprint-09/T09.3-speculative-prefetch.task.md",
+    ".specs/sprints/sprint-09/T09.4-sparsity-cache.task.md",
+    ".specs/sprints/sprint-09/T09.5-multimodal-cache.task.md",
+    ".specs/sprints/sprint-09/T09.6-prefetch-telemetry.task.md",
+    ".specs/sprints/sprint-10/SPRINT.md",
+    ".specs/sprints/sprint-10/T10.1-continuous-batcher.task.md",
+    ".specs/sprints/sprint-10/T10.2-session-pool.task.md",
+    ".specs/sprints/sprint-10/T10.3-peagle-decoder.task.md",
+    ".specs/sprints/sprint-10/T10.4-eagle3-decoder.task.md",
+    ".specs/sprints/sprint-10/T10.5-draft-model-loader.task.md",
+    ".specs/sprints/sprint-10/T10.6-speculative-telemetry.task.md",
+    ".specs/sprints/sprint-11/SPRINT.md",
+    ".specs/sprints/sprint-11/T11.1-ane-backend.task.md",
+    ".specs/sprints/sprint-11/T11.2-layer-offloader.task.md",
+    ".specs/sprints/sprint-11/T11.3-mixed-dispatch.task.md",
+    ".specs/sprints/sprint-11/T11.4-thermal-monitor.task.md",
+    ".specs/sprints/sprint-11/T11.5-ane-bench.task.md",
+    ".specs/sprints/sprint-11/T11.6-ane-fallback.task.md",
+    ".specs/sprints/sprint-12/SPRINT.md",
+    ".specs/sprints/sprint-12/T12.1-auto-tuner.task.md",
+    ".specs/sprints/sprint-12/T12.2-profile-cache.task.md",
+    ".specs/sprints/sprint-12/T12.3-benchmark-matrix.task.md",
+    ".specs/sprints/sprint-12/T12.4-cli-polish.task.md",
+    ".specs/sprints/sprint-12/T12.5-final-docs.task.md",
+    ".specs/sprints/sprint-12/T12.6-release-v1.task.md",
+    ".specs/sprints/sprint-12/T12.7-migration-guide.task.md",
+    ".specs/sprints/task-template.md",
+    ".specs/sprints/TIMELINE.md",
+    ".specs/workflow/CONTRIBUTING.md",
+    ".specs/workflow/MIGRATION.md",
+    ".specs/workflow/RELEASE-V1.md",
+    ".specs/workflow/RELEASE.md",
+    ".specs/workflow/WORKFLOW.md",
+    "test/cli.test.js",
+    "test/run-tests.js",
+    "tests/CMakeLists.txt",
+    "tests/e2e/README.md",
+    "tests/e2e/us4-cli-serve.spec.ts",
+    "tests/e2e/us4-cli.spec.ts",
+    "tests/fixtures/models/bitnet-b1.58-2b/tokenizer.json",
+    "tests/fixtures/models/glm-5.1/tokenizer.json",
+    "tests/fixtures/models/llama-3.1-8b/tokenizer.json",
+    "tests/fixtures/models/minimax-m2/tokenizer.json",
+    "tests/fixtures/models/pt-bitnet-ternary-2b/tokenizer.json",
+    "tests/unit/CMakeLists.txt"
+  ],
+  "config_files": [
+    ".codex/config.toml",
+    "package.json",
+    "playwright.config.ts"
+  ],
+  "modules": [
+    {
+      "name": ".",
+      "files": [
+        "_BOOTSTRAP.md",
+        ".DS_Store",
+        ".gitattributes",
+        ".gitignore",
+        "AGENTS.md",
+        "bootstrap.ps1",
+        "bootstrap.sh",
+        "CHANGELOG.md",
+        "CLAUDE.md",
+        "CMakeLists.txt",
+        "GOAL_RESULT.md",
+        "INIT.md",
+        "package-lock.json",
+        "package.json",
+        "playwright.config.ts",
+        "PRD.md",
+        "PROGRESS.md",
+        "README.md",
+        "README.pt-BR.md",
+        "US4-V6-simplicio.md"
+      ],
+      "roles": [
+        "config"
+      ],
+      "file_count": 20
+    },
+    {
+      "name": ".agents",
+      "files": [
+        ".agents/_template.agent.md",
+        ".agents/architect.agent.md",
+        ".agents/ralph-loop.agent.md",
+        ".agents/README.md",
+        ".agents/reviewer.agent.md",
+        ".agents/tdd.agent.md"
+      ],
+      "roles": [
+        "ui"
+      ],
+      "file_count": 6
+    },
+    {
+      "name": ".claude",
+      "files": [
+        ".claude/hooks/post-edit.ps1",
+        ".claude/hooks/post-edit.sh",
+        ".claude/hooks/pre-commit.ps1",
+        ".claude/hooks/pre-commit.sh",
+        ".claude/hooks/session-start-skills.sh",
+        ".claude/settings.json",
+        ".claude/settings.local.json"
+      ],
+      "roles": [],
+      "file_count": 7
+    },
+    {
+      "name": ".codex",
+      "files": [
+        ".codex/config.toml",
+        ".codex/hooks.json",
+        ".codex/hooks/post-edit.ps1",
+        ".codex/hooks/post-edit.sh",
+        ".codex/hooks/pre-commit.ps1",
+        ".codex/hooks/pre-commit.sh",
+        ".codex/hooks/session-start-skills.sh"
+      ],
+      "roles": [
+        "config"
+      ],
+      "file_count": 7
+    },
+    {
+      "name": ".github",
+      "files": [
+        ".github/CODEOWNERS",
+        ".github/copilot-instructions.md",
+        ".github/copilot/agents/_template.agent.md",
+        ".github/copilot/agents/architect.agent.md",
+        ".github/copilot/agents/ralph-loop.agent.md",
+        ".github/copilot/agents/reviewer.agent.md",
+        ".github/copilot/agents/tdd.agent.md",
+        ".github/ISSUE_TEMPLATE/bug.md",
+        ".github/ISSUE_TEMPLATE/feature.md",
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/workflows/ci.yml",
+        ".github/workflows/dod.yml",
+        ".github/workflows/scaffold-self-check.yml"
+      ],
+      "roles": [
+        "ui"
+      ],
+      "file_count": 13
+    },
+    {
+      "name": ".pytest_cache",
+      "files": [
+        ".pytest_cache/.gitignore",
+        ".pytest_cache/README.md",
+        ".pytest_cache/v/cache/nodeids"
+      ],
+      "roles": [],
+      "file_count": 3
+    },
+    {
+      "name": ".ruff_cache",
+      "files": [
+        ".ruff_cache/.gitignore",
+        ".ruff_cache/0.15.12/10953000304710497579"
+      ],
+      "roles": [],
+      "file_count": 2
+    },
+    {
+      "name": ".skills",
+      "files": [
+        ".skills/_template/SKILL.md",
+        ".skills/caveman/SKILL.md",
+        ".skills/conventional-commits/SKILL.md",
+        ".skills/everything-claude-code/SKILL.md",
+        ".skills/playwright-e2e/SKILL.md",
+        ".skills/ralph-loop/SKILL.md",
+        ".skills/README.md"
+      ],
+      "roles": [],
+      "file_count": 7
+    },
+    {
+      "name": ".specs",
+      "files": [
+        ".specs/architecture/ADR-001-mlx-primary-backend.md",
+        ".specs/architecture/ADR-002-runtime-boundaries-and-adapter-contract.md",
+        ".specs/architecture/ADR-003-backend-selection-strategy.md",
+        ".specs/architecture/ADR-004-bitnet-packed-format.md",
+        ".specs/architecture/ADR-005-kv-cache-architecture.md",
+        ".specs/architecture/ADR-006-moe-expert-paging.md",
+        ".specs/architecture/ADR-007-speculative-decoding.md",
+        ".specs/architecture/ADR-008-ane-layer-offload.md",
+        ".specs/architecture/ADR-009-router-load-balance-target.md",
+        ".specs/architecture/ADR-template.md",
+        ".specs/architecture/DESIGN.md",
+        ".specs/architecture/PATTERNS.md",
+        ".specs/product/DOMAIN.md",
+        ".specs/product/PERSONAS.md",
+        ".specs/product/VISION.md",
+        ".specs/README.md",
+        ".specs/runtime/CLI-CONTRACT.md",
+        ".specs/runtime/CLI-POLISH.md",
+        ".specs/runtime/HARDWARE-PROBE.md",
+        ".specs/runtime/PLAYWRIGHT-SMOKE.md"
+      ],
+      "roles": [
+        "domain",
+        "route",
+        "test"
+      ],
+      "file_count": 118
+    },
+    {
+      "name": "apps",
+      "files": [
+        "apps/CMakeLists.txt"
+      ],
+      "roles": [],
+      "file_count": 1
+    },
+    {
+      "name": "bin",
+      "files": [
+        "bin/cli.js"
+      ],
+      "roles": [
+        "entrypoint"
+      ],
+      "file_count": 1
+    },
+    {
+      "name": "runtime",
+      "files": [
+        "runtime/adapters/README.md",
+        "runtime/ane/README.md",
+        "runtime/benchmarks/CMakeLists.txt",
+        "runtime/benchmarks/correctness/CMakeLists.txt",
+        "runtime/benchmarks/README.md",
+        "runtime/cache/README.md",
+        "runtime/CMakeLists.txt",
+        "runtime/cpu/README.md",
+        "runtime/kv/README.md",
+        "runtime/memory/README.md",
+        "runtime/metal/README.md",
+        "runtime/mlx/README.md",
+        "runtime/moe/README.md",
+        "runtime/neon/README.md",
+        "runtime/README.md",
+        "runtime/scheduler/README.md",
+        "runtime/speculative/README.md",
+        "runtime/STARTER-TO-RUNTIME.md",
+        "runtime/tuning/README.md"
+      ],
+      "roles": [],
+      "file_count": 19
+    },
+    {
+      "name": "scripts",
+      "files": [
+        "scripts/coverage.sh",
+        "scripts/openai_serve.py",
+        "scripts/requirements-serve.txt"
+      ],
+      "roles": [],
+      "file_count": 3
+    },
+    {
+      "name": "test",
+      "files": [
+        "test/cli.test.js",
+        "test/run-tests.js"
+      ],
+      "roles": [
+        "test"
+      ],
+      "file_count": 2
+    },
+    {
+      "name": "tests",
+      "files": [
+        "tests/CMakeLists.txt",
+        "tests/e2e/README.md",
+        "tests/e2e/us4-cli-serve.spec.ts",
+        "tests/e2e/us4-cli.spec.ts",
+        "tests/fixtures/models/bitnet-b1.58-2b/tokenizer.json",
+        "tests/fixtures/models/glm-5.1/tokenizer.json",
+        "tests/fixtures/models/llama-3.1-8b/tokenizer.json",
+        "tests/fixtures/models/minimax-m2/tokenizer.json",
+        "tests/fixtures/models/pt-bitnet-ternary-2b/tokenizer.json",
+        "tests/unit/CMakeLists.txt"
+      ],
+      "roles": [
+        "domain",
+        "test"
+      ],
+      "file_count": 10
+    }
+  ],
+  "entities": [
+    {
+      "name": "task",
+      "score": 76
+    },
+    {
+      "name": "readme",
+      "score": 23
+    },
+    {
+      "name": "cli",
+      "score": 14
+    },
+    {
+      "name": "detect",
+      "score": 14
+    },
+    {
+      "name": "adapter",
+      "score": 12
+    },
+    {
+      "name": "sprint",
+      "score": 12
+    },
+    {
+      "name": "upstream",
+      "score": 12
+    },
+    {
+      "name": "adr",
+      "score": 10
+    },
+    {
+      "name": "agent",
+      "score": 10
+    },
+    {
+      "name": "read",
+      "score": 10
+    },
+    {
+      "name": "runtime",
+      "score": 9
+    },
+    {
+      "name": "t01",
+      "score": 9
+    },
+    {
+      "name": "template",
+      "score": 9
+    },
+    {
+      "name": "handle",
+      "score": 8
+    },
+    {
+      "name": "json",
+      "score": 8
+    },
+    {
+      "name": "post",
+      "score": 8
+    },
+    {
+      "name": "t02",
+      "score": 8
+    },
+    {
+      "name": "cmake",
+      "score": 7
+    },
+    {
+      "name": "lists",
+      "score": 7
+    },
+    {
+      "name": "mode",
+      "score": 7
+    },
+    {
+      "name": "t03",
+      "score": 7
+    },
+    {
+      "name": "t05",
+      "score": 7
+    },
+    {
+      "name": "t06",
+      "score": 7
+    },
+    {
+      "name": "t12",
+      "score": 7
+    },
+    {
+      "name": "ane",
+      "score": 6
+    },
+    {
+      "name": "backend",
+      "score": 6
+    },
+    {
+      "name": "copy",
+      "score": 6
+    },
+    {
+      "name": "embeddings",
+      "score": 6
+    },
+    {
+      "name": "field",
+      "score": 6
+    },
+    {
+      "name": "init",
+      "score": 6
+    }
+  ],
+  "architecture": {
+    "signals": [
+      "dotnet",
+      "nextjs",
+      "playwright",
+      "react",
+      "vue"
+    ],
+    "system_type": "web"
+  },
+  "dependencies": {
+    "package_manager": "npm",
+    "manifest": "package.json",
+    "runtime": [],
+    "dev": [
+      "@playwright/test"
+    ]
+  },
+  "recent_changes": [],
+  "changed_files": [],
+  "integration": {
+    "dev_cli_mapper": "read .simplicio/project-map.json, then use .simplicio/precedent-index.json for task-specific examples",
+    "contract": "SIMPLICIO_INTEGRATION.md"
+  }
+}

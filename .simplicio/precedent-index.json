@@ -1,0 +1,412 @@
+{
+  "schema": "simplicio.precedent-index/v1",
+  "version": 1,
+  "generated_at": "2026-05-30T20:28:56.069Z",
+  "source_project_map": ".simplicio/project-map.json",
+  "items": [
+    {
+      "id": "44ade7398d52bdd2",
+      "path": ".agents/reviewer.agent.md",
+      "line": 37,
+      "language": "markdown",
+      "change_type": "test",
+      "tags": [
+        "ui",
+        "markdown",
+        "agents",
+        "reviewer",
+        "agent"
+      ],
+      "summary": "test precedent in .agents/reviewer.agent.md",
+      "snippet": "- [ ] Cada acceptance criterion da task tem teste correspondente\n- [ ] Coverage do diff >= 80%\n- [ ] Testes têm nomes legíveis (`it('persists user when email is unique')`, não `it('test1')`)\n- [ ] Sem `skip`, `only`, `xit`, `xdescribe`\n- [ ] E2E Playwright presente em fluxo crítico (login, checkout, pagamento)"
+    },
+    {
+      "id": "596d396f0920467e",
+      "path": ".agents/tdd.agent.md",
+      "line": 28,
+      "language": "markdown",
+      "change_type": "test",
+      "tags": [
+        "markdown",
+        "agents",
+        "tdd",
+        "agent"
+      ],
+      "summary": "test precedent in .agents/tdd.agent.md",
+      "snippet": "- Cria arquivo de teste no path correto (segue `.specs/architecture/PATTERNS.md`).\n- Nome do teste descreve **comportamento esperado**, não implementação:\n  - Ruim: `it('calls userRepository.save')`\n  - Bom: `it('persists user when email is unique')`\n- Roda o teste. **Tem que falhar.** Se passa de primeira -> teste tá errado, refaz."
+    },
+    {
+      "id": "52e71492637eabba",
+      "path": ".claude/hooks/post-edit.ps1",
+      "line": 29,
+      "language": "powershell",
+      "change_type": "error-handling",
+      "tags": [
+        "powershell",
+        "claude",
+        "hooks",
+        "post",
+        "edit",
+        "ps1"
+      ],
+      "summary": "error-handling precedent in .claude/hooks/post-edit.ps1",
+      "snippet": "if ($jsTsExtensions -contains $ext) {\n    # Prettier formata, ESLint corrige o que da.\n    try {\n        & npx --no-install prettier --write $FilePath 2>$null\n    } catch { }"
+    },
+    {
+      "id": "ddd8571604b60cd3",
+      "path": ".codex/hooks/post-edit.ps1",
+      "line": 29,
+      "language": "powershell",
+      "change_type": "error-handling",
+      "tags": [
+        "powershell",
+        "codex",
+        "hooks",
+        "post",
+        "edit",
+        "ps1"
+      ],
+      "summary": "error-handling precedent in .codex/hooks/post-edit.ps1",
+      "snippet": "if ($jsTsExtensions -contains $ext) {\n    # Prettier formata, ESLint corrige o que da.\n    try {\n        & npx --no-install prettier --write $FilePath 2>$null\n    } catch { }"
+    },
+    {
+      "id": "3b2cb08ff16c4be5",
+      "path": ".github/copilot/agents/reviewer.agent.md",
+      "line": 37,
+      "language": "markdown",
+      "change_type": "test",
+      "tags": [
+        "ui",
+        "markdown",
+        "github",
+        "copilot",
+        "agents",
+        "reviewer",
+        "agent"
+      ],
+      "summary": "test precedent in .github/copilot/agents/reviewer.agent.md",
+      "snippet": "- [ ] Cada acceptance criterion da task tem teste correspondente\n- [ ] Coverage do diff >= 80%\n- [ ] Testes têm nomes legíveis (`it('persists user when email is unique')`, não `it('test1')`)\n- [ ] Sem `skip`, `only`, `xit`, `xdescribe`\n- [ ] E2E Playwright presente em fluxo crítico (login, checkout, pagamento)"
+    },
+    {
+      "id": "3a3cb1b15be22087",
+      "path": ".github/copilot/agents/tdd.agent.md",
+      "line": 28,
+      "language": "markdown",
+      "change_type": "test",
+      "tags": [
+        "markdown",
+        "github",
+        "copilot",
+        "agents",
+        "tdd",
+        "agent"
+      ],
+      "summary": "test precedent in .github/copilot/agents/tdd.agent.md",
+      "snippet": "- Cria arquivo de teste no path correto (segue `.specs/architecture/PATTERNS.md`).\n- Nome do teste descreve **comportamento esperado**, não implementação:\n  - Ruim: `it('calls userRepository.save')`\n  - Bom: `it('persists user when email is unique')`\n- Roda o teste. **Tem que falhar.** Se passa de primeira -> teste tá errado, refaz."
+    },
+    {
+      "id": "2a852710b664ddbd",
+      "path": ".github/workflows/ci.yml",
+      "line": 182,
+      "language": "yaml",
+      "change_type": "test",
+      "tags": [
+        "yaml",
+        "github",
+        "workflows",
+        "yml"
+      ],
+      "summary": "test precedent in .github/workflows/ci.yml",
+      "snippet": "            attachment?.name === 'trace' &&\n            typeof attachment.path === 'string' &&\n            /(^|[\\\\/])trace\\.zip$/.test(attachment.path)\n          );\n"
+    },
+    {
+      "id": "1e86476095ffd64d",
+      "path": ".github/workflows/dod.yml",
+      "line": 241,
+      "language": "yaml",
+      "change_type": "error-handling",
+      "tags": [
+        "yaml",
+        "github",
+        "workflows",
+        "dod",
+        "yml"
+      ],
+      "summary": "error-handling precedent in .github/workflows/dod.yml",
+      "snippet": "          const probe = JSON.parse(fs.readFileSync('dod-artifacts/runtime-native/us4-cli-probe.json', 'utf8'));\n          if (!probe.version || !probe.platform || !probe.recommended_mode) {\n            throw new Error('native probe payload missing expected fields');\n          }\n          const run = JSON.parse(fs.readFileSync('dod-artifacts/runtime-native/us4-cli-run.json', 'utf8'));"
+    },
+    {
+      "id": "e8eee4d4a0d0408a",
+      "path": ".skills/conventional-commits/SKILL.md",
+      "line": 77,
+      "language": "markdown",
+      "change_type": "test",
+      "tags": [
+        "markdown",
+        "skills",
+        "conventional",
+        "commits",
+        "skill"
+      ],
+      "summary": "test precedent in .skills/conventional-commits/SKILL.md",
+      "snippet": "perf(search): debounce input to reduce API calls from 30 to 3 per typing burst\n\ntest(auth): cover expired-token edge case in login flow\n\nbuild(deps): bump playwright to 1.45.0"
+    },
+    {
+      "id": "08112eb669457859",
+      "path": ".skills/playwright-e2e/SKILL.md",
+      "line": 36,
+      "language": "markdown",
+      "change_type": "test",
+      "tags": [
+        "markdown",
+        "skills",
+        "playwright",
+        "e2e",
+        "skill"
+      ],
+      "summary": "test precedent in .skills/playwright-e2e/SKILL.md",
+      "snippet": "## Steps\n\n1. **Identifique o cenário**. Liste o caminho feliz e os principais erros (input inválido, sessão expirada, 404/500, viewport mobile/desktop). Cada cenário vira um `test(...)`.\n2. **Crie o arquivo** em `tests/e2e/<feature>.spec.ts`. Nome em `kebab-case` casando com a feature (ex.: `tests/e2e/login.spec.ts`).\n3. **Importe fixtures padrão** do Playwright (`test`, `expect`) e qualquer fixture customizada do projeto (`tests/e2e/fixtures/`)."
+    },
+    {
+      "id": "8f25419e4f81ffc4",
+      "path": ".specs/architecture/ADR-009-router-load-balance-target.md",
+      "line": 81,
+      "language": "markdown",
+      "change_type": "route",
+      "tags": [
+        "route",
+        "test",
+        "markdown",
+        "specs",
+        "architecture",
+        "adr",
+        "009",
+        "router",
+        "load",
+        "balance"
+      ],
+      "summary": "route precedent in .specs/architecture/ADR-009-router-load-balance-target.md",
+      "snippet": "### Neutras / observações\n\n- `RouterDecision.loadBalance` (em `runtime/moe/router.cpp`) é um campo distinto\n  e não foi afetado por esta decisão.\n"
+    },
+    {
+      "id": "329c0ed1ccf36270",
+      "path": ".specs/runtime/PLAYWRIGHT-SMOKE.md",
+      "line": 9,
+      "language": "markdown",
+      "change_type": "test",
+      "tags": [
+        "test",
+        "markdown",
+        "specs",
+        "runtime",
+        "playwright",
+        "smoke"
+      ],
+      "summary": "test precedent in .specs/runtime/PLAYWRIGHT-SMOKE.md",
+      "snippet": "## 1. Escopo\n\n- Runner: Playwright Test (`@playwright/test`).\n- Config: `playwright.config.ts` na raiz do repo.\n- Spec principal: `tests/e2e/us4-cli.spec.ts`."
+    },
+    {
+      "id": "005e606c12d05835",
+      "path": ".specs/sprints/sprint-06/T06.6-adapter-kv-hooks.task.md",
+      "line": 15,
+      "language": "markdown",
+      "change_type": "test",
+      "tags": [
+        "test",
+        "markdown",
+        "specs",
+        "sprints",
+        "sprint",
+        "t06",
+        "adapter",
+        "hooks",
+        "task"
+      ],
+      "summary": "test precedent in .specs/sprints/sprint-06/T06.6-adapter-kv-hooks.task.md",
+      "snippet": "Dense and Llama adapters already use shared KV helpers, but Sprint 06 still\nneeds broader lifecycle hooks so reuse, restore, compact, and append behavior\nbecomes a first-class adapter contract.\n\n## Acceptance criteria"
+    },
+    {
+      "id": "a4eda0535daee4bb",
+      "path": ".specs/sprints/sprint-08/T08.1-router-topk.task.md",
+      "line": 24,
+      "language": "markdown",
+      "change_type": "route",
+      "tags": [
+        "route",
+        "test",
+        "markdown",
+        "specs",
+        "sprints",
+        "sprint",
+        "t08",
+        "router",
+        "topk",
+        "task"
+      ],
+      "summary": "route precedent in .specs/sprints/sprint-08/T08.1-router-topk.task.md",
+      "snippet": "## Current progress\n\n- `runtime/moe/router.cpp` now computes softmax-backed top-k routing and keeps\n  `entropy`, `load_balance`, `selected_mass`, and `total_experts` in a\n  retained `RouterDecision`"
+    },
+    {
+      "id": "c775deef36df050d",
+      "path": "bin/cli.js",
+      "line": 301,
+      "language": "javascript",
+      "change_type": "feature",
+      "tags": [
+        "entrypoint",
+        "javascript",
+        "bin",
+        "cli"
+      ],
+      "summary": "feature precedent in bin/cli.js",
+      "snippet": "];\n\nfunction normalizeMemoryGiB(totalBytes) {\n  return Math.round(totalBytes / (1024 ** 3));\n}"
+    },
+    {
+      "id": "46cd887934ce1a69",
+      "path": "bootstrap.ps1",
+      "line": 31,
+      "language": "powershell",
+      "change_type": "feature",
+      "tags": [
+        "powershell",
+        "bootstrap",
+        "ps1"
+      ],
+      "summary": "feature precedent in bootstrap.ps1",
+      "snippet": "$ErrorActionPreference = \"Stop\"\n\nfunction Read-Safe([string]$Path) {\n  if (-not (Test-Path $Path)) { return \"\" }\n  return Get-Content $Path -Raw -ErrorAction SilentlyContinue"
+    },
+    {
+      "id": "d3e0d529a8126f11",
+      "path": "CHANGELOG.md",
+      "line": 19,
+      "language": "markdown",
+      "change_type": "feature",
+      "tags": [
+        "markdown",
+        "changelog"
+      ],
+      "summary": "feature precedent in CHANGELOG.md",
+      "snippet": "\n- `us4-cli serve` now exposes `--chat-backend <mlx|ollama|custom>` and\n  `--chat-upstream <url>` as first-class flags, mapping them to\n  `US4_SERVE_CHAT_BACKEND` and `US4_SERVE_CHAT_UPSTREAM` before the Python\n  sidecar is executed. This keeps the C++ wrapper aligned with the documented"
+    },
+    {
+      "id": "9572da2a6c19f353",
+      "path": "README.md",
+      "line": 232,
+      "language": "markdown",
+      "change_type": "feature",
+      "tags": [
+        "markdown",
+        "readme"
+      ],
+      "summary": "feature precedent in README.md",
+      "snippet": "\nExample: native 7B chat on an M1 8 GB box with RAM-tuned MLX (3-bit quant +\ncapped KV cache). This is the recipe to use when you want 7B-class quality\non a small machine **without** falling back to the Ollama proxy:\n"
+    },
+    {
+      "id": "8d26eb1dd6195011",
+      "path": "runtime/CMakeLists.txt",
+      "line": 45,
+      "language": "txt",
+      "change_type": "route",
+      "tags": [
+        "txt",
+        "runtime",
+        "cmake",
+        "lists"
+      ],
+      "summary": "route precedent in runtime/CMakeLists.txt",
+      "snippet": "  moe/expert_pager.cpp\n  moe/moe_telemetry.cpp\n  moe/router.cpp\n  moe/router_metrics.cpp\n  moe/shard_loader.cpp"
+    },
+    {
+      "id": "1c420b26b146eae6",
+      "path": "scripts/openai_serve.py",
+      "line": 100,
+      "language": "python",
+      "change_type": "feature",
+      "tags": [
+        "python",
+        "scripts",
+        "openai",
+        "serve"
+      ],
+      "summary": "feature precedent in scripts/openai_serve.py",
+      "snippet": "\n\ndef _sanitize_path(path: str) -> str:\n    return path.replace(\"\\n\", \"\\\\n\").replace(\"\\r\", \"\\\\r\")[:120]\n"
+    },
+    {
+      "id": "5abd499e873d8ce9",
+      "path": "test/cli.test.js",
+      "line": 14,
+      "language": "javascript",
+      "change_type": "test",
+      "tags": [
+        "test",
+        "javascript",
+        "cli"
+      ],
+      "summary": "test precedent in test/cli.test.js",
+      "snippet": "const packageJson = require(path.join(root, 'package.json'));\n\nfunction runCli(args, cwd, options = {}) {\n  return spawnSync(process.execPath, [cli, ...args], {\n    cwd,"
+    },
+    {
+      "id": "aba3d58a3d6024bd",
+      "path": "test/run-tests.js",
+      "line": 43,
+      "language": "javascript",
+      "change_type": "test",
+      "tags": [
+        "test",
+        "javascript",
+        "run"
+      ],
+      "summary": "test precedent in test/run-tests.js",
+      "snippet": "}\n\nfunction writeCoverageSummary() {\n  const trackedFiles = new Set([path.join(root, 'bin', 'cli.js')]);\n  const byFile = new Map();"
+    },
+    {
+      "id": "f2d66e550a515e41",
+      "path": "tests/e2e/us4-cli-serve.spec.ts",
+      "line": 18,
+      "language": "typescript",
+      "change_type": "test",
+      "tags": [
+        "test",
+        "typescript",
+        "e2e",
+        "us4",
+        "cli",
+        "serve",
+        "spec"
+      ],
+      "summary": "test precedent in tests/e2e/us4-cli-serve.spec.ts",
+      "snippet": "};\n\nasync function freePort(): Promise<number> {\n  return new Promise((resolve, reject) => {\n    const srv = createServer();"
+    },
+    {
+      "id": "cd3b37b953752f16",
+      "path": "tests/e2e/us4-cli.spec.ts",
+      "line": 18,
+      "language": "typescript",
+      "change_type": "test",
+      "tags": [
+        "test",
+        "typescript",
+        "e2e",
+        "us4",
+        "cli",
+        "spec"
+      ],
+      "summary": "test precedent in tests/e2e/us4-cli.spec.ts",
+      "snippet": "};\n\nasync function runCli(args: string[]): Promise<CliRun> {\n  const {stdout, stderr} = await execFileAsync(\n      process.execPath,"
+    },
+    {
+      "id": "75a5dc760ad9afc7",
+      "path": "US4-V6-simplicio.md",
+      "line": 339,
+      "language": "markdown",
+      "change_type": "feature",
+      "tags": [
+        "markdown",
+        "us4",
+        "simplicio"
+      ],
+      "summary": "feature precedent in US4-V6-simplicio.md",
+      "snippet": "\n```cpp\nclass IUS4V6Adapter {\npublic:\n    virtual ~IUS4V6Adapter() = default;"
+    }
+  ]
+}
