@@ -2,6 +2,6 @@
 # Install with: pip install -r scripts/requirements-serve.txt
 # Used by scripts/openai_serve.py and `us4-cli serve`.
 
-mlx>=0.21.0,<0.32.0
-mlx-lm>=0.31.0,<0.32.0
+mlx>=0.31.2,<0.32.0
+mlx-lm>=0.31.3,<0.32.0
 mlx-embeddings>=0.1.0,<0.2.0

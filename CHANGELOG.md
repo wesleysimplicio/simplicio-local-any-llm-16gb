@@ -4,6 +4,15 @@ All notable changes to **US4 V6 Apple Edition** are recorded here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project adopts [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.7] - 2026-05-31
+
+### Changed
+
+- Refresh Playwright and MLX serve dependencies to the latest compatible
+  releases used by the local visual smoke flow.
+- Bump starter package metadata `0.1.50` -> `0.1.51` and project runtime
+  version `0.2.6` -> `0.2.7`.
+
 ## [0.2.6] - 2026-05-30
 
 ### Added
