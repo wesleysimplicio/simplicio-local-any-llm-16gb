@@ -2,14 +2,40 @@
 
 ## Current Status
 
-Auditoria da issue #81 (EPIC) concluida: nenhuma das 10 frentes do runtime e
-real de ponta a ponta (achados detalhados nas issues filhas #82-#91). Issue
-#84 (tokenizer BPE real) fechada nesta sessao como primeira frente tratavel
-em ambiente Linux sem hardware Apple. Demais frentes seguem abertas com
-bloqueio de ambiente explicito quando dependem de Metal/MLX/ANE reais
-(macOS/Apple Silicon).
+Missao redefinida pelo dono (2026-07-13): **simplicio-local-any-llm-16gb** —
+rodar qualquer LLM tier-1 (DeepSeek, GLM, Kimi) em maquina de 16 GB de RAM,
+sem GPU, lentidao extrema aceita. Repositorio renomeado no GitHub para
+`simplicio-local-any-llm-16gb`. Epica #116 aberta com 14 issues filhas
+(#117-#131) cobrindo: vendoring do motor colibri (ADR-010, Apache-2.0),
+baseline em hardware 16 GB, perfil 16 GB com gate de RSS <= 13 GB, familias
+DeepSeek (group-limited routing) e Kimi K2, robustez/sanitizers/fuzzing,
+tokenizer por familia, suite automatizada com oraculos commitados, CI pronto
+para ligar, benchmarks reproduziveis + perplexity, kernels CPU
+(NEON-SDOT/VNNI/i8mm), cache/speculative para 16 GB, modo demo para densos
+gigantes e integracao de produto. Proxima acao: #117 (ADR + vendoring), que
+desbloqueia as demais. Docs base: `docs/assessment-llm-tier1-16gb.md`,
+`docs/comparison-us4-vs-colibri.md`, `docs/plan-simplicio-local-any-llm-16gb.md`.
+Epica #81 (aceleracao Apple Metal/MLX/ANE) segue como trilha separada,
+bloqueada por hardware (#86).
 
-## Latest Checkpoint
+## Checkpoint 2026-07-13 (sessao de assessment/planejamento)
+
+Status: done
+
+Task:
+Levantamento completo do projeto + comparacao com colibri + plano e issues
+da missao any-llm-16gb.
+
+Result:
+- Auditoria do runtime US4: subsistemas classificados REAL/PARCIAL/SINTETICO
+  (build verde, 222/222 testes passando em Linux x86_64 nesta sessao).
+- Auditoria do colibri (fork Apache-2.0, upstream JustVugg/colibri): motor
+  MoE real (MLA, streaming de experts, int8/int4/int2, MTP lossless) com
+  fraquezas em prova/CI/benchmarks — mapeadas como nossas superacoes.
+- 3 docs criados em docs/, epica #116 + filhas #117-#131 abertas com
+  passo a passo e criterios de aceite detalhados.
+
+## Previous Checkpoint
 
 Status: done
 
