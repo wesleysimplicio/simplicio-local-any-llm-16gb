@@ -1,5 +1,6 @@
 *.exe
 glm_tiny/
+deepseek_tiny/
 olmoe_hf/
 olmoe_i4/
 /glm

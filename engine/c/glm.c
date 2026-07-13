@@ -739,7 +739,10 @@ static void load_cfg(Cfg *c, const char *snap){
       } }
     c->qk_head=c->qk_nope+c->qk_rope;
     c->attn_scale = 1.f / sqrtf((float)c->qk_head);
-    if(c->n_group!=1){ fprintf(stderr,"questo motore assume n_group=1 (GLM-5.2)\n"); exit(1); }
+    /* GLM-5.2 non seta n_group/topk_group nel config (assumeva sempre 1): config.json
+     * senza queste chiavi -> gi() torna 0 -> default legacy = nessun group-limiting. */
+    if(c->n_group<1) c->n_group=1;
+    if(c->topk_group<1) c->topk_group=1;
     /* VALIDAZIONE (report PR #25): il config.json arriva da mirror non fidati — dimensioni
      * ostili non devono superare questo punto. Un solo choke point protegge ogni alloc a valle. */
     #define CKR(name,v,lo,hi) if((v)<(lo)||(v)>(hi)){ \
@@ -753,7 +756,15 @@ static void load_cfg(Cfg *c, const char *snap){
     CKR("v_head_dim",c->v_head,1,1<<16)          CKR("n_shared_experts",c->n_shared,0,64)
     CKR("vocab_size",c->vocab,1,1<<24)           CKR("index_topk",c->index_topk,0,1<<20)
     CKR("index_n_heads",c->index_nh,0,1024)      CKR("index_head_dim",c->index_hd,0,1<<16)
+    /* DeepSeek-V3/R1 (issue #120): group-limited routing. n_group=1 (default GLM-5.2)
+     * mantem o comportamento legado bit-a-bit (o mascaramento de grupo abaixo e' um no-op
+     * com um unico grupo == todos os experts). */
+    CKR("n_group",c->n_group,1,c->n_experts)     CKR("topk_group",c->topk_group,1,c->n_group)
     #undef CKR
+    if(c->n_experts % c->n_group != 0){
+        fprintf(stderr,"config: n_routed_experts=%d nao e' divisivel por n_group=%d\n",
+            c->n_experts,c->n_group); exit(1);
+    }
     free(ar);
 }
 
@@ -1253,6 +1264,11 @@ static void attention(Model *m, Layer *l, int layer, float *x, int S, int pos_ba
 static void moe(Model *m, Layer *l, int layer, float *x, int S, float *out){
     Cfg *c=&m->c; int D=c->hidden, E=c->n_experts, K=c->topk, I=c->moe_inter;
     float *logit=falloc(E), *choice=falloc(E);
+    /* DeepSeek-V3/R1 group-limited routing (issue #120): buffer de score por grupo, so'
+     * alocado quando n_group>1 (GLM-5.2 usa n_group=1 -> NULL, zero custo/regressao). */
+    int gsz = c->n_group>1 ? E/c->n_group : 0;
+    float *gscore = c->n_group>1 ? falloc(c->n_group) : NULL;
+    unsigned char *gsel = c->n_group>1 ? malloc((size_t)c->n_group) : NULL;
     int sI=c->moe_inter*c->n_shared;
     /* ---- FASE A: routing di tutte le S posizioni ---- */
     int *idxs=malloc((size_t)S*K*sizeof(int)); float *ws=malloc((size_t)S*K*sizeof(float));
@@ -1261,6 +1277,30 @@ static void moe(Model *m, Layer *l, int layer, float *x, int S, float *out){
         const float *xs=x+(int64_t)s*D;
         matmul(logit, xs, l->router, 1, D, E);
         for(int e=0;e<E;e++){ logit[e]=sigmoidf(logit[e]); choice[e]=logit[e]+l->router_bias[e]; }
+        /* group-limiting: score de grupo = soma dos top-2 `choice` do grupo (bias incluso,
+         * exatamente DeepseekV3TopkRouter.forward em transformers); seleciona topk_group
+         * grupos, mascara `choice` para -inf fora deles ANTES da selecao top-k abaixo. O
+         * peso do gate (`w[kk]=logit[best]`, poucas linhas abaixo) usa sigmoid puro SEM bias
+         * -- o bias so' filtra a selecao, nunca entra no peso. n_group==1 e' um no-op
+         * bit-identico ao comportamento legado (GLM-5.2). */
+        if(c->n_group>1){
+            for(int g=0;g<c->n_group;g++){
+                float top1=-1e30f, top2=-1e30f;
+                for(int j=0;j<gsz;j++){
+                    float v=choice[g*gsz+j];
+                    if(v>top1){ top2=top1; top1=v; } else if(v>top2) top2=v;
+                }
+                gscore[g]=top1+top2;
+            }
+            memset(gsel,0,(size_t)c->n_group);
+            for(int gk=0;gk<c->topk_group;gk++){
+                int best=-1; float bv=-1e30f;
+                for(int g=0;g<c->n_group;g++) if(!gsel[g] && gscore[g]>bv){ bv=gscore[g]; best=g; }
+                if(best>=0) gsel[best]=1;
+            }
+            for(int g=0;g<c->n_group;g++) if(!gsel[g])
+                for(int j=0;j<gsz;j++) choice[g*gsz+j] = -INFINITY;
+        }
         int *idx=idxs+(int64_t)s*K; float *w=ws+(int64_t)s*K;
         int Ksel = g_topk>0 ? (g_topk<K?g_topk:K) : K;
         for(int kk=0;kk<Ksel;kk++){ int best=-1; float bv=-1e30f;
@@ -1367,7 +1407,7 @@ static void moe(Model *m, Layer *l, int layer, float *x, int S, float *out){
     for(int64_t z=0;z<(int64_t)S*sI;z++) sg[z]=siluf(sg[z])*su[z];
     matmul_qt(hh, sg, &l->sh_down, S);
     for(int64_t z=0;z<(int64_t)S*D;z++) out[z]+=hh[z];
-    free(logit); free(choice); free(idxs); free(ws); free(keff); free(uniq);
+    free(logit); free(choice); free(gscore); free(gsel); free(idxs); free(ws); free(keff); free(uniq);
     free(xg); free(gg); free(uu); free(hh); free(rows); free(rw); free(sg); free(su);
 }
 
