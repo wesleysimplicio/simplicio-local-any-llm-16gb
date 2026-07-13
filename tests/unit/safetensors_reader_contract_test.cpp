@@ -61,6 +61,31 @@ TEST(SafetensorsReaderContractTest, ReadsRealFloat32TensorBytes) {
   EXPECT_FLOAT_EQ(lmHead[11], -3.0F);
 }
 
+// Issue #81.11: real production checkpoints (e.g. Qwen2.5-0.5B's
+// model.safetensors, downloaded and inspected while validating this) store
+// weights as BF16, not F32 -- ReadFloat32 used to reject that dtype
+// outright. Values here are exact powers of two, so bf16 truncation loses
+// no bits and the oracle can assert exact equality.
+TEST(SafetensorsReaderContractTest, ReadsRealBf16TensorBytesAsFloat32) {
+  std::string error;
+  const auto reader =
+      SafetensorsReader::Open(FixtureDir() / "toy_bf16.safetensors", &error);
+  ASSERT_TRUE(reader.has_value()) << error;
+
+  const auto *info = reader->Find("embedding.weight");
+  ASSERT_NE(info, nullptr);
+  EXPECT_EQ(info->dtype, "BF16");
+
+  const std::vector<float> values =
+      reader->ReadFloat32("embedding.weight", &error);
+  const std::vector<float> expected = {1.0F, -1.0F, 2.0F, -2.0F,
+                                       0.5F, -0.5F, 4.0F, -4.0F};
+  ASSERT_EQ(values.size(), expected.size()) << error;
+  for (std::size_t i = 0; i < expected.size(); ++i) {
+    EXPECT_FLOAT_EQ(values[i], expected[i]);
+  }
+}
+
 TEST(SafetensorsReaderContractTest, MissingTensorReportsExplicitError) {
   const auto reader =
       SafetensorsReader::Open(FixtureDir() / "toy_real.safetensors");
