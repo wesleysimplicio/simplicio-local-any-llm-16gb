@@ -182,6 +182,36 @@ e `clang-tidy -p build` limpos no arquivo novo.
 Next:
 #81.7 (MoE real) e #81.9 (speculative real) são os próximos passos.
 
+## Checkpoint seguinte (5)
+
+Status: done
+
+Task:
+#89 - Quantização aplicada a pesos reais (não à projeção sintética)
+
+Result:
+`QuantizeProjectionInt8`/`QuantizeProjectionInt4` (e `BuildGroupScales`)
+foram extraídas do namespace anônimo de `dense_adapter_base.cpp` para
+`runtime/cpu/quantize_projection.{h,cpp}`, reutilizáveis por testes fora do
+adapter. `quantization_real_weights_contract_test.cpp` carrega
+`embedding.weight`/`lm_head.weight` reais (fixture `toy_real.safetensors`,
+#81.2) e roda o round-trip quantize→dequantize real (`DequantizeInt8Groups`/
+`DequantizeInt4Groups`), validando que o erro por elemento fica dentro de
+uma tolerância documentada (até um `scale` completo, cobrindo o erro de
+arredondamento de meio-passo mais folga). Isso é distinto do pipeline de
+geração, que (desde #81.4/#81.5) pula quantização quando a fonte já é
+real, para não degradar pesos exatos.
+
+Validation:
+`cmake --build build`; `ctest --test-dir build --output-on-failure` (215/215,
+zero regressão); `npx playwright test --reporter=list` (26/26);
+`clang-format --dry-run --Werror` e `clang-tidy -p build` limpos nos
+arquivos tocados.
+
+Next:
+#81.7 (MoE real) e #81.9 (speculative real) permanecem como próximos
+passos; #81.10 (API nativa) depende deles.
+
 Status: done
 
 Task:
