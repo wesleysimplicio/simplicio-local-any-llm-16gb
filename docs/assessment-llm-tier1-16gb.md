@@ -9,11 +9,19 @@
 
 ## 1. Sumário executivo
 
+> **Revisão 2026-07-13 (mesma data, sessão posterior):** o item 1 abaixo assume pesos
+> residentes em RAM. A auditoria do colibri (`docs/comparison-us4-vs-colibri.md`)
+> provou viável o caminho alternativo — tronco denso residente + experts streamados do
+> SSD — que torna checkpoints tier-1 completos executáveis em 16 GB **com lentidão
+> extrema**. O plano de missão está em `docs/plan-simplicio-local-any-llm-16gb.md`.
+> Os itens 2 e 3 permanecem válidos.
+
 **Veredito curto:**
 
 1. **Os checkpoints tier-1 completos (DeepSeek-V3/R1 671B, Kimi K2 ~1T, GLM-4.6 357B) não
    rodam em 16 GB de RAM** — nem com este runtime, nem com llama.cpp/MLX maduros. A conta
-   não fecha por uma ordem de grandeza (seção 4).
+   não fecha por uma ordem de grandeza (seção 4). *(Ver nota de revisão acima: válido
+   para pesos residentes em RAM; o streaming de experts muda a conclusão.)*
 2. **As versões destiladas/compactas das mesmas famílias rodam bem em 16 GB**
    (DeepSeek-R1-Distill-Qwen-14B, GLM-4-9B, Kimi Moonlight-16B-A3B, etc. em Q4). Esse é o
    alvo realista e é exatamente para onde a arquitetura do projeto aponta.
