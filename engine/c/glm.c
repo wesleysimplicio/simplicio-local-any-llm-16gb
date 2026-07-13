@@ -686,7 +686,8 @@ static inline float siluf(float x){ return x/(1.f+expf(-x)); }
 
 /* RoPE interleaved su un vettore di dimensione qk_rope a posizione pos */
 static void rope_interleave(float *v, int pos, const Cfg *c){
-    int half = c->qk_rope/2; float in[256]; memcpy(in,v,c->qk_rope*sizeof(float));
+    int half = c->qk_rope/2; float *in=falloc(c->qk_rope);
+    memcpy(in,v,c->qk_rope*sizeof(float));
     for(int j=0;j<half;j++){
         float inv = powf(c->theta, -2.0f*j/c->qk_rope);
         float ang = pos*inv, cs=cosf(ang), sn=sinf(ang);
@@ -694,6 +695,7 @@ static void rope_interleave(float *v, int pos, const Cfg *c){
         v[j]      = a*cs - b*sn;
         v[half+j] = b*cs + a*sn;
     }
+    free(in);
 }
 
 /* ---------- config ---------- */
@@ -1156,7 +1158,7 @@ static void attention(Model *m, Layer *l, int layer, float *x, int S, int pos_ba
                 float *qi=falloc((int64_t)nh*hd);
                 matmul_qt(qi, QR+(int64_t)s*c->q_lora, &m->ix_wq[layer], 1);
                 for(int h=0;h<nh;h++) rope_interleave(qi+(int64_t)h*hd, pos, c);
-                float w32[64];
+                float *w32=falloc(nh);
                 matmul_qt(w32, x+(int64_t)s*D, &m->ix_wp[layer], 1);
                 float wsc=1.f/sqrtf((float)nh), rs=1.f/sqrtf((float)hd);
                 float *isc=falloc(nk);
@@ -1177,7 +1179,7 @@ static void attention(Model *m, Layer *l, int layer, float *x, int S, int pos_ba
                 for(int t=0;t<nk && nd<keep;t++) if(isc[t]>thr) dst[nd++]=t;
                 for(int t=0;t<nk && nd<keep;t++) if(isc[t]==thr) dst[nd++]=t;
                 m->dsa_nsel[s]=nd;
-                free(qi); free(isc); free(tmp);
+                free(qi); free(isc); free(tmp); free(w32);
             }
         }
         if(m->dsa_nsel){ dsel=m->dsa_sel; dnsel=m->dsa_nsel; }
@@ -1195,13 +1197,13 @@ static void attention(Model *m, Layer *l, int layer, float *x, int S, int pos_ba
             const float *qp=Q+(int64_t)s*H*qh+(int64_t)h*qh;
             const float *qr=qp+c->qk_nope;
             int rbase=h*(c->qk_nope+vh);
-            float qabs[512]; memset(qabs,0,kvl*sizeof(float));
+            float *qabs=falloc(kvl); memset(qabs,0,kvl*sizeof(float));
             for(int d=0;d<c->qk_nope;d++) qt_addrow(&l->kv_b, rbase+d, qp[d], qabs);
-            float sc[8192];
             int st0=m->kv_start[layer];
             int ns = (dnsel && dnsel[s]>0) ? dnsel[s] : 0;    /* DSA: lista top-k o range pieno */
             const int *tlist = ns ? dsel+(int64_t)s*dtopk : NULL;
             int nt = ns ? ns : pos+1-st0;
+            float *sc=falloc(nt);
             for(int jj=0;jj<nt;jj++){ int t = tlist ? tlist[jj] : st0+jj;
                 const float *Lt=m->Lc[layer]+(int64_t)t*kvl;
                 const float *kr=m->Rc[layer]+(int64_t)t*c->qk_rope;
@@ -1210,11 +1212,12 @@ static void attention(Model *m, Layer *l, int layer, float *x, int S, int pos_ba
                 sc[jj]=a*c->attn_scale;
             }
             softmax(sc,nt);
-            float clat[512]; memset(clat,0,kvl*sizeof(float));
+            float *clat=falloc(kvl); memset(clat,0,kvl*sizeof(float));
             for(int jj=0;jj<nt;jj++){ int t = tlist ? tlist[jj] : st0+jj;
                 const float *Lt=m->Lc[layer]+(int64_t)t*kvl;
                 float a=sc[jj]; for(int i=0;i<kvl;i++) clat[i]+=a*Lt[i]; }
             qt_matvec_rows(&l->kv_b, rbase+r0v, vh, clat, ctx+((int64_t)s*H+h)*vh);
+            free(qabs); free(sc); free(clat);
         }
         matmul_qt(out, ctx, &l->o, S);
         free(ctx); free(Q); free(QR); free(comp);
@@ -1233,11 +1236,11 @@ static void attention(Model *m, Layer *l, int layer, float *x, int S, int pos_ba
         int pos=pos_base+s;
         const float *qp=Q+(int64_t)s*H*qh+(int64_t)h*qh;          /* [qk_nope | qk_rope] */
         const float *qr=qp+c->qk_nope;
-        float sc[8192];
         int st0=m->kv_start[layer];
         int ns = (dnsel && dnsel[s]>0) ? dnsel[s] : 0;        /* DSA: lista top-k o range pieno */
         const int *tlist = ns ? dsel+(int64_t)s*dtopk : NULL;
         int nt = ns ? ns : pos+1-st0;
+        float *sc=falloc(nt);
         for(int jj=0;jj<nt;jj++){ int t = tlist ? tlist[jj] : st0+jj;
             const float *kn=kvb_all+(int64_t)t*kvb_dim+(int64_t)h*(c->qk_nope+vh);
             const float *kr=m->Rc[layer]+(int64_t)t*c->qk_rope;
@@ -1250,6 +1253,7 @@ static void attention(Model *m, Layer *l, int layer, float *x, int S, int pos_ba
         for(int jj=0;jj<nt;jj++){ int t = tlist ? tlist[jj] : st0+jj;
             const float *vv=kvb_all+(int64_t)t*kvb_dim+(int64_t)h*(c->qk_nope+vh)+c->qk_nope;
             float a=sc[jj]; for(int d=0;d<vh;d++) cx[d]+=a*vv[d]; }
+        free(sc);
     }
     matmul_qt(out, ctx, &l->o, S);
     free(ctx); free(Q); free(QR); free(comp); free(kvb_all);
@@ -1793,14 +1797,14 @@ static void forward_all(Model *m, const int *ids, int S, int *pred){
     float *x=falloc((int64_t)S*D);
     for(int s=0;s<S;s++) embed_row(m, ids[s], x+(int64_t)s*D);
     layers_forward(m,x,S,0);
-    float *lo=falloc(c->vocab);
+    float *lo=falloc(c->vocab), *row=falloc(D);
     for(int s=0;s<S;s++){
-        float row[8192]; rmsnorm(row, x+(int64_t)s*D, m->final_norm, D, c->eps);
+        rmsnorm(row, x+(int64_t)s*D, m->final_norm, D, c->eps);
         matmul_qt(lo, row, &m->lm_head, 1);
         int best=0; float bv=lo[0]; for(int i=1;i<c->vocab;i++) if(lo[i]>bv){bv=lo[i];best=i;}
         pred[s]=best;
     }
-    free(x); free(lo);
+    free(x); free(lo); free(row);
 }
 
 /* log-prob (log-softmax) del token target dato il vettore di logit; *am=1 se e' l'argmax */

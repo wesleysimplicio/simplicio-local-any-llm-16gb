@@ -242,7 +242,7 @@ static void attention(Model *m, Layer *l, int layer, float *x, int S, int pos_ba
         for (int s = 0; s < S; s++) {
             int qpos = pos_base + s;
             const float *qv = q + (int64_t)s*D + hh*hd;
-            float sc[4096];
+            float *sc=falloc(qpos+1);
             for (int t = 0; t <= qpos; t++) {          /* causale: t <= qpos */
                 const float *kv = m->K[layer] + ((int64_t)hh*m->max_t + t)*hd;
                 float acc = 0; for (int dd = 0; dd < hd; dd++) acc += qv[dd]*kv[dd];
@@ -256,6 +256,7 @@ static void attention(Model *m, Layer *l, int layer, float *x, int S, int pos_ba
                 float a = sc[t];
                 for (int dd = 0; dd < hd; dd++) cx[dd] += a * vrow[dd];
             }
+            free(sc);
         }
     }
     (void)Tk;
