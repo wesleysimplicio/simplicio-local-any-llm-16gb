@@ -71,6 +71,35 @@ Next:
 GGUF real (subconjunto do formato) e wiring pleno do forward denso (#81.4)
 para consumir `realTensors` em vez de `DeterministicValue`.
 
+## Checkpoint seguinte (2)
+
+Status: done
+
+Task:
+#82 - Contrato de correção e oráculo real (não escalar-vs-escalar)
+
+Result:
+`oracle_correctness_contract_test.cpp` carrega os MESMOS pesos reais do
+fixture `toy_real.safetensors` (via `SafetensorsReader`) e roda o kernel
+nativo (`ScalarMatmul` sobre embedding lookup real) contra
+`oracle_reference_logits.json` — logits calculados por uma implementação
+Python independente (`generate_oracle_reference.py`, parser+matmul escritos
+do zero, sem reusar nenhum código C++ do runtime). Isso fecha o gap
+apontado na auditoria: antes o "oráculo" comparava NEON com o próprio
+kernel escalar do runtime; agora compara com uma referência externa sobre
+pesos reais. Teste adicional garante falha explícita quando os pesos não
+carregam (sem fallback mascarado para escalar-vs-escalar).
+
+Validation:
+`cmake --build build`; `ctest --test-dir build --output-on-failure` (212/212);
+`clang-format --dry-run --Werror` e `clang-tidy -p build` limpos no arquivo
+novo.
+
+Next:
+#81.4 (forward denso real na pipeline de produção dos adapters) é o proximo
+passo natural para levar esse mesmo padrao de oraculo para a geração
+ponta-a-ponta, não apenas para um matmul isolado.
+
 Status: done
 
 Task:
