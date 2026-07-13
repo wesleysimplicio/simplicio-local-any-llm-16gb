@@ -5,13 +5,17 @@
 Auditoria completa da issue #81 (EPIC "runtime de inferencia nativa 10/10"):
 nenhuma das 10 frentes declaradas e real de ponta a ponta hoje. Decompus a
 epic em 10 issues filhas honestas (#82-#91), cada uma com veredito
-REAL/PARCIAL/SINTETICO e evidencia de codigo. Fechei a #84 (tokenizer BPE
-real) nesta sessao: adicionei um parser JSON minimo, um tokenizer BPE real
-que consome tokenizer.json de verdade, uma fixture de BPE treinado
-genuinamente com oraculo independente em Python, e wiring explicito no
-adapter que reporta quando cai para o tokenizer ingenuo (nunca disfarçado).
+REAL/PARCIAL/SINTETICO e evidencia de codigo. Fechei nesta sessao:
 
-As demais 9 frentes seguem abertas. #85 (Metal/MLX/ANE reais) esta
+- #84 (tokenizer BPE real): parser JSON minimo + tokenizer BPE real que
+  consome tokenizer.json de verdade, fixture de BPE treinado genuinamente
+  com oraculo independente em Python, wiring explicito no adapter que
+  reporta quando cai para o tokenizer ingenuo (nunca disfarçado).
+- #83 (loader real de pesos): `SafetensorsReader` parseia o header binario
+  real e le bytes reais de tensores F32, com fixture binaria genuina e
+  `safetensors_load_status` explicito quando o arquivo e placeholder.
+
+As demais 7 frentes seguem abertas. #86 (Metal/MLX/ANE reais) esta
 bloqueada por ambiente: esta sessao roda em Linux x86_64 sem Metal/MLX, e
 por isso nao pode implementar nem validar essa frente sem um runner
 macOS/Apple Silicon real — reportar sucesso ali seria fabricar evidencia.
