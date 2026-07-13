@@ -125,7 +125,11 @@ private:
       throw std::runtime_error("malformed JSON: expected number");
     }
     errno = 0;
-    const double parsed = std::strtod(token.c_str(), nullptr);
+    char *end = nullptr;
+    const double parsed = std::strtod(token.c_str(), &end);
+    if (end == token.c_str() || end != token.c_str() + token.size()) {
+      throw std::runtime_error("malformed JSON number: " + token);
+    }
     if (!std::isfinite(parsed) || errno == ERANGE) {
       throw std::runtime_error("JSON number out of representable range: " +
                                token);

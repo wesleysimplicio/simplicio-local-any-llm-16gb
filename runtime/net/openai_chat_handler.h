@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace us4 {
 
@@ -19,6 +20,7 @@ struct ChatCompletionRequest {
   std::string model;
   std::string prompt; // content of the last "user" message
   std::size_t maxTokens = 64;
+  bool stream = false;
   // us4-cli extension (not part of the OpenAI schema): optional path to a
   // .safetensors/.gguf/.us4manifest asset to load real weights from, the
   // same way `us4-cli run --model-path` does.
@@ -30,6 +32,7 @@ struct ChatCompletionResponse {
   std::string errorMessage;
   std::string modelName;
   std::string content;
+  std::vector<std::string> generatedTokens;
   bool usedRealWeights = false;
 };
 
@@ -52,5 +55,10 @@ HandleChatCompletion(const ChatCompletionRequest &request);
 std::string
 BuildChatCompletionResponseJson(const ChatCompletionResponse &response,
                                 const std::string &requestId);
+
+std::string BuildChatCompletionChunkJson(const std::string &requestId,
+                                         const std::string &modelName,
+                                         const std::string &delta,
+                                         bool finish);
 
 } // namespace us4

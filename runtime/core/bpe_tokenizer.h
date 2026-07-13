@@ -35,6 +35,7 @@ public:
   bool HasToken(const std::string &token) const {
     return vocab_.count(token) > 0;
   }
+  const std::string &ChatTemplate() const { return chatTemplate_; }
 
 private:
   std::unordered_map<std::string, int> vocab_;
@@ -42,6 +43,8 @@ private:
   // merges appear in tokenizer.json, exactly like the reference BPE model.
   std::unordered_map<std::string, int> mergeRank_;
   std::optional<int> unkId_;
+  std::vector<std::string> specialTokens_;
+  std::string chatTemplate_;
 
   static std::string PairKey(const std::string &a, const std::string &b) {
     return a + "\x1f" + b;

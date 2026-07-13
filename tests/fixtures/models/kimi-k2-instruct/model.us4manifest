@@ -7,3 +7,4 @@ vocabulary=kimi,moe,routing,experts,local,context,apple,runtime,token,selection,
 moe_lazy_load=true
 moe_active_experts=2
 moe_expert_shards=experts-00.safetensors,experts-01.safetensors
+tokenizer_json=tokenizer.json

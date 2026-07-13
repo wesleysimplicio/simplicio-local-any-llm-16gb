@@ -37,18 +37,24 @@ TEST(TuningContractTest, ProfileCacheStoresAndLooksUp) {
   profile.tileCols = 16U;
   profile.batchSize = 4U;
   profile.estimatedLatencyMs = 3.1F;
+  profile.speculativeLookaheadTokens = 2U;
+  profile.speculativeWarmupRuns = 3U;
+  profile.learnedPinnedExperts = 1U;
   cache.Store(key, profile);
 
   EXPECT_EQ(cache.Size(), 1U);
   const auto retrieved = cache.Lookup(key);
   ASSERT_TRUE(retrieved.has_value());
   EXPECT_EQ(retrieved->batchSize, 4U);
+  EXPECT_EQ(retrieved->speculativeLookaheadTokens, 2U);
+  EXPECT_EQ(retrieved->speculativeWarmupRuns, 3U);
+  EXPECT_EQ(retrieved->learnedPinnedExperts, 1U);
 }
 
 TEST(TuningContractTest, ProfileCacheSerializeAndLoadRoundTrip) {
   us4::ProfileCache cache;
-  us4::AutoTunerProfile profileA{"M3", 8U, 16U, 4U, 3.1F};
-  us4::AutoTunerProfile profileB{"M5", 16U, 16U, 8U, 1.4F};
+  us4::AutoTunerProfile profileA{"M3", 8U, 16U, 4U, 3.1F, 2U, 3U, 1U};
+  us4::AutoTunerProfile profileB{"M5", 16U, 16U, 8U, 1.4F, 4U, 1U, 2U};
   cache.Store({"M3", "qwen-0.5b"}, profileA);
   cache.Store({"M5", "llama-3.1-8b"}, profileB);
   const std::string serialised = cache.Serialize();
@@ -60,6 +66,9 @@ TEST(TuningContractTest, ProfileCacheSerializeAndLoadRoundTrip) {
   ASSERT_TRUE(roundTrip.has_value());
   EXPECT_EQ(roundTrip->tileRows, 16U);
   EXPECT_EQ(roundTrip->batchSize, 8U);
+  EXPECT_EQ(roundTrip->speculativeLookaheadTokens, 4U);
+  EXPECT_EQ(roundTrip->speculativeWarmupRuns, 1U);
+  EXPECT_EQ(roundTrip->learnedPinnedExperts, 2U);
 }
 
 TEST(TuningContractTest, ProfileCacheRejectsMalformedBody) {

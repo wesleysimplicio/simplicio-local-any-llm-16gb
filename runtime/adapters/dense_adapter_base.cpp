@@ -25,6 +25,7 @@
 #include "neon/neon_attention.h"
 #include "neon/neon_matmul.h"
 #include "speculative/peagle_decoder.h"
+#include "speculative/speculative_telemetry.h"
 
 namespace us4 {
 
@@ -924,14 +925,35 @@ GenerationResult DenseAdapterBase::FinalizeGenerationResult(
       }
     }
 
-    const PEagleDecoder decoder(std::max<std::size_t>(
-        1U, std::min<std::size_t>(4U, draftProposal.size())));
+    AdaptiveSpeculativeConfig adaptiveConfig;
+    adaptiveConfig.maxLookaheadTokens =
+        std::max<std::size_t>(1U, std::min<std::size_t>(4U, draftProposal.size()));
+    if (context.hardware().unifiedMemoryGiB > 0 &&
+        context.hardware().unifiedMemoryGiB <= 16U) {
+      adaptiveConfig.maxLookaheadTokens =
+          std::min<std::size_t>(adaptiveConfig.maxLookaheadTokens, 2U);
+      adaptiveConfig.warmupDrafts = 3U;
+      adaptiveConfig.minAcceptanceRateForExpansion = 0.95F;
+    }
+    AdaptiveSpeculativeState &adaptiveState =
+        mutableContext.adaptiveSpeculativeState();
+    const AdaptiveSpeculativePlan adaptivePlan =
+        PlanAdaptiveSpeculation(adaptiveState, adaptiveConfig);
+    const PEagleDecoder decoder(adaptivePlan.lookaheadTokens);
     const PEagleDraft draft = decoder.Draft(draftProposal);
     const PEagleVerificationResult speculative =
         decoder.Verify(authoritativeTokens, draft);
+    const SpeculativeTelemetry telemetry = ComputeSpeculativeTelemetry(
+        draft.tokens.size(), speculative.acceptedCount,
+        adaptivePlan.verifyWindow);
+    UpdateAdaptiveSpeculativeState(adaptiveState, telemetry, adaptiveConfig);
     result.speculativeAcceptedTokens = speculative.acceptedCount;
     result.speculativeRejectedTokens = speculative.rejectedCount;
     result.speculativeAcceptanceRate = speculative.acceptanceRate;
+    result.speculativeLookaheadTokens = adaptivePlan.lookaheadTokens;
+    result.speculativeVerifyWindow = adaptivePlan.verifyWindow;
+    result.speculativeWarmupActive = adaptivePlan.warmupActive;
+    result.speculativeMtpEnabled = adaptivePlan.mtpEnabled;
     if (speculative.fallbackToken.has_value() &&
         static_cast<std::size_t>(*speculative.fallbackToken) <
             vocabulary.size()) {

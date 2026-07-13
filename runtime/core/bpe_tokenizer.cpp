@@ -1,5 +1,7 @@
 #include "core/bpe_tokenizer.h"
 
+#include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <limits>
 #include <sstream>
@@ -106,6 +108,39 @@ BpeTokenizer::LoadFromFile(const std::filesystem::path &path,
     }
   }
 
+  if (root.Has("chat_template") && root["chat_template"].IsString()) {
+    tokenizer.chatTemplate_ = root["chat_template"].AsString();
+  }
+
+  if (root.Has("added_tokens") && root["added_tokens"].IsArray()) {
+    for (const JsonValue &entry : root["added_tokens"].AsArray()) {
+      if (!entry.IsObject() || !entry.Has("content") ||
+          !entry["content"].IsString()) {
+        continue;
+      }
+      const std::string token = entry["content"].AsString();
+      if (entry.Has("id") && entry["id"].type() == JsonValue::Type::kNumber) {
+        tokenizer.vocab_[token] = static_cast<int>(entry["id"].AsNumber());
+      }
+      if (entry.Has("special") &&
+          entry["special"].type() == JsonValue::Type::kBool &&
+          entry["special"].AsBool()) {
+        tokenizer.specialTokens_.push_back(token);
+      }
+    }
+    std::sort(tokenizer.specialTokens_.begin(), tokenizer.specialTokens_.end(),
+              [](const std::string &lhs, const std::string &rhs) {
+                if (lhs.size() != rhs.size()) {
+                  return lhs.size() > rhs.size();
+                }
+                return lhs < rhs;
+              });
+    tokenizer.specialTokens_.erase(
+        std::unique(tokenizer.specialTokens_.begin(),
+                    tokenizer.specialTokens_.end()),
+        tokenizer.specialTokens_.end());
+  }
+
   if (tokenizer.vocab_.empty() || tokenizer.mergeRank_.empty()) {
     if (error != nullptr) {
       *error = "tokenizer.json BPE model has empty vocab or merges";
@@ -150,11 +185,42 @@ BpeTokenizer::BpeMergeWord(const std::string &word) const {
 
 std::vector<std::string> BpeTokenizer::Encode(std::string_view text) const {
   std::vector<std::string> tokens;
-  for (const std::string &word : SplitWhitespace(text)) {
-    for (std::string &symbol : BpeMergeWord(word)) {
-      tokens.push_back(std::move(symbol));
+  if (specialTokens_.empty()) {
+    for (const std::string &word : SplitWhitespace(text)) {
+      for (std::string &symbol : BpeMergeWord(word)) {
+        tokens.push_back(std::move(symbol));
+      }
+    }
+    return tokens;
+  }
+
+  std::string segment;
+  const auto flushSegment = [&]() {
+    for (const std::string &word : SplitWhitespace(segment)) {
+      std::vector<std::string> merged = BpeMergeWord(word);
+      tokens.insert(tokens.end(), std::make_move_iterator(merged.begin()),
+                    std::make_move_iterator(merged.end()));
+    }
+  };
+  std::size_t pos = 0;
+  while (pos < text.size()) {
+    bool matchedSpecialToken = false;
+    for (const std::string &specialToken : specialTokens_) {
+      if (text.substr(pos, specialToken.size()) == specialToken) {
+        flushSegment();
+        segment.clear();
+        tokens.push_back(specialToken);
+        pos += specialToken.size();
+        matchedSpecialToken = true;
+        break;
+      }
+    }
+    if (!matchedSpecialToken) {
+      segment.push_back(text[pos]);
+      ++pos;
     }
   }
+  flushSegment();
   return tokens;
 }
 

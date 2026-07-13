@@ -1,0 +1,22 @@
+{
+  "model": {
+    "vocab": {
+      "!": 3,
+      "h": 0,
+      "hi": 2,
+      "i": 1
+    },
+    "merges": [
+      [
+        "h",
+        "i"
+      ]
+    ]
+  },
+  "added_tokens": [
+    {
+      "id": 4,
+      "content": "<|special|>"
+    }
+  ]
+}

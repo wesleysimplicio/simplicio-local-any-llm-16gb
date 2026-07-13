@@ -38,7 +38,7 @@ brew install cmake ninja node
 npm ci
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
-./build/apps/us4-cli --probe
+node bin/us4-cli.js probe --json
 ```
 
 ## What it does
@@ -46,6 +46,7 @@ cmake --build build --config Release
 - Local-first runtime path for Apple Silicon inference experiments.
 - CMake + Ninja build with CLI smoke flows.
 - Ollama/custom upstream serve path for practical chat backends.
+- Unified product wrapper for `doctor`, `plan`, `convert`, `chat`, and `serve`.
 - Runtime docs for MLX, Metal, scheduler, memory, cache and benchmarks.
 
 ## Why this README is built to earn attention
@@ -162,6 +163,16 @@ cmake --build build --config Release
 If Ninja is not available, CMake may use your platform default generator. Keep the same `build` directory.
 
 #### 4. Run The CLI
+
+Product wrapper:
+
+```bash
+node bin/us4-cli.js doctor --help
+node bin/us4-cli.js plan --help
+node bin/us4-cli.js convert --help
+node bin/us4-cli.js chat --build
+node bin/us4-cli.js probe --json
+```
 
 macOS/Linux:
 
@@ -421,6 +432,26 @@ production-concurrency one. Performance benchmarking of the native path
 against Metal/MLX acceleration is blocked by the same missing macOS/Apple
 Silicon hardware as issue #81.5; what's verified here is functional
 correctness (see `tests/e2e/us4-cli-serve.spec.ts`), not throughput.
+
+Native mode now also emits OpenAI-style SSE frames when the request body sets
+`"stream": true`, and both native/proxy serve paths answer browser CORS
+preflight requests so `apps/web-chat/` can talk to the local endpoint from a
+different port without a custom reverse proxy.
+
+##### 6.2.2 Web chat operator flow
+
+The repo ships a React/Vite operator UI under `apps/web-chat/`:
+
+```bash
+node bin/us4-cli.js chat
+```
+
+Point it at `http://127.0.0.1:8080/v1` after starting either:
+
+```bash
+node bin/us4-cli.js serve
+node bin/us4-cli.js serve --native
+```
 
 ##### 6.3 Smoke test the endpoint
 

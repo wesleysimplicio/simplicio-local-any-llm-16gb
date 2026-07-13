@@ -1,0 +1,4 @@
+hi	2
+hi!	2,3
+<|special|>	4
+hi<|special|>!	2,4,3

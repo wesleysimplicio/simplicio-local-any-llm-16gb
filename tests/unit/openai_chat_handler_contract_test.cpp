@@ -45,6 +45,19 @@ TEST(OpenAiChatHandlerContractTest, ParsesModelPromptAndMaxTokens) {
   EXPECT_EQ(request->model, "qwen-0.5b");
   EXPECT_EQ(request->prompt, "hello there");
   EXPECT_EQ(request->maxTokens, 5U);
+  EXPECT_FALSE(request->stream);
+}
+
+TEST(OpenAiChatHandlerContractTest,
+     ParsesStreamFlagAndMaxCompletionTokensAlias) {
+  std::string error;
+  const auto request = ParseChatCompletionRequestBody(
+      R"({"model":"qwen-0.5b","max_completion_tokens":7,"stream":true,)"
+      R"("messages":[{"role":"user","content":"stream this"}]})",
+      &error);
+  ASSERT_TRUE(request.has_value()) << error;
+  EXPECT_EQ(request->maxTokens, 7U);
+  EXPECT_TRUE(request->stream);
 }
 
 TEST(OpenAiChatHandlerContractTest, UnknownModelReturnsExplicitError) {
@@ -80,6 +93,13 @@ TEST(OpenAiChatHandlerContractTest,
       BuildChatCompletionResponseJson(response, "req-1");
   EXPECT_NE(responseJson.find("\"used_real_weights\":true"), std::string::npos);
   EXPECT_NE(responseJson.find("\"content\":\"delta\""), std::string::npos);
+
+  const std::string chunkJson =
+      BuildChatCompletionChunkJson("req-1", response.modelName, "delta", false);
+  EXPECT_NE(chunkJson.find("\"object\":\"chat.completion.chunk\""),
+            std::string::npos);
+  EXPECT_NE(chunkJson.find("\"content\":\"delta\""), std::string::npos);
+  EXPECT_NE(chunkJson.find("\"finish_reason\":null"), std::string::npos);
 }
 
 } // namespace

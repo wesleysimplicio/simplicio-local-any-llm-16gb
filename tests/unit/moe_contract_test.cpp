@@ -81,9 +81,29 @@ TEST(MoeContractTest, ExpertPagerSnapshotKeepsVisibleResidentState) {
   EXPECT_EQ(snapshot.loadCount, 2U);
   EXPECT_EQ(snapshot.reuseCount, 1U);
   EXPECT_EQ(snapshot.evictionCount, 0U);
+  EXPECT_EQ(snapshot.learnedPinCount, 0U);
   ASSERT_EQ(snapshot.residents.size(), 2U);
   EXPECT_EQ(snapshot.residents[0], "expert-a");
   EXPECT_EQ(snapshot.residents[1], "expert-b");
+}
+
+TEST(MoeContractTest, ExpertPagerLearnsPinsAndPrefersEvictingUnpinnedExperts) {
+  us4::ExpertPager pager(2, 2, 1);
+  pager.Touch("expert-a");
+  pager.Touch("expert-b");
+  pager.Touch("expert-a");
+  pager.Touch("expert-c");
+
+  const us4::ExpertPagerSnapshot snapshot = pager.Snapshot();
+
+  EXPECT_TRUE(pager.IsPinned("expert-a"));
+  EXPECT_EQ(snapshot.learnedPinCount, 1U);
+  EXPECT_EQ(snapshot.pinPromotionCount, 1U);
+  EXPECT_FALSE(snapshot.lastTouchPromotedPin);
+  EXPECT_TRUE(pager.IsResident("expert-a"));
+  EXPECT_FALSE(pager.IsResident("expert-b"));
+  ASSERT_EQ(snapshot.pinnedResidents.size(), 1U);
+  EXPECT_EQ(snapshot.pinnedResidents[0], "expert-a");
 }
 
 TEST(MoeContractTest, SpeculativePrefetchBuildsFamilyScopedPrefetchPlan) {
@@ -161,9 +181,12 @@ TEST(MoeContractTest,
 
   EXPECT_FALSE(first.lastLookupHit);
   EXPECT_TRUE(second.lastLookupHit);
+  EXPECT_FALSE(first.lastEntryWarm);
+  EXPECT_TRUE(second.lastEntryWarm);
   EXPECT_EQ(second.hitCount, 1U);
   EXPECT_EQ(second.missCount, 1U);
   EXPECT_DOUBLE_EQ(second.hitRatio, 0.5);
+  EXPECT_EQ(second.warmEntryCount, 1U);
   EXPECT_FALSE(third.lastLookupHit);
   EXPECT_EQ(third.entryCount, 2U);
   EXPECT_NE(second.lastKey, third.lastKey);

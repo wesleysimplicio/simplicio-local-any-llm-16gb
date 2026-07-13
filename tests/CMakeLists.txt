@@ -31,3 +31,27 @@ if(NOT GTest_FOUND)
 endif()
 
 add_subdirectory(unit)
+
+find_package(Python3 COMPONENTS Interpreter QUIET)
+
+if(Python3_Interpreter_FOUND)
+  add_test(
+    NAME engine_colibri_forward_oracles
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/fixtures/engine/run_engine_forward_oracles.py
+  )
+  set_tests_properties(engine_colibri_forward_oracles PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    LABELS "engine;oracle;forward"
+  )
+
+  add_test(
+    NAME engine_colibri_tokenizer_contract
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/fixtures/engine/run_engine_tokenizer_contract.py
+  )
+  set_tests_properties(engine_colibri_tokenizer_contract PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    LABELS "engine;tokenizer"
+  )
+endif()

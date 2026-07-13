@@ -104,10 +104,12 @@ TEST(AdapterGenerationContractTest,
   EXPECT_EQ(first.moePagerReuses, 0U);
   EXPECT_EQ(first.moePagerEvictions, 0U);
   EXPECT_EQ(first.moeResidentExperts, 2U);
+  EXPECT_EQ(first.moeLearnedPinnedExperts, 0U);
   EXPECT_FALSE(first.moeSparsityCacheHit);
   EXPECT_EQ(first.moeSparsityCacheHits, 0U);
   EXPECT_EQ(first.moeSparsityCacheMisses, 1U);
   EXPECT_EQ(first.moeSparsityCacheEntries, 1U);
+  EXPECT_EQ(first.moeSparsityWarmEntries, 0U);
   EXPECT_GT(first.moeSparsityPatternHash, 0U);
   EXPECT_FALSE(first.moeSparsityPatternKey.empty());
   EXPECT_EQ(first.moePrefetchPrefetched, 3U);
@@ -125,6 +127,8 @@ TEST(AdapterGenerationContractTest,
   EXPECT_GE(second.moeSparsityCacheHits, 1U);
   EXPECT_EQ(second.moeSparsityCacheEntries, 1U);
   EXPECT_GT(second.moeSparsityCacheHitRatio, 0.0);
+  EXPECT_EQ(second.moeSparsityWarmEntries, 1U);
+  EXPECT_GE(second.moeLearnedPinnedExperts, 1U);
 
   EXPECT_EQ(third.moeSelectedExperts, 2U);
   EXPECT_GE(third.moePagerLoads, 3U);
@@ -161,9 +165,11 @@ TEST(AdapterGenerationContractTest,
   EXPECT_EQ(first.moePagerReuses, 0U);
   EXPECT_EQ(first.moePagerEvictions, 0U);
   EXPECT_EQ(first.moeResidentExperts, 2U);
+  EXPECT_EQ(first.moeLearnedPinnedExperts, 0U);
   EXPECT_FALSE(first.moeSparsityCacheHit);
   EXPECT_EQ(first.moeSparsityCacheMisses, 1U);
   EXPECT_EQ(first.moeSparsityCacheEntries, 1U);
+  EXPECT_EQ(first.moeSparsityWarmEntries, 0U);
 
   EXPECT_EQ(second.moePagerLoads, 2U);
   EXPECT_GE(second.moePagerReuses, 2U);
@@ -172,6 +178,8 @@ TEST(AdapterGenerationContractTest,
   EXPECT_TRUE(second.moeSparsityCacheHit);
   EXPECT_GE(second.moeSparsityCacheHits, 1U);
   EXPECT_EQ(second.moeSparsityCacheEntries, 1U);
+  EXPECT_EQ(second.moeSparsityWarmEntries, 1U);
+  EXPECT_GE(second.moeLearnedPinnedExperts, 1U);
 
   EXPECT_EQ(third.moeSelectedExperts, 2U);
   EXPECT_GE(third.moePagerLoads, 3U);
@@ -205,9 +213,11 @@ TEST(AdapterGenerationContractTest,
   EXPECT_EQ(first.moePagerReuses, 0U);
   EXPECT_EQ(first.moePagerEvictions, 0U);
   EXPECT_EQ(first.moeResidentExperts, 2U);
+  EXPECT_EQ(first.moeLearnedPinnedExperts, 0U);
   EXPECT_FALSE(first.moeSparsityCacheHit);
   EXPECT_EQ(first.moeSparsityCacheMisses, 1U);
   EXPECT_EQ(first.moeSparsityCacheEntries, 1U);
+  EXPECT_EQ(first.moeSparsityWarmEntries, 0U);
   EXPECT_FALSE(first.multimodalCacheHit);
   EXPECT_EQ(first.multimodalCacheHits, 0U);
   EXPECT_EQ(first.multimodalCacheMisses, 3U);
@@ -222,6 +232,8 @@ TEST(AdapterGenerationContractTest,
   EXPECT_TRUE(second.moeSparsityCacheHit);
   EXPECT_GE(second.moeSparsityCacheHits, 1U);
   EXPECT_EQ(second.moeSparsityCacheEntries, 1U);
+  EXPECT_EQ(second.moeSparsityWarmEntries, 1U);
+  EXPECT_GE(second.moeLearnedPinnedExperts, 1U);
   EXPECT_TRUE(second.multimodalCacheHit);
   EXPECT_GE(second.multimodalCacheHits, 3U);
   EXPECT_EQ(second.multimodalCacheEntries, 3U);
@@ -258,9 +270,11 @@ TEST(AdapterGenerationContractTest,
   EXPECT_EQ(first.moePagerReuses, 0U);
   EXPECT_EQ(first.moePagerEvictions, 0U);
   EXPECT_EQ(first.moeResidentExperts, 2U);
+  EXPECT_EQ(first.moeLearnedPinnedExperts, 0U);
   EXPECT_FALSE(first.moeSparsityCacheHit);
   EXPECT_EQ(first.moeSparsityCacheMisses, 1U);
   EXPECT_EQ(first.moeSparsityCacheEntries, 1U);
+  EXPECT_EQ(first.moeSparsityWarmEntries, 0U);
 
   EXPECT_EQ(second.moePagerLoads, 2U);
   EXPECT_GE(second.moePagerReuses, 2U);
@@ -269,6 +283,8 @@ TEST(AdapterGenerationContractTest,
   EXPECT_TRUE(second.moeSparsityCacheHit);
   EXPECT_GE(second.moeSparsityCacheHits, 1U);
   EXPECT_EQ(second.moeSparsityCacheEntries, 1U);
+  EXPECT_EQ(second.moeSparsityWarmEntries, 1U);
+  EXPECT_GE(second.moeLearnedPinnedExperts, 1U);
 
   EXPECT_EQ(third.moeSelectedExperts, 2U);
   EXPECT_GE(third.moePagerLoads, 3U);
@@ -311,6 +327,55 @@ TEST(AdapterGenerationContractTest,
     EXPECT_EQ(result.moeActiveExperts, 2U);
     EXPECT_TRUE(result.moeLazyLoad);
     EXPECT_EQ(result.assetFormat, "fixture-manifest");
+  }
+}
+
+TEST(AdapterGenerationContractTest,
+     FrontierMoeAssetsUseRealFamilyTokenizersForSpecialChatTokens) {
+  struct FamilyCase {
+    const char *modelName;
+    std::filesystem::path manifestPath;
+    std::string prompt;
+    std::string expectedFirstPromptToken;
+  };
+
+  const std::array<FamilyCase, 3> kCases = {{
+      {"deepseek-v2-lite",
+       RepoRoot() / "tests" / "fixtures" / "models" / "deepseek-v2-lite" /
+           "model.us4manifest",
+       "<|deepseek_user|> hi", "<|deepseek_user|>"},
+      {"glm-5.1",
+       RepoRoot() / "tests" / "fixtures" / "models" / "glm-5.1" /
+           "model.us4manifest",
+       "<|user|> hi", "<|user|>"},
+      {"kimi-k2-instruct",
+       RepoRoot() / "tests" / "fixtures" / "models" / "kimi-k2-instruct" /
+           "model.us4manifest",
+       "<|im_user|> hi", "<|im_user|>"},
+  }};
+
+  for (const FamilyCase &familyCase : kCases) {
+    SCOPED_TRACE(familyCase.modelName);
+
+    const us4::IUS4V6Adapter *adapter =
+        us4::FindAdapterByModel(familyCase.modelName);
+    ASSERT_NE(adapter, nullptr);
+
+    us4::ModelAsset asset;
+    std::string error;
+    ASSERT_TRUE(us4::LoadModelAsset(familyCase.manifestPath, asset, &error))
+        << error;
+
+    us4::RuntimeContext context(MakeProbe());
+    adapter->ConfigureRuntime(context);
+    const us4::GenerationResult result = adapter->Generate(
+        {.prompt = familyCase.prompt, .maxTokens = 1, .asset = &asset},
+        context);
+
+    EXPECT_TRUE(result.usedRealBpeTokenizer);
+    EXPECT_TRUE(result.tokenizerFallbackReason.empty());
+    ASSERT_FALSE(result.promptTokens.empty());
+    EXPECT_EQ(result.promptTokens.front(), familyCase.expectedFirstPromptToken);
   }
 }
 

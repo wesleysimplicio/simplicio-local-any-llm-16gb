@@ -54,7 +54,11 @@ std::string ProfileCache::Serialize() const {
            << ";tile_rows=" << entry.second.tileRows
            << ";tile_cols=" << entry.second.tileCols
            << ";batch=" << entry.second.batchSize
-           << ";latency_ms=" << entry.second.estimatedLatencyMs << "\n";
+           << ";latency_ms=" << entry.second.estimatedLatencyMs
+           << ";speculative_lookahead="
+           << entry.second.speculativeLookaheadTokens
+           << ";speculative_warmup=" << entry.second.speculativeWarmupRuns
+           << ";learned_pins=" << entry.second.learnedPinnedExperts << "\n";
   }
   return stream.str();
 }
@@ -92,6 +96,15 @@ bool ProfileCache::Load(const std::string &body) {
         profile.batchSize = static_cast<std::size_t>(std::strtoul(value.c_str(), nullptr, 10));
       } else if (name == "latency_ms") {
         profile.estimatedLatencyMs = std::strtof(value.c_str(), nullptr);
+      } else if (name == "speculative_lookahead") {
+        profile.speculativeLookaheadTokens =
+            static_cast<std::size_t>(std::strtoul(value.c_str(), nullptr, 10));
+      } else if (name == "speculative_warmup") {
+        profile.speculativeWarmupRuns =
+            static_cast<std::size_t>(std::strtoul(value.c_str(), nullptr, 10));
+      } else if (name == "learned_pins") {
+        profile.learnedPinnedExperts =
+            static_cast<std::size_t>(std::strtoul(value.c_str(), nullptr, 10));
       }
     }
     if (key.chip.empty() || key.modelId.empty()) {

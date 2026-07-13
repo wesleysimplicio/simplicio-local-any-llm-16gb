@@ -68,6 +68,15 @@ MultimodalCache &RuntimeContext::multimodalCache() { return multimodalCache_; }
 
 SessionPool &RuntimeContext::sessionPool() { return sessionPool_; }
 
+AdaptiveSpeculativeState &RuntimeContext::adaptiveSpeculativeState() {
+  return adaptiveSpeculativeState_;
+}
+
+const AdaptiveSpeculativeState &RuntimeContext::adaptiveSpeculativeState()
+    const {
+  return adaptiveSpeculativeState_;
+}
+
 ThermalMonitor &RuntimeContext::thermalMonitor() { return thermalMonitor_; }
 
 const ThermalMonitor &RuntimeContext::thermalMonitor() const {

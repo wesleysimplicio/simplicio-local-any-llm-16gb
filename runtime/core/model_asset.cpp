@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "core/gguf_reader.h"
+#include "core/json_value.h"
 #include "core/safetensors_reader.h"
 
 namespace us4 {
@@ -104,6 +105,28 @@ ResolveSiblingPath(const std::filesystem::path &baseDirectory,
   return resolved.lexically_normal();
 }
 
+void HydrateTokenizerMetadata(const std::filesystem::path &tokenizerPath,
+                              ModelAsset &asset) {
+  asset.metadata["tokenizer_json"] = tokenizerPath.string();
+
+  std::ifstream stream(tokenizerPath, std::ios::binary);
+  if (!stream.is_open()) {
+    return;
+  }
+
+  std::ostringstream buffer;
+  buffer << stream.rdbuf();
+  try {
+    const JsonValue root = JsonValue::Parse(buffer.str());
+    if (root.IsObject() && root.Has("chat_template") &&
+        root["chat_template"].IsString()) {
+      asset.chatTemplate = root["chat_template"].AsString();
+      asset.metadata["chat_template"] = asset.chatTemplate;
+    }
+  } catch (const std::exception &) {
+  }
+}
+
 ModelFormat InferFormatFromPath(const std::filesystem::path &path) {
   const std::string extension = ToLower(path.extension().string());
   if (extension == ".us4manifest") {
@@ -172,6 +195,17 @@ bool LoadFixtureManifest(const std::filesystem::path &path, ModelAsset &asset,
                                ? ModelFormat::kUnknown
                                : InferFormatFromPath(asset.draftModelPath);
   asset.metadata = values;
+  if (values.contains("tokenizer_json")) {
+    const std::filesystem::path tokenizerPath =
+        ResolveSiblingPath(path.parent_path(), values["tokenizer_json"]);
+    if (!tokenizerPath.empty()) {
+      HydrateTokenizerMetadata(tokenizerPath, asset);
+    }
+  }
+  if (values.contains("chat_template")) {
+    asset.chatTemplate = values["chat_template"];
+    asset.metadata["chat_template"] = asset.chatTemplate;
+  }
 
   if (asset.family.empty() || asset.modelName.empty()) {
     return WriteError(error, "manifest must define family and model_name");
@@ -206,6 +240,7 @@ void HydrateFromSiblingManifest(const std::filesystem::path &assetPath,
   asset.seed = manifestAsset.seed;
   asset.vocabulary = manifestAsset.vocabulary;
   asset.defaultPromptToken = manifestAsset.defaultPromptToken;
+  asset.chatTemplate = manifestAsset.chatTemplate;
   asset.draftModelPath = manifestAsset.draftModelPath;
   asset.draftModelFormat = manifestAsset.draftModelFormat;
   asset.sharedTokenizer = manifestAsset.sharedTokenizer;
@@ -217,7 +252,7 @@ void HydrateFromSiblingManifest(const std::filesystem::path &assetPath,
   const std::filesystem::path tokenizerPath =
       assetPath.parent_path() / "tokenizer.json";
   if (std::filesystem::exists(tokenizerPath)) {
-    asset.metadata["tokenizer_json"] = tokenizerPath.string();
+    HydrateTokenizerMetadata(tokenizerPath, asset);
   }
 }
 

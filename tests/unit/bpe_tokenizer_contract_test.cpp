@@ -66,5 +66,48 @@ TEST(BpeTokenizerContractTest, MatchesIndependentOracleTokenIds) {
   }
 }
 
+TEST(BpeTokenizerContractTest,
+     FamilyTokenizersExposeChatTemplatesAndKeepSpecialTokensAtomic) {
+  struct FamilyExpectation {
+    std::filesystem::path path;
+    std::string specialUserToken;
+    std::string specialAssistantToken;
+    std::string chatTemplateNeedle;
+  };
+
+  const std::vector<FamilyExpectation> expectations = {
+      {std::filesystem::path(US4_SOURCE_DIR) / "tests" / "fixtures" / "models" /
+           "deepseek-v2-lite" / "tokenizer.json",
+       "<|deepseek_user|>", "<|deepseek_assistant|>",
+       "<|deepseek_assistant|>"},
+      {std::filesystem::path(US4_SOURCE_DIR) / "tests" / "fixtures" / "models" /
+           "glm-5.1" / "tokenizer.json",
+       "<|user|>", "<|assistant|>", "<|assistant|>"},
+      {std::filesystem::path(US4_SOURCE_DIR) / "tests" / "fixtures" / "models" /
+           "kimi-k2-instruct" / "tokenizer.json",
+       "<|im_user|>", "<|im_assistant|>", "<|im_assistant|>"},
+  };
+
+  for (const FamilyExpectation &expectation : expectations) {
+    SCOPED_TRACE(expectation.path.string());
+
+    std::string error;
+    const auto tokenizer = BpeTokenizer::LoadFromFile(expectation.path, &error);
+    ASSERT_TRUE(tokenizer.has_value()) << error;
+    EXPECT_NE(tokenizer->ChatTemplate().find(expectation.chatTemplateNeedle),
+              std::string::npos);
+
+    const std::vector<std::string> encoded = tokenizer->Encode(
+        expectation.specialUserToken + " hi " +
+        expectation.specialAssistantToken);
+    ASSERT_EQ(encoded.size(), 3U);
+    EXPECT_EQ(encoded[0], expectation.specialUserToken);
+    EXPECT_EQ(encoded[1], "hi");
+    EXPECT_EQ(encoded[2], expectation.specialAssistantToken);
+    EXPECT_TRUE(tokenizer->HasToken(expectation.specialUserToken));
+    EXPECT_TRUE(tokenizer->HasToken(expectation.specialAssistantToken));
+  }
+}
+
 } // namespace
 } // namespace us4

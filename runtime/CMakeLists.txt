@@ -82,6 +82,10 @@ target_include_directories(us4_runtime_core
 
 target_compile_features(us4_runtime_core PUBLIC cxx_std_20)
 
+if(WIN32)
+  target_link_libraries(us4_runtime_core PRIVATE ws2_32)
+endif()
+
 if(US4_BUILD_BENCHMARKS)
   add_subdirectory(benchmarks)
 endif()

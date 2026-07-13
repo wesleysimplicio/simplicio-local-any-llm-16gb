@@ -17,6 +17,7 @@
 #include "moe/expert_pager.h"
 #include "moe/router.h"
 #include "scheduler/session_pool.h"
+#include "speculative/speculative_telemetry.h"
 #include "tuning/thermal_monitor.h"
 
 namespace us4 {
@@ -50,6 +51,8 @@ public:
   SparsityAwareCache &sparsityCache();
   MultimodalCache &multimodalCache();
   SessionPool &sessionPool();
+  AdaptiveSpeculativeState &adaptiveSpeculativeState();
+  const AdaptiveSpeculativeState &adaptiveSpeculativeState() const;
   ThermalMonitor &thermalMonitor();
   const ThermalMonitor &thermalMonitor() const;
   void SetMode(RuntimeMode mode);
@@ -74,6 +77,7 @@ private:
   SparsityAwareCache sparsityCache_;
   MultimodalCache multimodalCache_;
   SessionPool sessionPool_;
+  AdaptiveSpeculativeState adaptiveSpeculativeState_;
   ThermalMonitor thermalMonitor_;
 };
 

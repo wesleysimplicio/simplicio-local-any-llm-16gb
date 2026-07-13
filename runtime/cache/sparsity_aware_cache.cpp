@@ -1,5 +1,6 @@
 #include "cache/sparsity_aware_cache.h"
 
+#include <algorithm>
 #include <utility>
 
 namespace us4 {
@@ -32,7 +33,10 @@ SparsityCacheSnapshot SparsityAwareCache::Touch(const std::string_view family,
     ++hitCount_;
     ++it->second.uses;
     ++it->second.hits;
-    return Snapshot(true, key, patternHash);
+    if (it->second.hits >= 1U) {
+      it->second.warm = true;
+    }
+    return Snapshot(true, key, patternHash, it->second.warm);
   }
 
   ++missCount_;
@@ -42,12 +46,13 @@ SparsityCacheSnapshot SparsityAwareCache::Touch(const std::string_view family,
   entry.patternHash = patternHash;
   entry.uses = 1U;
   entry.hits = 0U;
+  entry.warm = false;
   entry.experts.reserve(routing.selected.size());
   for (const ExpertScore &expert : routing.selected) {
     entry.experts.push_back(expert.expert);
   }
   entries_.emplace(key, std::move(entry));
-  return Snapshot(false, key, patternHash);
+  return Snapshot(false, key, patternHash, false);
 }
 
 std::size_t SparsityAwareCache::EntryCount() const { return entries_.size(); }
@@ -81,9 +86,13 @@ SparsityAwareCache::BuildKey(const std::string_view family,
 
 SparsityCacheSnapshot
 SparsityAwareCache::Snapshot(const bool lastLookupHit, std::string key,
-                             const std::size_t patternHash) const {
+                             const std::size_t patternHash,
+                             const bool lastEntryWarm) const {
   SparsityCacheSnapshot snapshot;
   snapshot.entryCount = entries_.size();
+  snapshot.warmEntryCount = static_cast<std::size_t>(std::count_if(
+      entries_.begin(), entries_.end(),
+      [](const auto &entry) { return entry.second.warm; }));
   snapshot.hitCount = hitCount_;
   snapshot.missCount = missCount_;
   const std::size_t denominator = hitCount_ + missCount_;
@@ -91,6 +100,7 @@ SparsityAwareCache::Snapshot(const bool lastLookupHit, std::string key,
                                         : static_cast<double>(hitCount_) /
                                               static_cast<double>(denominator);
   snapshot.lastLookupHit = lastLookupHit;
+  snapshot.lastEntryWarm = lastEntryWarm;
   snapshot.lastKey = std::move(key);
   snapshot.lastPatternHash = patternHash;
   return snapshot;

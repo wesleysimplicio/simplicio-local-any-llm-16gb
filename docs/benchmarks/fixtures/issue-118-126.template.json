@@ -1,0 +1,164 @@
+{
+  "suite_id": "issue-118-126-16gb-baseline-and-evals",
+  "suite_description": "Template de captura para baseline 16GB real, benchmarks reproduzíveis e eval/perplexity sem inventar números.",
+  "repo_root": ".",
+  "build_dir": "./build",
+  "suite_requires_host": {
+    "memory_gib_eq": 16,
+    "tolerance_gib": 1.0,
+    "notes": "Use este template para fechar #118 apenas em host que realmente pareça uma máquina de 16 GB."
+  },
+  "variables": {
+    "bench_data_dir": "${repo_root}/engine/c/bench",
+    "glm_snap_path": "SET_REAL_GLM52_SNAP_PATH",
+    "glm_snap_bf16_path": "SET_REAL_GLM52_BF16_SNAP_PATH"
+  },
+  "cases": [
+    {
+      "id": "dense-baseline-contract",
+      "category": "fixture-contract",
+      "description": "Smoke do benchmark baseline atual. Útil para validar instrumentação, não para alegar throughput real do GLM-5.2.",
+      "parser": "kv_lines",
+      "cwd": "${repo_root}",
+      "command_by_platform": {
+        "windows": ".\\build\\runtime\\benchmarks\\dense_baseline.exe",
+        "linux": "./build/runtime/benchmarks/dense_baseline",
+        "darwin": "./build/runtime/benchmarks/dense_baseline"
+      },
+      "expected_artifacts": [
+        "stdout com benchmark=dense_baseline"
+      ],
+      "honesty_notes": [
+        "fixture-only",
+        "not-production-throughput",
+        "can-run-outside-16gb"
+      ]
+    },
+    {
+      "id": "real-forward-throughput-fixture",
+      "category": "fixture-contract",
+      "description": "Compara caminho real-vs-sintético nas fixtures pequenas já existentes.",
+      "parser": "kv_lines",
+      "cwd": "${repo_root}",
+      "command_by_platform": {
+        "windows": ".\\build\\runtime\\benchmarks\\real_forward_throughput.exe",
+        "linux": "./build/runtime/benchmarks/real_forward_throughput",
+        "darwin": "./build/runtime/benchmarks/real_forward_throughput"
+      },
+      "expected_artifacts": [
+        "stdout com benchmark=real_forward_throughput"
+      ],
+      "honesty_notes": [
+        "real-weights-fixture",
+        "not-real-glm52",
+        "do-not-use-as-16gb-baseline"
+      ]
+    },
+    {
+      "id": "matrix-runner-smoke",
+      "category": "matrix-contract",
+      "description": "Materializa a matriz documentada 7 RAM tiers x 9 adapters.",
+      "parser": "kv_lines",
+      "cwd": "${repo_root}",
+      "command_by_platform": {
+        "windows": ".\\build\\runtime\\benchmarks\\matrix_runner.exe",
+        "linux": "./build/runtime/benchmarks/matrix_runner",
+        "darwin": "./build/runtime/benchmarks/matrix_runner"
+      },
+      "expected_artifacts": [
+        "stdout com ram_tier e adapter"
+      ],
+      "honesty_notes": [
+        "matrix-shape-only",
+        "not-real-performance-data"
+      ]
+    },
+    {
+      "id": "glm52-int4-16gb-host-baseline",
+      "category": "real-16gb-baseline",
+      "description": "Captura real de baseline em host 16 GB usando checkpoint real preparado localmente.",
+      "parser": "kv_lines",
+      "cwd": "${repo_root}",
+      "requires_host": {
+        "memory_gib_eq": 16,
+        "tolerance_gib": 1.0
+      },
+      "command_by_platform": {
+        "windows": "SET COLI_PROFILE=16gb && SET SNAP=${glm_snap_path} && engine\\c\\glm.exe 64 4 4",
+        "linux": "COLI_PROFILE=16gb SNAP=${glm_snap_path} ./engine/c/glm 64 4 4",
+        "darwin": "COLI_PROFILE=16gb SNAP=${glm_snap_path} ./engine/c/glm 64 4 4"
+      },
+      "expected_artifacts": [
+        "stdout/stderr do glm",
+        "host memory gate",
+        "checkpoint path real"
+      ],
+      "honesty_notes": [
+        "requires-real-16gb-host",
+        "requires-real-checkpoint",
+        "leave-blocked-until-host-and-weights-exist"
+      ]
+    },
+    {
+      "id": "fetch-benchmark-datasets",
+      "category": "eval-prep",
+      "description": "Baixa e normaliza datasets offline para a harness de eval do motor C.",
+      "parser": "kv_lines",
+      "cwd": "${engine_root}",
+      "command_by_platform": {
+        "windows": "python tools\\fetch_benchmarks.py --out bench --tasks hellaswag,arc_challenge,mmlu --limit 200",
+        "linux": "python3 tools/fetch_benchmarks.py --out bench --tasks hellaswag,arc_challenge,mmlu --limit 200",
+        "darwin": "python3 tools/fetch_benchmarks.py --out bench --tasks hellaswag,arc_challenge,mmlu --limit 200"
+      },
+      "expected_artifacts": [
+        "engine/c/bench/*.jsonl"
+      ],
+      "honesty_notes": [
+        "network-required",
+        "dataset-prep-only"
+      ]
+    },
+    {
+      "id": "eval-glm-dry-plumbing",
+      "category": "eval-plumbing",
+      "description": "Dry-run da harness de eval para provar tokenização + montagem de requests antes de consumir o motor real.",
+      "cwd": "${engine_root}",
+      "command_by_platform": {
+        "windows": "python tools\\eval_glm.py --snap ${glm_snap_path} --data bench --tasks smoke --dry",
+        "linux": "python3 tools/eval_glm.py --snap ${glm_snap_path} --data bench --tasks smoke --dry",
+        "darwin": "python3 tools/eval_glm.py --snap ${glm_snap_path} --data bench --tasks smoke --dry"
+      },
+      "expected_artifacts": [
+        "stderr com DRY: meccanica ok"
+      ],
+      "honesty_notes": [
+        "plumbing-only",
+        "not-quality-proof"
+      ]
+    },
+    {
+      "id": "eval-glm-real-multiple-choice",
+      "category": "quality-eval",
+      "description": "Eval reproduzível por log-likelihood sobre datasets offline já normalizados.",
+      "cwd": "${engine_root}",
+      "requires_host": {
+        "memory_gib_eq": 16,
+        "tolerance_gib": 1.0
+      },
+      "command_by_platform": {
+        "windows": "python tools\\eval_glm.py --snap ${glm_snap_path} --data bench --tasks hellaswag,arc_challenge,mmlu --limit 40 --ram 15",
+        "linux": "python3 tools/eval_glm.py --snap ${glm_snap_path} --data bench --tasks hellaswag,arc_challenge,mmlu --limit 40 --ram 15",
+        "darwin": "python3 tools/eval_glm.py --snap ${glm_snap_path} --data bench --tasks hellaswag,arc_challenge,mmlu --limit 40 --ram 15"
+      },
+      "expected_artifacts": [
+        "stdout com task/n/acc/acc_norm",
+        "datasets offline em engine/c/bench"
+      ],
+      "honesty_notes": [
+        "requires-real-checkpoint",
+        "requires-tokenizers-package",
+        "do-not-fill-reference-scores-manually"
+      ]
+    }
+  ]
+}

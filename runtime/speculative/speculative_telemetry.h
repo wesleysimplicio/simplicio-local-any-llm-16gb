@@ -16,8 +16,37 @@ struct SpeculativeTelemetry {
   float acceptanceRate = 0.0F;
 };
 
+struct AdaptiveSpeculativeConfig {
+  std::size_t warmupDrafts = 2;
+  std::size_t minLookaheadTokens = 1;
+  std::size_t maxLookaheadTokens = 4;
+  float minAcceptanceRateForMtp = 0.5F;
+  float minAcceptanceRateForExpansion = 0.85F;
+};
+
+struct AdaptiveSpeculativeState {
+  std::size_t observedDrafts = 0;
+  std::size_t acceptedTokens = 0;
+  std::size_t attemptedTokens = 0;
+  std::size_t lookaheadTokens = 1;
+};
+
+struct AdaptiveSpeculativePlan {
+  std::size_t lookaheadTokens = 1;
+  std::size_t verifyWindow = 1;
+  bool mtpEnabled = false;
+  bool warmupActive = true;
+  float observedAcceptanceRate = 0.0F;
+};
+
 SpeculativeTelemetry ComputeSpeculativeTelemetry(std::size_t draftAttempts,
                                                  std::size_t acceptedTokens,
                                                  std::size_t verifyWindow);
+AdaptiveSpeculativePlan
+PlanAdaptiveSpeculation(const AdaptiveSpeculativeState &state,
+                        const AdaptiveSpeculativeConfig &config);
+void UpdateAdaptiveSpeculativeState(AdaptiveSpeculativeState &state,
+                                    const SpeculativeTelemetry &telemetry,
+                                    const AdaptiveSpeculativeConfig &config);
 
 }  // namespace us4

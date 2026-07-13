@@ -18,14 +18,17 @@ struct SparsityCacheEntry {
   std::vector<std::size_t> experts;
   std::size_t uses = 0;
   std::size_t hits = 0;
+  bool warm = false;
 };
 
 struct SparsityCacheSnapshot {
   std::size_t entryCount = 0;
+  std::size_t warmEntryCount = 0;
   std::size_t hitCount = 0;
   std::size_t missCount = 0;
   double hitRatio = 0.0;
   bool lastLookupHit = false;
+  bool lastEntryWarm = false;
   std::string lastKey;
   std::size_t lastPatternHash = 0;
 };
@@ -44,7 +47,8 @@ private:
   static std::string BuildKey(std::string_view family, std::size_t patternHash,
                               const std::vector<ExpertScore> &experts);
   SparsityCacheSnapshot Snapshot(bool lastLookupHit, std::string key,
-                                 std::size_t patternHash) const;
+                                 std::size_t patternHash,
+                                 bool lastEntryWarm) const;
 
   std::unordered_map<std::string, SparsityCacheEntry> entries_;
   std::size_t hitCount_ = 0;

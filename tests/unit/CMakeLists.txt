@@ -17,6 +17,7 @@ set(us4_runtime_contract_test_sources
   backend_selector_contract_test.cpp
   benchmark_observability_contract_test.cpp
   model_asset_contract_test.cpp
+  json_value_contract_test.cpp
   bpe_tokenizer_contract_test.cpp
   safetensors_reader_contract_test.cpp
   gguf_reader_contract_test.cpp
@@ -110,4 +111,20 @@ if(TARGET GTest::gtest_main)
   )
 
   gtest_discover_tests(us4_runtime_contract_tests)
+
+  add_executable(kernel_benchmark_observability_contract_tests
+    kernel_benchmark_observability_contract_test.cpp
+  )
+
+  target_link_libraries(kernel_benchmark_observability_contract_tests
+    PRIVATE GTest::gtest_main us4_runtime_core)
+
+  target_include_directories(kernel_benchmark_observability_contract_tests
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}
+      ${CMAKE_SOURCE_DIR}/runtime
+      ${CMAKE_BINARY_DIR}/generated
+  )
+
+  gtest_discover_tests(kernel_benchmark_observability_contract_tests)
 endif()

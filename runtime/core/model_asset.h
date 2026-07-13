@@ -27,6 +27,7 @@ struct ModelAsset {
   std::uint32_t seed = 0;
   std::vector<std::string> vocabulary;
   std::string defaultPromptToken;
+  std::string chatTemplate;
   std::filesystem::path sourcePath;
   std::filesystem::path draftModelPath;
   ModelFormat draftModelFormat = ModelFormat::kUnknown;

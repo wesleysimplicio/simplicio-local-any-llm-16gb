@@ -76,6 +76,22 @@ async function postJson(url: string, payload: unknown): Promise<FetchResult> {
   return {status : resp.status, body, json};
 }
 
+async function postStream(url: string, payload: unknown): Promise<string> {
+  const resp = await fetch(url, {
+    method : "POST",
+    headers : {"Content-Type" : "application/json"},
+    body : JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    throw new Error(`stream request failed with ${resp.status}`);
+  }
+  return await resp.text();
+}
+
+async function options(url: string): Promise<Response> {
+  return await fetch(url, {method : "OPTIONS"});
+}
+
 async function attach(testInfo: TestInfo, label: string,
                       payload: unknown): Promise<void> {
   await testInfo.attach(`serve-${label}`, {
@@ -186,6 +202,13 @@ test.describe("us4-cli serve OpenAI-compat smoke", () => {
       },
     });
   });
+
+  test("proxy mode answers browser preflight for web chat", async () => {
+    const response =
+        await options(`http://127.0.0.1:${basePort}/v1/chat/completions`);
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+  });
 });
 
 // Issue #81.10: `serve --native` must answer OpenAI-compatible requests
@@ -273,6 +296,31 @@ test.describe("us4-cli serve --native (real runtime, no external process)",
          });
        });
 
+  test("chat completions support SSE framing in native mode",
+       async ({}, testInfo) => {
+         const tensorPath = path.join(
+             repoRoot,
+             "tests",
+             "fixtures",
+             "models",
+             "toy-dense-real",
+             "toy-dense-real.safetensors",
+         );
+         const body = await postStream(
+             `http://127.0.0.1:${nativePort}/v1/chat/completions`, {
+               model : "qwen-0.5b",
+               model_path : tensorPath,
+               messages : [ {role : "user", content : "alpha"} ],
+               max_completion_tokens : 1,
+               stream : true,
+             });
+         await attach(testInfo, "native-chat-sse", body);
+         expect(body).toContain("data: ");
+         expect(body).toContain("\"object\":\"chat.completion.chunk\"");
+         expect(body).toContain("\"content\":\"delta\"");
+         expect(body).toContain("data: [DONE]");
+       });
+
   test("unknown model returns an explicit error, never a fabricated answer",
        async ({}, testInfo) => {
          const result = await postJson(
@@ -285,5 +333,13 @@ test.describe("us4-cli serve --native (real runtime, no external process)",
          expect(result.json).toMatchObject({
            error : {message : expect.stringContaining("unknown model")},
          });
+       });
+
+  test("native mode answers browser preflight for streaming web chat",
+       async () => {
+         const response =
+             await options(`http://127.0.0.1:${nativePort}/v1/chat/completions`);
+         expect(response.status).toBe(204);
+         expect(response.headers.get("access-control-allow-origin")).toBe("*");
        });
 });

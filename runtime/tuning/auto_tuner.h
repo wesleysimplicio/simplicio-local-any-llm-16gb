@@ -28,6 +28,9 @@ struct AutoTunerProfile {
   std::size_t tileCols = 0;
   std::size_t batchSize = 0;
   float estimatedLatencyMs = 0.0F;
+  std::size_t speculativeLookaheadTokens = 0;
+  std::size_t speculativeWarmupRuns = 0;
+  std::size_t learnedPinnedExperts = 0;
 };
 
 AutoTunerProfile

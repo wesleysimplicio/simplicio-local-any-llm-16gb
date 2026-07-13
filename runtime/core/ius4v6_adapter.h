@@ -68,6 +68,8 @@ struct GenerationResult {
   std::size_t moePagerEvictions = 0;
   std::size_t moePagerReuses = 0;
   std::size_t moeResidentExperts = 0;
+  std::size_t moeLearnedPinnedExperts = 0;
+  std::size_t moePinPromotions = 0;
   std::size_t moePrefetchPrefetched = 0;
   std::size_t moePrefetchHits = 0;
   std::size_t moePrefetchMisses = 0;
@@ -78,6 +80,7 @@ struct GenerationResult {
   std::size_t moeSparsityCacheHits = 0;
   std::size_t moeSparsityCacheMisses = 0;
   std::size_t moeSparsityCacheEntries = 0;
+  std::size_t moeSparsityWarmEntries = 0;
   double moeSparsityCacheHitRatio = 0.0;
   std::size_t moeSparsityPatternHash = 0;
   std::string moeSparsityPatternKey;
@@ -97,8 +100,12 @@ struct GenerationResult {
   std::string tokenizerFallbackReason;
   std::size_t speculativeAcceptedTokens = 0;
   std::size_t speculativeRejectedTokens = 0;
+  std::size_t speculativeLookaheadTokens = 0;
+  std::size_t speculativeVerifyWindow = 0;
   double speculativeAcceptanceRate = 0.0;
   std::string speculativeFallbackToken;
+  bool speculativeWarmupActive = false;
+  bool speculativeMtpEnabled = false;
   bool usedRealDraftModel = false;
   bool usedRealExpertWeights = false;
   // Issue #81.7c: distinct from usedRealExpertWeights (which only covers

@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "local-any-llm-16gb/repro-bench-run-v1",
+  "title": "Reproducible benchmark capture run",
+  "type": "object",
+  "required": [
+    "schema",
+    "generated_at",
+    "suite_id",
+    "host",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "local-any-llm-16gb/repro-bench-run-v1"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "suite_id": {
+      "type": "string"
+    },
+    "suite_description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "template_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "host": {
+      "type": "object"
+    },
+    "suite_requires_host": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "variables": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "category": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "honesty_notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requires_host": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cwd": {
+            "type": "string"
+          },
+          "expected_artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "planned",
+              "captured",
+              "failed",
+              "blocked_host_requirement",
+              "awaiting_manual_capture"
+            ]
+          },
+          "blocker": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_ms": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "exit_code": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "stdout": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stderr": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parsed_output": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

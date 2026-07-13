@@ -11,7 +11,11 @@
 #include <string_view>
 #include <vector>
 
+#ifdef _WIN32
+#include <process.h>
+#else
 #include <unistd.h>
+#endif
 
 #include "adapters/adapter_registry.h"
 #include "core/hardware_probe.h"
@@ -132,7 +136,12 @@ void PrintHelp() {
 }
 
 int SetServeEnv(const char *name, const std::string &value) {
-  if (::setenv(name, value.c_str(), 1) != 0) {
+#ifdef _WIN32
+  const int setResult = ::_putenv_s(name, value.c_str());
+#else
+  const int setResult = ::setenv(name, value.c_str(), 1);
+#endif
+  if (setResult != 0) {
     const int savedErrno = errno;
     std::cerr << "us4-cli serve: setenv " << name
               << " failed: " << std::strerror(savedErrno) << "\n";
@@ -203,7 +212,15 @@ int RunServeCommand(const std::optional<std::string> &host,
   }
   argv.push_back(nullptr);
 
+#ifdef _WIN32
+  const intptr_t spawnResult =
+      ::_spawnvp(_P_WAIT, pythonBin.c_str(), argv.data());
+  if (spawnResult >= 0) {
+    return static_cast<int>(spawnResult);
+  }
+#else
   ::execvp(pythonBin.c_str(), argv.data());
+#endif
   const int savedErrno = errno;
   std::cerr << "us4-cli serve: failed to exec '" << pythonBin
             << "': " << std::strerror(savedErrno) << "\n";
@@ -335,6 +352,9 @@ void PrintRunText(const us4::GenerationResult &result) {
       << "moe_pager_evictions: " << result.moePagerEvictions << "\n"
       << "moe_pager_reuses: " << result.moePagerReuses << "\n"
       << "moe_resident_experts: " << result.moeResidentExperts << "\n"
+      << "moe_learned_pinned_experts: " << result.moeLearnedPinnedExperts
+      << "\n"
+      << "moe_pin_promotions: " << result.moePinPromotions << "\n"
       << "moe_prefetch_prefetched: " << result.moePrefetchPrefetched << "\n"
       << "moe_prefetch_hits: " << result.moePrefetchHits << "\n"
       << "moe_prefetch_misses: " << result.moePrefetchMisses << "\n"
@@ -348,6 +368,8 @@ void PrintRunText(const us4::GenerationResult &result) {
       << "moe_sparsity_cache_hits: " << result.moeSparsityCacheHits << "\n"
       << "moe_sparsity_cache_misses: " << result.moeSparsityCacheMisses << "\n"
       << "moe_sparsity_cache_entries: " << result.moeSparsityCacheEntries
+      << "\n"
+      << "moe_sparsity_warm_entries: " << result.moeSparsityWarmEntries
       << "\n"
       << "moe_sparsity_cache_hit_rate: "
       << ComputeMoeSparsityCacheHitRate(result) << "\n"
@@ -378,6 +400,14 @@ void PrintRunText(const us4::GenerationResult &result) {
       << "\n"
       << "speculative_rejected_tokens: " << result.speculativeRejectedTokens
       << "\n"
+      << "speculative_lookahead_tokens: " << result.speculativeLookaheadTokens
+      << "\n"
+      << "speculative_verify_window: " << result.speculativeVerifyWindow
+      << "\n"
+      << "speculative_warmup_active: "
+      << (result.speculativeWarmupActive ? "true" : "false") << "\n"
+      << "speculative_mtp_enabled: "
+      << (result.speculativeMtpEnabled ? "true" : "false") << "\n"
       << "speculative_acceptance_rate: " << result.speculativeAcceptanceRate
       << "\n"
       << "speculative_fallback_token: " << result.speculativeFallbackToken
@@ -467,6 +497,9 @@ void PrintRunJson(const us4::GenerationResult &result) {
       << "\"moe_pager_evictions\":" << result.moePagerEvictions << ","
       << "\"moe_pager_reuses\":" << result.moePagerReuses << ","
       << "\"moe_resident_experts\":" << result.moeResidentExperts << ","
+      << "\"moe_learned_pinned_experts\":" << result.moeLearnedPinnedExperts
+      << ","
+      << "\"moe_pin_promotions\":" << result.moePinPromotions << ","
       << "\"moe_prefetch_prefetched\":" << result.moePrefetchPrefetched << ","
       << "\"moe_prefetch_hits\":" << result.moePrefetchHits << ","
       << "\"moe_prefetch_misses\":" << result.moePrefetchMisses << ","
@@ -481,6 +514,8 @@ void PrintRunJson(const us4::GenerationResult &result) {
       << "\"moe_sparsity_cache_misses\":" << result.moeSparsityCacheMisses
       << ","
       << "\"moe_sparsity_cache_entries\":" << result.moeSparsityCacheEntries
+      << ","
+      << "\"moe_sparsity_warm_entries\":" << result.moeSparsityWarmEntries
       << ","
       << "\"moe_sparsity_cache_hit_rate\":"
       << ComputeMoeSparsityCacheHitRate(result) << ","
@@ -514,6 +549,14 @@ void PrintRunJson(const us4::GenerationResult &result) {
       << ","
       << "\"speculative_rejected_tokens\":" << result.speculativeRejectedTokens
       << ","
+      << "\"speculative_lookahead_tokens\":" << result.speculativeLookaheadTokens
+      << ","
+      << "\"speculative_verify_window\":" << result.speculativeVerifyWindow
+      << ","
+      << "\"speculative_warmup_active\":"
+      << (result.speculativeWarmupActive ? "true" : "false") << ","
+      << "\"speculative_mtp_enabled\":"
+      << (result.speculativeMtpEnabled ? "true" : "false") << ","
       << "\"speculative_acceptance_rate\":" << result.speculativeAcceptanceRate
       << ","
       << "\"speculative_fallback_token\":\""

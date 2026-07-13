@@ -75,3 +75,48 @@ TEST(SpeculativeTelemetryContractTest, AcceptedAboveAttemptsClampsRejections) {
 
   EXPECT_EQ(telemetry.rejectedTokens, 0U);
 }
+
+TEST(SpeculativeTelemetryContractTest,
+     AdaptivePlanStartsInWarmupAndExpandsAfterStableAcceptance) {
+  us4::AdaptiveSpeculativeConfig config;
+  config.warmupDrafts = 2U;
+  config.minLookaheadTokens = 1U;
+  config.maxLookaheadTokens = 4U;
+
+  us4::AdaptiveSpeculativeState state;
+  const us4::AdaptiveSpeculativePlan first =
+      us4::PlanAdaptiveSpeculation(state, config);
+  EXPECT_TRUE(first.warmupActive);
+  EXPECT_EQ(first.lookaheadTokens, 1U);
+  EXPECT_FALSE(first.mtpEnabled);
+
+  us4::UpdateAdaptiveSpeculativeState(
+      state, us4::ComputeSpeculativeTelemetry(1U, 1U, 1U), config);
+  us4::UpdateAdaptiveSpeculativeState(
+      state, us4::ComputeSpeculativeTelemetry(1U, 1U, 1U), config);
+
+  const us4::AdaptiveSpeculativePlan warmed =
+      us4::PlanAdaptiveSpeculation(state, config);
+  EXPECT_FALSE(warmed.warmupActive);
+  EXPECT_TRUE(warmed.mtpEnabled);
+  EXPECT_GE(warmed.lookaheadTokens, 2U);
+}
+
+TEST(SpeculativeTelemetryContractTest,
+     AdaptivePlanStaysConservativeWhenAcceptanceIsLow) {
+  us4::AdaptiveSpeculativeConfig config;
+  config.warmupDrafts = 1U;
+  config.minLookaheadTokens = 1U;
+  config.maxLookaheadTokens = 4U;
+  config.minAcceptanceRateForMtp = 0.6F;
+
+  us4::AdaptiveSpeculativeState state;
+  us4::UpdateAdaptiveSpeculativeState(
+      state, us4::ComputeSpeculativeTelemetry(4U, 1U, 1U), config);
+
+  const us4::AdaptiveSpeculativePlan plan =
+      us4::PlanAdaptiveSpeculation(state, config);
+  EXPECT_FALSE(plan.warmupActive);
+  EXPECT_FALSE(plan.mtpEnabled);
+  EXPECT_EQ(plan.lookaheadTokens, 1U);
+}

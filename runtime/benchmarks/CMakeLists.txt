@@ -40,4 +40,24 @@ target_include_directories(real_forward_throughput
     ${CMAKE_BINARY_DIR}/generated
 )
 
+add_executable(kernel_cpu_benchmarks
+  kernel_cpu_benchmarks.cpp
+  ../core/hardware_probe.cpp
+  ../core/runtime_mode.cpp
+  ../core/tensor.cpp
+  ../cpu/scalar_matmul.cpp
+  ../cpu/scalar_attention.cpp
+  ../neon/kernel_profile.cpp
+  ../neon/neon_matmul.cpp
+  ../neon/neon_attention.cpp
+)
+
+target_compile_definitions(kernel_cpu_benchmarks PRIVATE US4_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
+target_include_directories(kernel_cpu_benchmarks
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/runtime
+    ${CMAKE_BINARY_DIR}/generated
+)
+
 add_subdirectory(correctness)

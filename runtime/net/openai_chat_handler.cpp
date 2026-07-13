@@ -67,6 +67,14 @@ ParseChatCompletionRequestBody(const std::string &jsonBody,
       root["max_tokens"].type() == JsonValue::Type::kNumber) {
     request.maxTokens = static_cast<std::size_t>(root["max_tokens"].AsNumber());
   }
+  if (root.Has("max_completion_tokens") &&
+      root["max_completion_tokens"].type() == JsonValue::Type::kNumber) {
+    request.maxTokens =
+        static_cast<std::size_t>(root["max_completion_tokens"].AsNumber());
+  }
+  if (root.Has("stream") && root["stream"].type() == JsonValue::Type::kBool) {
+    request.stream = root["stream"].AsBool();
+  }
 
   if (root.Has("model_path") && root["model_path"].IsString()) {
     request.modelPath = root["model_path"].AsString();
@@ -134,6 +142,7 @@ HandleChatCompletion(const ChatCompletionRequest &request) {
 
   response.ok = true;
   response.content = result.text;
+  response.generatedTokens = result.generatedTokens;
   response.usedRealWeights = result.usedRealWeights;
   return response;
 }
@@ -164,6 +173,29 @@ BuildChatCompletionResponseJson(const ChatCompletionResponse &response,
          EscapeJsonString(response.content) +
          "\"},"
          "\"finish_reason\":\"stop\""
+         "}]"
+         "}";
+}
+
+std::string BuildChatCompletionChunkJson(const std::string &requestId,
+                                         const std::string &modelName,
+                                         const std::string &delta,
+                                         const bool finish) {
+  return "{"
+         "\"id\":\"" +
+         EscapeJsonString(requestId) +
+         "\","
+         "\"object\":\"chat.completion.chunk\","
+         "\"model\":\"" +
+         EscapeJsonString(modelName) +
+         "\","
+         "\"choices\":[{"
+         "\"index\":0,"
+         "\"delta\":{\"content\":\"" +
+         EscapeJsonString(delta) +
+         "\"},"
+         "\"finish_reason\":" +
+         (finish ? "\"stop\"" : "null") +
          "}]"
          "}";
 }

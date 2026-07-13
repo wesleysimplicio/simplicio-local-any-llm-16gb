@@ -20,6 +20,11 @@ que sustentam comparacoes honestas entre backends.
   REAL (pesos reais de `toy-dense-real`/`toy-llama-real`, ver #85/#105) lado a
   lado com o mesmo adapter no caminho totalmente sintetico (`asset=nullptr`),
   para a comparacao explicita real-vs-sintetico que o DoD da epic #81 pede.
+- `kernel_cpu_benchmarks.cpp` mede kernels CPU/NEON de forma isolada
+  (`scalar_matmul`, `neon_matmul`, `scalar_attention`, `neon_attention`) e
+  explicita `requested_backend`, `observed_backend`, `backend_reason`,
+  `kernel_flavor`, dimensoes, repeats, `elapsed_ms_(mean|min|max)`,
+  `throughput_gops` e `output_checksum`.
 
 ## Evidencia minima para o vertical Llama
 
@@ -59,15 +64,37 @@ mesmo output ou em um artefato vizinho.
 - Nao marcar um backend como suportado so porque o adapter apareceu no registry.
 - Em hosts nao-M5, evidencia ANE valida eh a evidencia de fallback claro; nao
   substituir por numeros sinteticos.
+- Em hosts sem Apple Silicon, `Metal`/`MLX` continuam bloqueados: documente o
+  bloqueio, nao simule execucao nem reporte throughput desses backends.
 
 ## Comandos uteis
 
 ```bash
 ./build/runtime/benchmarks/dense_baseline
 ./build/runtime/benchmarks/real_forward_throughput
+./build/runtime/benchmarks/kernel_cpu_benchmarks
+python runtime/benchmarks/repro_harness.py probe-host
+python runtime/benchmarks/repro_harness.py run --template docs/benchmarks/fixtures/issue-118-126.template.json --output out/issue-118-126.plan.json --dry-run
+python runtime/benchmarks/repro_harness.py validate --input out/issue-118-126.plan.json
 ./build/apps/us4-cli run --model-path tests/fixtures/models/llama-3.1-8b --prompt "hello" --json
 ./build/apps/us4-cli run --model-path tests/fixtures/models/llama-3.1-8b/toy-llama.gguf --prompt "hello" --json
 ```
+
+## Harness reproduzivel para #118 / #126
+
+Para baseline real de 16 GB, eval/perplexity e captura auditavel de
+stdout/stderr sem preencher markdown na mao, use:
+
+- `runtime/benchmarks/repro_harness.py`
+- `docs/benchmarks/fixtures/issue-118-126.template.json`
+- `docs/benchmarks/repro-bench-run.schema.json`
+- `docs/baselines/16gb-host-baseline-prep.md`
+
+Esse fluxo existe justamente para separar:
+
+- benchmark de contrato/fixture;
+- benchmark real em host 16 GB;
+- eval de qualidade reproduzivel com checkpoint e dataset reais.
 
 ## `real_forward_throughput`: metodologia e resultado (issue #81.12)
 

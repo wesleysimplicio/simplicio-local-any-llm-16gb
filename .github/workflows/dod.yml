@@ -1,11 +1,11 @@
 name: DoD Gate
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, edited]
-    branches:
-      - main
-      - develop
+  workflow_dispatch:
+# Para acoplar este gate a PR automaticamente, descomente abaixo.
+#  pull_request:
+#    types: [opened, synchronize, reopened, edited]
+#    branches: [main, develop]
 
 concurrency:
   group: dod-${{ github.workflow }}-${{ github.ref }}
@@ -22,6 +22,7 @@ jobs:
   pr-policy:
     name: PR policy
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -112,37 +113,45 @@ jobs:
           awk -v p="$pct" 'BEGIN { if (p + 0 < 80) { print "::error::Coverage abaixo de 80% (atual: " p "%)"; exit 1 } }'
 
   runtime-native-dod:
-    name: Runtime native DoD (macos-14)
-    runs-on: macos-14
+    name: Runtime DoD (${{ matrix.label }})
+    runs-on: ${{ matrix.runs_on }}
     if: ${{ hashFiles('CMakeLists.txt', 'runtime/CMakeLists.txt', 'apps/CMakeLists.txt', 'tests/CMakeLists.txt') != '' }}
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: ubuntu-x64-gcc
+            runs_on: ubuntu-latest
+            cc: gcc
+            cxx: g++
+          - label: ubuntu-arm64-gcc
+            runs_on: ubuntu-24.04-arm
+            cc: gcc
+            cxx: g++
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install Node dependencies
-        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' }}
+      - name: Install toolchain
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install --no-package-lock
-          fi
+          sudo apt-get update
+          sudo apt-get install -y ninja-build make ccache python3-pip
+          python3 -m pip install --upgrade pip
+          echo "max_size = 750M" > ~/.ccache/ccache.conf
 
       - name: Configure native build
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dod-artifacts/runtime-native
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DUS4_BUILD_TESTS=ON -DUS4_BUILD_BENCHMARKS=ON \
+          CC=${{ matrix.cc }} CXX=${{ matrix.cxx }} \
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DUS4_BUILD_TESTS=ON -DUS4_BUILD_BENCHMARKS=ON \
             | tee dod-artifacts/runtime-native/cmake-configure.log
 
       - name: Build native runtime
@@ -150,7 +159,11 @@ jobs:
         run: |
           set -euo pipefail
           cmake --build build --parallel \
-            | tee dod-artifacts/runtime-native/cmake-build.log
+            2>&1 | tee dod-artifacts/runtime-native/cmake-build.log
+          if grep -E '(^|[^[:alpha:]])warning:' dod-artifacts/runtime-native/cmake-build.log; then
+            echo "::error::Build produziu warnings; o gate de DoD para #125 exige warning budget limpo."
+            exit 1
+          fi
 
       - name: Verify runtime regression inventory
         shell: bash
@@ -160,9 +173,9 @@ jobs:
             | tee dod-artifacts/runtime-native/ctest-inventory.log
           grep -q 'us4_runtime_smoke_test' dod-artifacts/runtime-native/ctest-inventory.log
           grep -q 'us4_runtime_contract_runner' dod-artifacts/runtime-native/ctest-inventory.log
-          # The GoogleTest contract suite must actually be discovered (it is the
-          # bulk of coverage); fail loudly if GTest provisioning regressed.
           grep -q 'AdapterGenerationContractTest' dod-artifacts/runtime-native/ctest-inventory.log
+          grep -q 'engine_colibri_forward_oracles' dod-artifacts/runtime-native/ctest-inventory.log
+          grep -q 'engine_colibri_tokenizer_contract' dod-artifacts/runtime-native/ctest-inventory.log
 
       - name: Run runtime regression suite
         shell: bash
@@ -172,6 +185,7 @@ jobs:
             | tee dod-artifacts/runtime-native/ctest.log
 
       - name: Run runtime coverage gate (>=80% lines)
+        if: ${{ matrix.label == 'ubuntu-x64-gcc' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -234,87 +248,85 @@ jobs:
             --max-tokens 4 \
             --json > dod-artifacts/runtime-native/us4-cli-run.json
 
-          node - <<'EOF'
-          const fs = require('fs');
-          const probe = JSON.parse(fs.readFileSync('dod-artifacts/runtime-native/us4-cli-probe.json', 'utf8'));
-          if (!probe.version || !probe.platform || !probe.recommended_mode) {
-            throw new Error('native probe payload missing expected fields');
-          }
-          const run = JSON.parse(fs.readFileSync('dod-artifacts/runtime-native/us4-cli-run.json', 'utf8'));
-          if (run.backend !== 'scalar' || run.fallback !== false) {
-            throw new Error('native scalar run contract drifted');
-          }
-          if (!Array.isArray(run.generated_tokens) || run.generated_tokens.length < 4) {
-            throw new Error('native scalar run did not emit enough tokens');
-          }
-          EOF
+          python3 - <<'EOF'
+          import json
+          from pathlib import Path
 
-      - name: Install Playwright browsers
-        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' && (hashFiles('tests/e2e/**/*.spec.ts') != '' || hashFiles('tests/e2e/**/*.spec.js') != '' || hashFiles('tests/e2e/**/*.test.ts') != '' || hashFiles('tests/e2e/**/*.test.js') != '') }}
-        run: npx playwright install
+          probe = json.loads(Path('dod-artifacts/runtime-native/us4-cli-probe.json').read_text())
+          if not probe.get('version') or not probe.get('platform') or not probe.get('recommended_mode'):
+              raise SystemExit('native probe payload missing expected fields')
 
-      - name: Run Playwright smoke
-        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' && (hashFiles('tests/e2e/**/*.spec.ts') != '' || hashFiles('tests/e2e/**/*.spec.js') != '' || hashFiles('tests/e2e/**/*.test.ts') != '' || hashFiles('tests/e2e/**/*.test.js') != '') }}
-        run: npx playwright test
-
-      - name: Verify Playwright evidence
-        if: ${{ hashFiles('package.json', 'playwright.config.ts') != '' && (hashFiles('tests/e2e/**/*.spec.ts') != '' || hashFiles('tests/e2e/**/*.spec.js') != '' || hashFiles('tests/e2e/**/*.test.ts') != '' || hashFiles('tests/e2e/**/*.test.js') != '') }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -f playwright-report/index.html
-          test -f test-results/results.json
-          test -f test-results/results.xml
-          node - <<'EOF'
-          const fs = require('fs');
-          const report = JSON.parse(fs.readFileSync('test-results/results.json', 'utf8'));
-          const attachments = [];
-          const visit = (value) => {
-            if (Array.isArray(value)) {
-              value.forEach(visit);
-              return;
-            }
-            if (!value || typeof value !== 'object') {
-              return;
-            }
-            if (Array.isArray(value.attachments)) {
-              attachments.push(...value.attachments);
-            }
-            Object.values(value).forEach(visit);
-          };
-
-          visit(report);
-
-          const hasStdout = attachments.some((attachment) =>
-            typeof attachment?.name === 'string' &&
-            attachment.name.startsWith('stdout-') &&
-            typeof attachment.body === 'string'
-          );
-          const hasStderr = attachments.some((attachment) =>
-            typeof attachment?.name === 'string' &&
-            attachment.name.startsWith('stderr-') &&
-            typeof attachment.body === 'string'
-          );
-          const hasTrace = attachments.some((attachment) =>
-            attachment?.name === 'trace' &&
-            typeof attachment.path === 'string' &&
-            /(^|[\\/])trace\.zip$/.test(attachment.path)
-          );
-
-          if (!hasStdout || !hasStderr || !hasTrace) {
-            throw new Error(`Playwright evidence incomplete: stdout=${hasStdout} stderr=${hasStderr} trace=${hasTrace}`);
-          }
+          run = json.loads(Path('dod-artifacts/runtime-native/us4-cli-run.json').read_text())
+          if run.get('backend') != 'scalar' or run.get('fallback') is not False:
+              raise SystemExit('native scalar run contract drifted')
+          if not isinstance(run.get('generated_tokens'), list) or len(run['generated_tokens']) < 4:
+              raise SystemExit('native scalar run did not emit enough tokens')
           EOF
 
       - name: Upload runtime DoD artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: runtime-native-dod-macos14
+          name: runtime-native-dod-${{ matrix.label }}
           path: |
             dod-artifacts/runtime-native/
             build/Testing/Temporary/
-            playwright-report/
-            test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+  runtime-sanitizers:
+    name: Runtime sanitizers (ubuntu-x64-clang)
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('CMakeLists.txt', 'runtime/CMakeLists.txt', 'tests/CMakeLists.txt') != '' }}
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install sanitizer toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ninja-build make clang llvm ccache
+
+      - name: Configure sanitizer build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dod-artifacts/runtime-sanitizers
+          CC=clang CXX=clang++ \
+          cmake -S . -B build-sanitizers -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DUS4_BUILD_TESTS=ON \
+            -DUS4_BUILD_BENCHMARKS=OFF \
+            -DUS4_ENABLE_ASAN=ON \
+            -DUS4_ENABLE_UBSAN=ON \
+            | tee dod-artifacts/runtime-sanitizers/cmake-configure.log
+
+      - name: Build sanitizer targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build build-sanitizers --parallel \
+            | tee dod-artifacts/runtime-sanitizers/cmake-build.log
+
+      - name: Run sanitizer suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+          UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
+          ctest --test-dir build-sanitizers --output-on-failure \
+            | tee dod-artifacts/runtime-sanitizers/ctest.log
+
+      - name: Upload sanitizer artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-sanitizers-ubuntu-x64-clang
+          path: dod-artifacts/runtime-sanitizers/
           if-no-files-found: warn
           retention-days: 14

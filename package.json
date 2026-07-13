@@ -4,7 +4,8 @@
   "description": "AI-friendly project scaffold with AGENTS.md ecosystem (Claude Code, Codex, Copilot, Cursor, Aider, Hermes, OpenClaw). Specs as code, atomic tasks, automated Definition of Done, reusable skills, multi-agent ready.",
   "type": "commonjs",
   "bin": {
-    "llm-project-mapper": "bin/cli.js"
+    "llm-project-mapper": "bin/cli.js",
+    "us4-cli": "bin/us4-cli.js"
   },
   "files": [
     "bin/",
@@ -68,7 +69,7 @@
     "@playwright/test": "^1.60.0"
   },
   "scripts": {
-    "lint": "node --check bin/cli.js && node --check test/run-tests.js && node --check test/cli.test.js",
+    "lint": "node --check bin/cli.js && node --check bin/us4-cli.js && node --check test/run-tests.js && node --check test/cli.test.js && node --check test/us4-cli.test.js",
     "test": "node test/run-tests.js",
     "test:e2e": "npx playwright test",
     "test:cli": "node bin/cli.js --help",

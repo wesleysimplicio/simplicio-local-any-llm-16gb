@@ -30,8 +30,8 @@ está na frente. O colibri é exatamente a barra que a épica #81 declarou quere
 | Sampling | Greedy/argmax | Temperature + top-p reais (`glm.c:1542`) |
 | CPU SIMD | NEON real (matmul/atenção/dequant), inerte em x86 | AVX2 + **AVX-512 VNNI** + NEON-SDOT + escalar |
 | GPU | Metal/MLX/ANE **sintéticos** (contadores) | Sem Metal; **CUDA experimental real** (correctness-first) |
-| Servidor | HTTP nativo mínimo, sem SSE, sem sampling params | **OpenAI-compatible completo**: SSE, fila FIFO com 429, auth, usage, rejeição explícita do não-suportado (`openai_server.py`) |
-| UI | Não | Web UI React/Vite (cliente OpenAI puro) |
+| Servidor | HTTP nativo mínimo, agora com SSE/CORS para `/v1/chat/completions`, ainda sem sampling params | **OpenAI-compatible completo**: SSE, fila FIFO com 429, auth, usage, rejeição explícita do não-suportado (`openai_server.py`) |
+| UI | Web UI React/Vite (`apps/web-chat`) + wrapper `bin/us4-cli.js chat` | Web UI React/Vite (cliente OpenAI puro) |
 | Diagnóstico | `--probe` sintético | `coli plan` + `coli doctor` (read-only, JSON versionado) |
 | Testes | **222 unit + 29 E2E Playwright, tudo verde** | 3 testes C + testes Python do server; **forward e tokenizer fora da suíte automatizada** |
 | CI | Existe (desligado por custo) com gate de DoD | **Ausente** (só templates) |

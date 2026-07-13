@@ -260,3 +260,29 @@ TEST(ModelAssetContractTest,
               "experts-00.safetensors,experts-01.safetensors");
   }
 }
+
+TEST(ModelAssetContractTest,
+     FrontierMoeAssetsExposeFamilyTokenizerAndChatTemplateMetadata) {
+  const std::array<std::filesystem::path, 6> kInputs = {
+      FixtureRoot() / "deepseek-v2-lite" / "model.us4manifest",
+      FixtureRoot() / "deepseek-v2-lite" / "toy-deepseek.safetensors",
+      FixtureRoot() / "glm-5.1" / "model.us4manifest",
+      FixtureRoot() / "glm-5.1" / "toy-glm.safetensors",
+      FixtureRoot() / "kimi-k2-instruct" / "model.us4manifest",
+      FixtureRoot() / "kimi-k2-instruct" / "toy-kimi.safetensors",
+  };
+
+  for (const std::filesystem::path &inputPath : kInputs) {
+    SCOPED_TRACE(inputPath.string());
+
+    us4::ModelAsset asset;
+    std::string error;
+    ASSERT_TRUE(us4::LoadModelAsset(inputPath, asset, &error)) << error;
+
+    ASSERT_TRUE(asset.metadata.contains("tokenizer_json"));
+    EXPECT_FALSE(asset.metadata.at("tokenizer_json").empty());
+    ASSERT_TRUE(asset.metadata.contains("chat_template"));
+    EXPECT_FALSE(asset.metadata.at("chat_template").empty());
+    EXPECT_EQ(asset.chatTemplate, asset.metadata.at("chat_template"));
+  }
+}

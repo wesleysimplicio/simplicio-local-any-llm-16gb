@@ -112,6 +112,8 @@ DeepSeekMoEAdapter::Generate(const GenerationRequest &request,
   result.moePagerEvictions = pagerSnapshot.evictionCount;
   result.moePagerReuses = pagerSnapshot.reuseCount;
   result.moeResidentExperts = pagerSnapshot.residentCount;
+  result.moeLearnedPinnedExperts = pagerSnapshot.learnedPinCount;
+  result.moePinPromotions = pagerSnapshot.pinPromotionCount;
   result.moePrefetchPrefetched = prefetchTelemetry.prefetchedCount;
   result.moePrefetchHits = prefetchTelemetry.hitCount;
   result.moePrefetchMisses = prefetchTelemetry.missCount;
@@ -124,6 +126,7 @@ DeepSeekMoEAdapter::Generate(const GenerationRequest &request,
   result.moeSparsityCacheHits = cacheSnapshot.hitCount;
   result.moeSparsityCacheMisses = cacheSnapshot.missCount;
   result.moeSparsityCacheEntries = cacheSnapshot.entryCount;
+  result.moeSparsityWarmEntries = cacheSnapshot.warmEntryCount;
   result.moeSparsityCacheHitRatio = cacheSnapshot.hitRatio;
   result.moeSparsityPatternHash = cacheSnapshot.lastPatternHash;
   result.moeSparsityPatternKey = cacheSnapshot.lastKey;

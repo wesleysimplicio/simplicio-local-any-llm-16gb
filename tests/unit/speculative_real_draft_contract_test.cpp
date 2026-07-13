@@ -76,4 +76,8 @@ TEST(SpeculativeRealDraftContractTest,
   EXPECT_EQ(result.speculativeAcceptedTokens, 1U);
   EXPECT_EQ(result.speculativeRejectedTokens, 0U);
   EXPECT_DOUBLE_EQ(result.speculativeAcceptanceRate, 1.0);
+  EXPECT_EQ(result.speculativeLookaheadTokens, 1U);
+  EXPECT_EQ(result.speculativeVerifyWindow, 1U);
+  EXPECT_TRUE(result.speculativeWarmupActive);
+  EXPECT_FALSE(result.speculativeMtpEnabled);
 }

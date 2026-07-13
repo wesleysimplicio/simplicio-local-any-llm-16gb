@@ -240,10 +240,17 @@ class EmbeddingsBackend:
 EMBED_BACKEND: Optional[EmbeddingsBackend] = None
 
 
+def _apply_cors(handler: BaseHTTPRequestHandler) -> None:
+    handler.send_header("Access-Control-Allow-Origin", "*")
+    handler.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    handler.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+
 def _send_json(handler: BaseHTTPRequestHandler, status: int, payload: dict) -> None:
     body = json.dumps(payload).encode("utf-8")
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json")
+    _apply_cors(handler)
     handler.send_header("Content-Length", str(len(body)))
     handler.end_headers()
     handler.wfile.write(body)
@@ -269,6 +276,7 @@ def _proxy_upstream(handler: BaseHTTPRequestHandler, path: str, raw_body: bytes)
             handler.send_response(resp.status)
             content_type = resp.headers.get("Content-Type", "application/json")
             handler.send_header("Content-Type", content_type)
+            _apply_cors(handler)
             transfer = resp.headers.get("Transfer-Encoding")
             content_length = resp.headers.get("Content-Length")
             if transfer:
@@ -290,6 +298,7 @@ def _proxy_upstream(handler: BaseHTTPRequestHandler, path: str, raw_body: bytes)
         body = exc.read()
         handler.send_response(exc.code)
         handler.send_header("Content-Type", exc.headers.get("Content-Type", "application/json"))
+        _apply_cors(handler)
         handler.send_header("Content-Length", str(len(body)))
         handler.end_headers()
         try:
@@ -370,6 +379,12 @@ class Us4Handler(BaseHTTPRequestHandler):
             _send_json(self, 200, _build_models_payload())
             return
         _send_error(self, 404, f"not found: {_sanitize_path(path)}", "not_found")
+
+    def do_OPTIONS(self) -> None:
+        self.send_response(204)
+        _apply_cors(self)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def do_POST(self) -> None:
         path = self.path.split("?", 1)[0]
