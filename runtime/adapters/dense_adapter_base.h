@@ -30,6 +30,14 @@ public:
   void ConfigureRuntime(RuntimeContext &context) const override;
 
   std::vector<std::string> Tokenize(std::string_view text) const override;
+
+  // Uses the real BPE tokenizer from the asset's tokenizer.json when it
+  // contains a genuine vocab+merges BPE definition; otherwise falls back to
+  // the naive whitespace/lowercase Tokenize() and reports why explicitly
+  // (never presenting the fallback as the real tokenizer).
+  std::vector<std::string> TokenizePrompt(const GenerationRequest &request,
+                                          bool *usedRealTokenizer,
+                                          std::string *fallbackReason) const;
   GenerationResult Generate(const GenerationRequest &request,
                             const RuntimeContext &context) const override;
 
@@ -73,7 +81,8 @@ protected:
       std::vector<std::string> promptTokens,
       std::vector<std::string> generatedTokens, bool kvCacheHit,
       bool kvRestoredFromColdStore, std::size_t kvSummaryRows,
-      std::size_t planHiddenSize) const;
+      std::size_t planHiddenSize, bool usedRealBpeTokenizer = false,
+      std::string tokenizerFallbackReason = "") const;
 
 private:
   std::string family_;

@@ -6,6 +6,8 @@ add_library(us4_runtime_core
   core/runtime_mode.cpp
   core/hardware_probe.cpp
   core/gqa_attention.cpp
+  core/bpe_tokenizer.cpp
+  core/json_value.cpp
   core/model_asset.cpp
   core/rope.cpp
   core/runtime_context.cpp

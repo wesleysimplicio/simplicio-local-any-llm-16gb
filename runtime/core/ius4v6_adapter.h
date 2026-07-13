@@ -86,6 +86,8 @@ struct GenerationResult {
   std::size_t moeActiveExperts = 0;
   bool moeLazyLoad = false;
   bool sharedTokenizer = false;
+  bool usedRealBpeTokenizer = false;
+  std::string tokenizerFallbackReason;
   std::size_t speculativeAcceptedTokens = 0;
   std::size_t speculativeRejectedTokens = 0;
   double speculativeAcceptanceRate = 0.0;

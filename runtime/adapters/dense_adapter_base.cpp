@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "core/bpe_tokenizer.h"
 #include "core/model_asset.h"
 #include "core/tensor.h"
 #include "cpu/scalar_attention.h"
@@ -324,6 +325,35 @@ DenseAdapterBase::Tokenize(const std::string_view text) const {
   return tokens;
 }
 
+std::vector<std::string>
+DenseAdapterBase::TokenizePrompt(const GenerationRequest &request,
+                                 bool *usedRealTokenizer,
+                                 std::string *fallbackReason) const {
+  if (request.asset != nullptr) {
+    const auto it = request.asset->metadata.find("tokenizer_json");
+    if (it != request.asset->metadata.end()) {
+      std::string error;
+      const auto tokenizer = BpeTokenizer::LoadFromFile(it->second, &error);
+      if (tokenizer.has_value()) {
+        if (usedRealTokenizer != nullptr) {
+          *usedRealTokenizer = true;
+        }
+        if (fallbackReason != nullptr) {
+          fallbackReason->clear();
+        }
+        return tokenizer->Encode(request.prompt);
+      }
+      if (fallbackReason != nullptr) {
+        *fallbackReason = error;
+      }
+    }
+  }
+  if (usedRealTokenizer != nullptr) {
+    *usedRealTokenizer = false;
+  }
+  return Tokenize(request.prompt);
+}
+
 GenerationResult
 DenseAdapterBase::Generate(const GenerationRequest &request,
                            const RuntimeContext &context) const {
@@ -339,7 +369,10 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
       (request.asset != nullptr && request.asset->seed != 0U)
           ? request.asset->seed
           : Seed();
-  std::vector<std::string> promptTokens = Tokenize(request.prompt);
+  bool usedRealBpeTokenizer = false;
+  std::string tokenizerFallbackReason;
+  std::vector<std::string> promptTokens =
+      TokenizePrompt(request, &usedRealBpeTokenizer, &tokenizerFallbackReason);
   if (promptTokens.empty()) {
     if (request.asset != nullptr &&
         !request.asset->defaultPromptToken.empty()) {
@@ -478,7 +511,8 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
   return FinalizeGenerationResult(
       request, context, backendSelection, std::move(promptTokens),
       std::move(generatedTokens), kvCacheHit, kvRestoredFromColdStore,
-      kvSummaryRows, kHiddenSize);
+      kvSummaryRows, kHiddenSize, usedRealBpeTokenizer,
+      tokenizerFallbackReason);
 }
 
 std::size_t
@@ -648,7 +682,8 @@ GenerationResult DenseAdapterBase::FinalizeGenerationResult(
     std::vector<std::string> promptTokens,
     std::vector<std::string> generatedTokens, const bool kvCacheHit,
     const bool kvRestoredFromColdStore, const std::size_t kvSummaryRows,
-    const std::size_t planHiddenSize) const {
+    const std::size_t planHiddenSize, const bool usedRealBpeTokenizer,
+    std::string tokenizerFallbackReason) const {
   RuntimeContext &mutableContext = const_cast<RuntimeContext &>(context);
 
   GenerationResult result;
@@ -707,6 +742,12 @@ GenerationResult DenseAdapterBase::FinalizeGenerationResult(
       request.asset != nullptr ? request.asset->moeLazyLoad : false;
   result.sharedTokenizer =
       request.asset != nullptr ? request.asset->sharedTokenizer : false;
+  result.usedRealBpeTokenizer = usedRealBpeTokenizer;
+  result.tokenizerFallbackReason =
+      usedRealBpeTokenizer ? ""
+                           : (tokenizerFallbackReason.empty()
+                                  ? "naive-whitespace-tokenizer"
+                                  : std::move(tokenizerFallbackReason));
   result.weightDType = request.asset != nullptr
                            ? std::string(ToString(request.asset->weightDType))
                            : "fp32";

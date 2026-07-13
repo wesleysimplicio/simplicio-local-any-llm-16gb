@@ -106,7 +106,10 @@ GenerationResult LlamaAdapter::Generate(const GenerationRequest &request,
   const LlamaConfig config = ResolveLlamaConfig(request.asset);
   const std::size_t kvWidth = config.kvHeads * config.headDim;
 
-  std::vector<std::string> promptTokens = Tokenize(request.prompt);
+  bool usedRealBpeTokenizer = false;
+  std::string tokenizerFallbackReason;
+  std::vector<std::string> promptTokens =
+      TokenizePrompt(request, &usedRealBpeTokenizer, &tokenizerFallbackReason);
   if (promptTokens.empty()) {
     if (request.asset != nullptr &&
         !request.asset->defaultPromptToken.empty()) {
@@ -230,7 +233,8 @@ GenerationResult LlamaAdapter::Generate(const GenerationRequest &request,
   GenerationResult result = FinalizeGenerationResult(
       request, context, backendSelection, std::move(promptTokens),
       std::move(generatedTokens), kvCacheHit, kvRestoredFromColdStore,
-      kvSummaryRows, config.hiddenSize);
+      kvSummaryRows, config.hiddenSize, usedRealBpeTokenizer,
+      tokenizerFallbackReason);
   DecorateLlamaResult(result);
   return result;
 }

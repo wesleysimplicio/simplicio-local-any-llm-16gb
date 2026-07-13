@@ -360,6 +360,10 @@ void PrintRunText(const us4::GenerationResult &result) {
       << "moe_lazy_load: " << (result.moeLazyLoad ? "true" : "false") << "\n"
       << "shared_tokenizer: " << (result.sharedTokenizer ? "true" : "false")
       << "\n"
+      << "used_real_bpe_tokenizer: "
+      << (result.usedRealBpeTokenizer ? "true" : "false") << "\n"
+      << "tokenizer_fallback_reason: " << result.tokenizerFallbackReason
+      << "\n"
       << "speculative_accepted_tokens: " << result.speculativeAcceptedTokens
       << "\n"
       << "speculative_rejected_tokens: " << result.speculativeRejectedTokens
@@ -486,6 +490,10 @@ void PrintRunJson(const us4::GenerationResult &result) {
       << "\"moe_lazy_load\":" << (result.moeLazyLoad ? "true" : "false") << ","
       << "\"shared_tokenizer\":" << (result.sharedTokenizer ? "true" : "false")
       << ","
+      << "\"used_real_bpe_tokenizer\":"
+      << (result.usedRealBpeTokenizer ? "true" : "false") << ","
+      << "\"tokenizer_fallback_reason\":\""
+      << EscapeJson(result.tokenizerFallbackReason) << "\","
       << "\"speculative_accepted_tokens\":" << result.speculativeAcceptedTokens
       << ","
       << "\"speculative_rejected_tokens\":" << result.speculativeRejectedTokens

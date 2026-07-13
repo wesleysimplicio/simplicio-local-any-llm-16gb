@@ -1,0 +1,45 @@
+{
+  "model": {
+    "merges": [
+      "e r",
+      "o w",
+      "l ow",
+      "n e",
+      "ne w",
+      "new er",
+      "w i",
+      "wi d",
+      "wid er",
+      "s t",
+      "low er",
+      "low e"
+    ],
+    "type": "BPE",
+    "unk_token": "<unk>",
+    "vocab": {
+      "<unk>": 0,
+      "d": 10,
+      "e": 4,
+      "er": 11,
+      "i": 9,
+      "l": 1,
+      "low": 13,
+      "lowe": 22,
+      "lower": 21,
+      "n": 8,
+      "ne": 14,
+      "new": 15,
+      "newer": 16,
+      "o": 2,
+      "ow": 12,
+      "r": 5,
+      "s": 6,
+      "st": 20,
+      "t": 7,
+      "w": 3,
+      "wi": 17,
+      "wid": 18,
+      "wider": 19
+    }
+  }
+}

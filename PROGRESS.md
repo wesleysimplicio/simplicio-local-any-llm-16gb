@@ -2,11 +2,44 @@
 
 ## Current Status
 
-Sprint 11 em execucao. O trilho do backend ANE abriu com contrato dedicado,
-compile/predict intent em CoreML e selecao explicita para hosts M5+ em FULL,
-sem quebrar o fallback estavel para Metal/MLX/NEON.
+Auditoria da issue #81 (EPIC) concluida: nenhuma das 10 frentes do runtime e
+real de ponta a ponta (achados detalhados nas issues filhas #82-#91). Issue
+#84 (tokenizer BPE real) fechada nesta sessao como primeira frente tratavel
+em ambiente Linux sem hardware Apple. Demais frentes seguem abertas com
+bloqueio de ambiente explicito quando dependem de Metal/MLX/ANE reais
+(macOS/Apple Silicon).
 
 ## Latest Checkpoint
+
+Status: done
+
+Task:
+#84 - Tokenizer real (BPE) fiel ao modelo, consumindo tokenizer.json
+
+Result:
+`BpeTokenizer` (runtime/core/bpe_tokenizer.{h,cpp}) parseia tokenizer.json
+real (schema HuggingFace `tokenizers`, model.type=BPE + vocab + merges) via
+um parser JSON minimo proprio (`runtime/core/json_value.{h,cpp}`) e executa
+o algoritmo BPE genuino (merge por menor rank, nao whitespace/lowercase
+fake). `DenseAdapterBase::TokenizePrompt` usa o tokenizer real quando o
+asset tem um tokenizer.json com vocab/merges reais, e cai explicitamente
+para o tokenizer ingenuo quando nao tem — o CLI agora expoe
+`used_real_bpe_tokenizer` e `tokenizer_fallback_reason` (texto/JSON), nunca
+disfarcando o fallback. Fixture genuina de BPE treinado
+(`tests/fixtures/tokenizer/toy_bpe_tokenizer.json`, gerado por
+`generate_toy_bpe.py`) mais um oraculo independente em Python
+(`reference_output.json`) validam paridade token-a-token no
+`bpe_tokenizer_contract_test.cpp`.
+
+Validation:
+`cmake --build build`; `ctest --test-dir build --output-on-failure` (206/206);
+`npx playwright test --reporter=list` (25/25); `clang-format --dry-run --Werror`
+nos arquivos tocados; `clang-tidy -p build` nos arquivos tocados.
+
+Next:
+Issue #82 (oraculo real) e #83 (loader real de pesos) sao os proximos passos
+tratáveis sem hardware Apple. #85 (Metal/MLX reais) permanece bloqueada por
+ambiente (requer macOS/Apple Silicon real).
 
 Status: done
 

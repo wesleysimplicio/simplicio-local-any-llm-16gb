@@ -1,6 +1,22 @@
 # Goal Result
 
-## Summary
+## Summary (sessao atual)
+
+Auditoria completa da issue #81 (EPIC "runtime de inferencia nativa 10/10"):
+nenhuma das 10 frentes declaradas e real de ponta a ponta hoje. Decompus a
+epic em 10 issues filhas honestas (#82-#91), cada uma com veredito
+REAL/PARCIAL/SINTETICO e evidencia de codigo. Fechei a #84 (tokenizer BPE
+real) nesta sessao: adicionei um parser JSON minimo, um tokenizer BPE real
+que consome tokenizer.json de verdade, uma fixture de BPE treinado
+genuinamente com oraculo independente em Python, e wiring explicito no
+adapter que reporta quando cai para o tokenizer ingenuo (nunca disfarçado).
+
+As demais 9 frentes seguem abertas. #85 (Metal/MLX/ANE reais) esta
+bloqueada por ambiente: esta sessao roda em Linux x86_64 sem Metal/MLX, e
+por isso nao pode implementar nem validar essa frente sem um runner
+macOS/Apple Silicon real — reportar sucesso ali seria fabricar evidencia.
+
+## Previous Summary (T11.5/T11.6)
 
 T11.5 foi concluida. A evidencia de benchmark ANE foi ampliada no
 `dense_baseline`: os casos `ane-requested` para Qwen e Llama ficam visiveis e
