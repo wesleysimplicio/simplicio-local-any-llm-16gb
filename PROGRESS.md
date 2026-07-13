@@ -956,3 +956,47 @@ Next:
 Avaliar #104 [#81.7c] (MoE roteando pela FFN completa do expert), #106
 [#81.11] (validar contra checkpoint real), ou #107 [#81.12] (benchmarks
 reais).
+
+### Checkpoint 17
+
+Status: done
+
+Task:
+#107 [#81.12] - nenhuma das issues #82-#91 media performance (throughput,
+latencia, memoria), so corretude funcional. DoD da epic #81 pede
+benchmarks reais e comparacao explicita real vs sintetico.
+
+Result:
+Novo `runtime/benchmarks/real_forward_throughput.cpp`: mede tokens/s,
+latencia de decode (mean/min/max sobre 5 repeticoes) e RSS do processo
+sobre o forward REAL (fixtures `toy-dense-real`/`toy-llama-real`, pesos
+reais de #85/#105) lado a lado com o MESMO adapter no caminho totalmente
+sintetico (`asset=nullptr`), pros casos qwen/scalar, qwen/neon-requested e
+llama/neon-gqa. Metodologia documentada em
+`runtime/benchmarks/README.md` (hardware, modelo, quantizacao -- nenhuma,
+fp32 pra isolar o custo do tensor real do custo de dequant -- contexto,
+decodificacao determinística sem temperatura).
+
+Leitura honesta registrada: o caminho real fica ~8-38% mais lento que o
+sintetico nesses fixtures pequenos (custo de indexar tensor real vs gerar
+valor deterministico inline) -- esperado, nao regressao. RSS
+praticamente nao muda entre antes/depois das 5 repeticoes. Documentado
+explicitamente que os numeros absolutos NAO extrapolam pra um modelo de
+producao (isso seguindo aberto em #81.11/#106) e que NEON so acelera de
+fato em ARM64 real (esta sandbox e x86_64 sem NEON, entao os casos
+`neon-requested` mostram fallback correto, nao aceleracao).
+
+Nao mudou nenhum codigo de runtime, so um benchmark novo + doc -- sem
+impacto na suite unitaria (233/233 continua verde).
+
+Validation:
+`cmake --build build`; `clang-format --dry-run --Werror` e `clang-tidy -p
+build` em `real_forward_throughput.cpp` (sem warnings); `ctest
+--test-dir build --output-on-failure` (233/233 verde, sem novos testes
+pois este e um benchmark, nao um contract test); execucao real do
+benchmark com output capturado no README.
+
+Next:
+Avaliar #104 [#81.7c] (MoE roteando pela FFN completa do expert) ou #106
+[#81.11] (validar contra checkpoint real -- feasibility incerta:
+requer download de rede e/ou compute significativo).

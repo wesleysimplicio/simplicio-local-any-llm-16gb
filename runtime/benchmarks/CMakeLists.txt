@@ -26,4 +26,18 @@ target_include_directories(matrix_runner
     ${CMAKE_BINARY_DIR}/generated
 )
 
+add_executable(real_forward_throughput
+  real_forward_throughput.cpp
+)
+
+target_link_libraries(real_forward_throughput PRIVATE us4_runtime_core)
+
+target_compile_definitions(real_forward_throughput PRIVATE US4_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
+target_include_directories(real_forward_throughput
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/runtime
+    ${CMAKE_BINARY_DIR}/generated
+)
+
 add_subdirectory(correctness)

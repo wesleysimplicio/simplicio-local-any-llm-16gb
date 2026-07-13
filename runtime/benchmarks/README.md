@@ -15,6 +15,11 @@ que sustentam comparacoes honestas entre backends.
   `fell_back=true` e `mixed_dispatch_strategy=disabled`.
 - Os numeros atuais ainda sao evidencia de contrato, nao prova de throughput
   real de Llama 3/4.
+- `real_forward_throughput.cpp` (issue #81.12) mede tokens/s, latencia de
+  decode (mean/min/max sobre 5 repeticoes) e RSS do processo sobre o forward
+  REAL (pesos reais de `toy-dense-real`/`toy-llama-real`, ver #85/#105) lado a
+  lado com o mesmo adapter no caminho totalmente sintetico (`asset=nullptr`),
+  para a comparacao explicita real-vs-sintetico que o DoD da epic #81 pede.
 
 ## Evidencia minima para o vertical Llama
 
@@ -59,6 +64,76 @@ mesmo output ou em um artefato vizinho.
 
 ```bash
 ./build/runtime/benchmarks/dense_baseline
+./build/runtime/benchmarks/real_forward_throughput
 ./build/apps/us4-cli run --model-path tests/fixtures/models/llama-3.1-8b --prompt "hello" --json
 ./build/apps/us4-cli run --model-path tests/fixtures/models/llama-3.1-8b/toy-llama.gguf --prompt "hello" --json
 ```
+
+## `real_forward_throughput`: metodologia e resultado (issue #81.12)
+
+Metodologia (principio 4 da epic #81: numeros tem que vir com contexto pra
+serem honestos):
+
+- **Hardware**: reportado pelo proprio benchmark (`platform`/`architecture`/
+  `chip`/`has_neon`). Roda em qualquer host; os numeros abaixo sao de uma
+  sandbox Linux x86_64 SEM NEON -- por isso os casos `neon-requested`
+  observam fallback para scalar (comportamento correto e documentado, nao um
+  bug: NEON so acelera de fato em ARM64/Apple Silicon real).
+- **Modelos**: `toy-dense-real` (Qwen, fp32, vocab de 4 tokens) e
+  `toy-llama-real` (Llama, fp32, hidden_size=4, vocab de 4 tokens) -- os
+  mesmos fixtures usados pelos testes de contrato de #85/#105, NAO um
+  checkpoint de producao (isso e o escopo de #81.11/#106, ainda pendente).
+  Os numeros absolutos de tokens/s aqui NAO extrapolam pra um modelo real de
+  bilhoes de parametros; o que e comparavel e a RAZAO entre o caminho real e
+  o sintetico sob a mesma carga.
+- **Quantizacao**: nenhuma -- ambos os fixtures sao fp32, pra isolar o custo
+  do forward real (leitura/uso de tensor real) do custo de dequantizacao
+  (que #89 ja mede separadamente).
+- **Contexto**: prompt vazio (cai no `default_prompt_token` do manifest) +
+  `max_tokens_per_run=64` gerados, greedy/argmax determinístico (sem
+  temperatura de sampling -- `decoding=` no output documenta isso
+  explicitamente).
+- **Repeticoes**: 5 por caso, reportando mean/min/max de latencia pra dar um
+  sinal de estabilidade (nao so um numero isolado).
+- **Memoria**: RSS do processo (`/proc/self/status:VmRSS`, Linux; reporta
+  `-1` em outras plataformas) antes/depois das 5 repeticoes de cada caso.
+
+Resultado de uma rodada nesta sandbox (Linux x86_64, sem NEON):
+
+```
+benchmark=real_forward_throughput
+platform=linux
+architecture=x64
+chip=generic-host
+has_neon=false
+max_tokens_per_run=64
+repeats_per_case=5
+decoding=greedy-argmax-deterministic-no-sampling-temperature
+--
+case=qwen-real-vs-synthetic/scalar
+real_tokens_per_second_mean=240033
+real_latency_ms_mean=0.282377
+synthetic_tokens_per_second_mean=313065
+synthetic_latency_ms_mean=0.208916
+real_vs_synthetic_latency_ratio=1.35163
+rss_delta_kib=504
+--
+case=llama-real-vs-synthetic/neon-gqa
+real_tokens_per_second_mean=443777
+real_latency_ms_mean=0.178604
+synthetic_tokens_per_second_mean=400646
+synthetic_latency_ms_mean=0.16539
+real_vs_synthetic_latency_ratio=1.0799
+rss_delta_kib=0
+--
+```
+
+Leitura honesta: o caminho real e ~8-38% mais lento que o sintetico nesses
+fixtures pequenos (custo de indexar um tensor real em vez de gerar um valor
+deterministico inline), o que e o esperado e nao uma regressao -- o forward
+sintetico e, por definicao, mais barato porque nao faz I/O nenhum sobre
+dado real. RSS praticamente nao muda entre antes/depois das 5 repeticoes
+(sem leak aparente nesses fixtures pequenos). Rodar em hardware ARM64 real
+com NEON habilitado, e eventualmente contra um checkpoint de producao
+(#81.11/#106), e o proximo passo pra numeros que generalizem alem desta
+sandbox.
