@@ -1,5 +1,6 @@
 #include <cctype>
 #include <cstddef>
+#include <array>
 #include <filesystem>
 #include <string>
 

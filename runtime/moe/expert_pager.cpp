@@ -72,7 +72,7 @@ ExpertPagerSnapshot ExpertPager::Snapshot() const {
       .loadCount = loadCount_,
       .evictionCount = evictionCount_,
       .reuseCount = reuseCount_,
-      .learnedPinCount = pinnedResidents.size(),
+      .learnedPinCount = LearnedPinCount(),
       .pinPromotionCount = pinPromotionCount_,
       .lastTouchPromotedPin = lastTouchPromotedPin_,
       .residents = resident_,
