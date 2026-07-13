@@ -553,6 +553,88 @@ TryRealOutputProjection(const ModelAsset *asset,
   return projection;
 }
 
+// Runs a genuine autoregressive forward over a real draft model (its own
+// embedding.weight/lm_head.weight, loaded from `asset->draftModelPath`) to
+// produce the speculative proposal, instead of fabricating one by copying
+// the authoritative tokens and incrementing the last one. Each position's
+// draft token is predicted from the PREVIOUS draft-model token via a plain
+// embedding-lookup + dot-product argmax (no attention: a draft model's
+// point is to be cheap, and this still exercises real loaded weights end
+// to end). Returns std::nullopt when the draft model can't be loaded or
+// its tensor shapes don't line up with `vocabulary`, so the caller can
+// fall back to the previous synthetic behavior explicitly.
+std::optional<std::vector<int>>
+TryRealDraftProposal(const ModelAsset *asset,
+                     const std::vector<int> &authoritativeTokens,
+                     const std::vector<std::string> &vocabulary) {
+  if (asset == nullptr || asset->draftModelPath.empty() ||
+      authoritativeTokens.empty()) {
+    return std::nullopt;
+  }
+
+  ModelAsset draftAsset;
+  std::string loadError;
+  if (!LoadModelAsset(asset->draftModelPath, draftAsset, &loadError) ||
+      !draftAsset.hasRealWeights) {
+    return std::nullopt;
+  }
+
+  const auto embShapeIt = draftAsset.realTensorShapes.find("embedding.weight");
+  const auto lmShapeIt = draftAsset.realTensorShapes.find("lm_head.weight");
+  const auto embIt = draftAsset.realTensors.find("embedding.weight");
+  const auto lmIt = draftAsset.realTensors.find("lm_head.weight");
+  if (embShapeIt == draftAsset.realTensorShapes.end() ||
+      lmShapeIt == draftAsset.realTensorShapes.end() ||
+      embIt == draftAsset.realTensors.end() ||
+      lmIt == draftAsset.realTensors.end() || embShapeIt->second.size() != 2 ||
+      lmShapeIt->second.size() != 2) {
+    return std::nullopt;
+  }
+
+  const std::size_t draftVocab = embShapeIt->second[0];
+  const std::size_t draftHidden = embShapeIt->second[1];
+  // Real HF/safetensors convention for both tensors: [vocab_size, hidden].
+  if (draftVocab != vocabulary.size() || lmShapeIt->second[0] != draftVocab ||
+      lmShapeIt->second[1] != draftHidden ||
+      embIt->second.size() != draftVocab * draftHidden ||
+      lmIt->second.size() != draftVocab * draftHidden) {
+    return std::nullopt;
+  }
+
+  const std::vector<float> &embedding = embIt->second;
+  const std::vector<float> &lmHead = lmIt->second;
+
+  std::vector<int> proposal;
+  proposal.reserve(authoritativeTokens.size());
+  int previousToken = authoritativeTokens.front();
+  for (std::size_t position = 0; position < authoritativeTokens.size();
+       ++position) {
+    if (previousToken < 0 ||
+        static_cast<std::size_t>(previousToken) >= draftVocab) {
+      return std::nullopt;
+    }
+    const std::size_t embeddingBase =
+        static_cast<std::size_t>(previousToken) * draftHidden;
+    std::size_t bestToken = 0;
+    float bestLogit = -std::numeric_limits<float>::infinity();
+    for (std::size_t token = 0; token < draftVocab; ++token) {
+      float logit = 0.0F;
+      const std::size_t lmHeadBase = token * draftHidden;
+      for (std::size_t hidden = 0; hidden < draftHidden; ++hidden) {
+        logit +=
+            embedding[embeddingBase + hidden] * lmHead[lmHeadBase + hidden];
+      }
+      if (logit > bestLogit) {
+        bestLogit = logit;
+        bestToken = token;
+      }
+    }
+    proposal.push_back(static_cast<int>(bestToken));
+    previousToken = static_cast<int>(bestToken);
+  }
+  return proposal;
+}
+
 } // namespace
 
 std::vector<float> DenseAdapterBase::BuildTokenEmbedding(
@@ -804,11 +886,19 @@ GenerationResult DenseAdapterBase::FinalizeGenerationResult(
           static_cast<int>(TokenIdFor(token, vocabulary)));
     }
 
-    std::vector<int> draftProposal = authoritativeTokens;
-    if (draftProposal.size() > 1U && !vocabulary.empty()) {
-      draftProposal.back() = static_cast<int>(
-          (static_cast<std::size_t>(draftProposal.back()) + 1U) %
-          vocabulary.size());
+    std::vector<int> draftProposal;
+    if (auto realProposal = TryRealDraftProposal(
+            request.asset, authoritativeTokens, vocabulary);
+        realProposal.has_value()) {
+      draftProposal = std::move(*realProposal);
+      result.usedRealDraftModel = true;
+    } else {
+      draftProposal = authoritativeTokens;
+      if (draftProposal.size() > 1U && !vocabulary.empty()) {
+        draftProposal.back() = static_cast<int>(
+            (static_cast<std::size_t>(draftProposal.back()) + 1U) %
+            vocabulary.size());
+      }
     }
 
     const PEagleDecoder decoder(std::max<std::size_t>(

@@ -374,6 +374,8 @@ void PrintRunText(const us4::GenerationResult &result) {
       << "\n"
       << "speculative_fallback_token: " << result.speculativeFallbackToken
       << "\n"
+      << "used_real_draft_model: "
+      << (result.usedRealDraftModel ? "true" : "false") << "\n"
       << "moe_hit_rate: " << ComputeMoeHitRate(result) << "\n"
       << "moe_eviction_rate: " << ComputeMoeEvictionRate(result) << "\n"
       << "weight_dtype: " << result.weightDType << "\n"
@@ -506,6 +508,8 @@ void PrintRunJson(const us4::GenerationResult &result) {
       << ","
       << "\"speculative_fallback_token\":\""
       << EscapeJson(result.speculativeFallbackToken) << "\","
+      << "\"used_real_draft_model\":"
+      << (result.usedRealDraftModel ? "true" : "false") << ","
       << "\"moe_hit_rate\":" << ComputeMoeHitRate(result) << ","
       << "\"moe_eviction_rate\":" << ComputeMoeEvictionRate(result) << ","
       << "\"weight_dtype\":\"" << EscapeJson(result.weightDType) << "\","

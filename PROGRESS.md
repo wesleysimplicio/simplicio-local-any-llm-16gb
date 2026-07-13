@@ -212,6 +212,47 @@ Next:
 #81.7 (MoE real) e #81.9 (speculative real) permanecem como próximos
 passos; #81.10 (API nativa) depende deles.
 
+## Checkpoint seguinte (6)
+
+Status: done
+
+Task:
+#90 - Speculative decoding real — modelo draft real, não cópia mockada
+
+Result:
+`TryRealDraftProposal` (novo helper em `dense_adapter_base.cpp`) carrega o
+`draft_model_path` do asset via `LoadModelAsset`/`SafetensorsReader` e, se
+o modelo draft tiver `embedding.weight`/`lm_head.weight` reais com shape
+compatível com o vocabulário compartilhado, roda um forward autoregressivo
+genuíno (embedding lookup + dot-product argmax, sem attention — um draft
+model é feito pra ser barato) para produzir a proposta especulativa,
+posição a posição a partir do token anterior do PRÓPRIO modelo draft. Isso
+substitui o mock anterior (`draftProposal = authoritativeTokens` com o
+último token incrementado). Fallback explícito e visível
+(`used_real_draft_model` no CLI) para o comportamento sintético anterior
+quando o draft model não tem pesos reais compatíveis — sem mudança de
+comportamento pra nenhuma fixture existente.
+
+Fixture `toy-dense-real-draft.safetensors` (hidden_size=2, menor que o
+modelo alvo, como um draft model real seria) foi desenhada para que seu
+forward real, com o token anterior "delta", também argmaxe para "delta" —
+coincidindo com a saída real do modelo alvo (calculada offline,
+independentemente). O teste de contrato usa isso pra provar que
+`speculativeAcceptedTokens`/`speculativeAcceptanceRate` refletem uma
+aceitação baseada em computação real, não um mock roteirizado garantido
+pra sempre aceitar ou rejeitar.
+
+Validation:
+`cmake --build build`; `ctest --test-dir build --output-on-failure` (216/216,
+zero regressão); `npx playwright test --reporter=list` (26/26, incluindo o
+teste de #85 que reusa o mesmo manifesto agora com draft model real);
+`clang-format --dry-run --Werror` e `clang-tidy -p build` limpos nos
+arquivos tocados.
+
+Next:
+#81.7 (MoE real) é a última frente tratável sem hardware Apple. #81.10 (API
+nativa) depende dela + de #81.4/#81.5 (já concluídas).
+
 Status: done
 
 Task:

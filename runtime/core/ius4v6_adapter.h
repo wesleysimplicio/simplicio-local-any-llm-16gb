@@ -93,6 +93,7 @@ struct GenerationResult {
   std::size_t speculativeRejectedTokens = 0;
   double speculativeAcceptanceRate = 0.0;
   std::string speculativeFallbackToken;
+  bool usedRealDraftModel = false;
   std::string weightDType;
   std::string neonKernelFlavor;
   std::string dequantPath;

@@ -22,6 +22,7 @@ set(us4_runtime_contract_test_sources
   oracle_correctness_contract_test.cpp
   kv_cache_real_forward_contract_test.cpp
   quantization_real_weights_contract_test.cpp
+  speculative_real_draft_contract_test.cpp
   kv_contract_test.cpp
   eviction_policy_contract_test.cpp
   moe_contract_test.cpp
