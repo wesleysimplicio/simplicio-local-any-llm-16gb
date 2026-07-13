@@ -1,15 +1,29 @@
 #include "core/json_value.h"
 
 #include <cctype>
+#include <cerrno>
+#include <cmath>
 #include <cstdlib>
+#include <limits>
 
 namespace us4 {
+
+namespace {
+// Bounds recursion depth for adversarial/malformed JSON (e.g. a
+// tokenizer.json or safetensors header with hundreds of thousands of
+// nested "[" characters), which would otherwise exhaust the native call
+// stack before any size check on the input runs.
+constexpr int kMaxNestingDepth = 200;
+} // namespace
 
 class JsonParser {
 public:
   explicit JsonParser(const std::string &text) : text_(text) {}
 
   JsonValue ParseValue() {
+    if (depth_ > kMaxNestingDepth) {
+      throw std::runtime_error("JSON nesting depth exceeds limit");
+    }
     SkipWhitespace();
     if (pos_ >= text_.size()) {
       throw std::runtime_error("unexpected end of JSON input");
@@ -39,6 +53,7 @@ public:
 private:
   const std::string &text_;
   std::size_t pos_ = 0;
+  int depth_ = 0;
 
   void SkipWhitespace() {
     while (pos_ < text_.size() &&
@@ -109,9 +124,15 @@ private:
     if (token.empty()) {
       throw std::runtime_error("malformed JSON: expected number");
     }
+    errno = 0;
+    const double parsed = std::strtod(token.c_str(), nullptr);
+    if (!std::isfinite(parsed) || errno == ERANGE) {
+      throw std::runtime_error("JSON number out of representable range: " +
+                               token);
+    }
     JsonValue value;
     value.type_ = JsonValue::Type::kNumber;
-    value.number_ = std::strtod(token.c_str(), nullptr);
+    value.number_ = parsed;
     return value;
   }
 
@@ -147,6 +168,7 @@ private:
       ++pos_;
       return value;
     }
+    ++depth_;
     while (true) {
       value.array_.push_back(ParseValue());
       SkipWhitespace();
@@ -156,6 +178,7 @@ private:
       }
       break;
     }
+    --depth_;
     SkipWhitespace();
     Expect(']');
     return value;
@@ -170,6 +193,7 @@ private:
       ++pos_;
       return value;
     }
+    ++depth_;
     while (true) {
       SkipWhitespace();
       std::string key = ParseString();
@@ -183,6 +207,7 @@ private:
       }
       break;
     }
+    --depth_;
     SkipWhitespace();
     Expect('}');
     return value;

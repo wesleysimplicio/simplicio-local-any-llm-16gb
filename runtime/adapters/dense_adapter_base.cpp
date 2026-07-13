@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -230,8 +231,14 @@ QuantizeProjectionInt4(const std::vector<float> &source,
 bool MaterializeProjectionTensor(const std::vector<float> &source,
                                  const std::vector<std::size_t> &shape,
                                  const ModelAsset *asset, Tensor &projection,
-                                 std::string *error) {
-  if (asset == nullptr || asset->weightDType == DType::kFloat32 ||
+                                 std::string *error,
+                                 const bool sourceIsRealWeights = false) {
+  // Real weights are loaded specifically to get exact precision; never
+  // silently round-trip them through a lossy int8/int4 quantizer just
+  // because a sibling manifest happens to declare that dtype for the
+  // (unrelated) synthetic path.
+  if (sourceIsRealWeights || asset == nullptr ||
+      asset->weightDType == DType::kFloat32 ||
       asset->weightDType == DType::kFloat16 ||
       asset->weightDType == DType::kBFloat16) {
     CopyVectorToTensor(source, projection);
@@ -388,6 +395,15 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
     tokenIds.push_back(TokenIdFor(token, vocabulary));
   }
 
+  // Tracks whether ANY BuildTokenEmbedding/BuildOutputProjection call in
+  // this Generate() actually used real weights (for telemetry only).
+  // Per-call synthetic-perturbation suppression below always uses that
+  // specific call's own `usedReal` result, never this aggregate -- a
+  // request.asset->hasRealWeights check alone would be wrong here, since
+  // it is true when EITHER tensor loaded, not when THIS call's shape
+  // matched.
+  bool anyRealWeightUsed = false;
+
   const std::string prefixKey =
       BuildPromptCacheKeyForFamily(activeSeed, promptTokens);
   mutableContext.prefixCache().Retain(prefixKey);
@@ -417,12 +433,17 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
       keyBuffer.reserve(tokenIds.size() * kHiddenSize);
       valueBuffer.reserve(tokenIds.size() * kHiddenSize);
       for (std::size_t index = 0; index < tokenIds.size(); ++index) {
+        bool embeddingIsReal = false;
         const std::vector<float> embedding =
-            BuildTokenEmbedding(tokenIds[index], kHiddenSize, activeSeed);
+            BuildTokenEmbedding(tokenIds[index], kHiddenSize, activeSeed,
+                                request.asset, &embeddingIsReal);
+        anyRealWeightUsed = anyRealWeightUsed || embeddingIsReal;
         for (std::size_t hidden = 0; hidden < kHiddenSize; ++hidden) {
           keyBuffer.push_back(embedding[hidden]);
           valueBuffer.push_back(embedding[hidden] +
-                                static_cast<float>(index % 3U) * 0.01F);
+                                (embeddingIsReal
+                                     ? 0.0F
+                                     : static_cast<float>(index % 3U) * 0.01F));
         }
       }
     }
@@ -447,19 +468,26 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
     CopyVectorToTensor(keyBuffer, key);
     CopyVectorToTensor(valueBuffer, value);
 
+    bool queryEmbeddingIsReal = false;
     std::vector<float> queryVector =
-        BuildTokenEmbedding(tokenIds.back(), kHiddenSize, activeSeed);
-    for (std::size_t hidden = 0; hidden < kHiddenSize; ++hidden) {
-      queryVector[hidden] += static_cast<float>((step + hidden) % 5U) * 0.02F;
+        BuildTokenEmbedding(tokenIds.back(), kHiddenSize, activeSeed,
+                            request.asset, &queryEmbeddingIsReal);
+    anyRealWeightUsed = anyRealWeightUsed || queryEmbeddingIsReal;
+    if (!queryEmbeddingIsReal) {
+      for (std::size_t hidden = 0; hidden < kHiddenSize; ++hidden) {
+        queryVector[hidden] += static_cast<float>((step + hidden) % 5U) * 0.02F;
+      }
     }
     CopyVectorToTensor(queryVector, query);
 
     std::string error;
-    const std::vector<float> outputProjection =
-        BuildOutputProjection(vocabulary, kHiddenSize, activeSeed);
-    if (!MaterializeProjectionTensor(outputProjection,
-                                     {kHiddenSize, vocabulary.size()},
-                                     request.asset, projection, &error)) {
+    bool projectionIsReal = false;
+    const std::vector<float> outputProjection = BuildOutputProjection(
+        vocabulary, kHiddenSize, activeSeed, request.asset, &projectionIsReal);
+    anyRealWeightUsed = anyRealWeightUsed || projectionIsReal;
+    if (!MaterializeProjectionTensor(
+            outputProjection, {kHiddenSize, vocabulary.size()}, request.asset,
+            projection, &error, projectionIsReal)) {
       generatedTokens.push_back("projection-error");
       break;
     }
@@ -487,7 +515,9 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
     float bestValue = logitData[0];
     for (std::size_t index = 1; index < vocabulary.size(); ++index) {
       const float bias =
-          static_cast<float>(((step + 1U) * (index + 3U)) % 7U) * 0.005F;
+          projectionIsReal
+              ? 0.0F
+              : static_cast<float>(((step + 1U) * (index + 3U)) % 7U) * 0.005F;
       const float candidate = logitData[index] + bias;
       if (candidate > bestValue) {
         bestValue = candidate;
@@ -498,21 +528,26 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
     generatedTokens.push_back(vocabulary[bestIndex]);
     tokenIds.push_back(bestIndex);
 
+    bool nextEmbeddingIsReal = false;
     const std::vector<float> nextEmbedding =
-        BuildTokenEmbedding(bestIndex, kHiddenSize, activeSeed);
+        BuildTokenEmbedding(bestIndex, kHiddenSize, activeSeed, request.asset,
+                            &nextEmbeddingIsReal);
+    anyRealWeightUsed = anyRealWeightUsed || nextEmbeddingIsReal;
     for (std::size_t hidden = 0; hidden < kHiddenSize; ++hidden) {
       keyBuffer.push_back(nextEmbedding[hidden]);
-      valueBuffer.push_back(nextEmbedding[hidden] +
-                            static_cast<float>((sequenceLength + step) % 3U) *
-                                0.01F);
+      valueBuffer.push_back(
+          nextEmbedding[hidden] +
+          (nextEmbeddingIsReal
+               ? 0.0F
+               : static_cast<float>((sequenceLength + step) % 3U) * 0.01F));
     }
   }
 
   return FinalizeGenerationResult(
       request, context, backendSelection, std::move(promptTokens),
       std::move(generatedTokens), kvCacheHit, kvRestoredFromColdStore,
-      kvSummaryRows, kHiddenSize, usedRealBpeTokenizer,
-      tokenizerFallbackReason);
+      kvSummaryRows, kHiddenSize, usedRealBpeTokenizer, tokenizerFallbackReason,
+      anyRealWeightUsed);
 }
 
 std::size_t
@@ -534,10 +569,92 @@ DenseAdapterBase::TokenIdFor(const std::string_view token,
          vocabulary.size();
 }
 
-std::vector<float>
-DenseAdapterBase::BuildTokenEmbedding(const std::size_t tokenId,
-                                      const std::size_t hiddenSize,
-                                      const std::uint32_t seed) const {
+namespace {
+
+// Returns the real embedding row for `tokenId` when `asset` has a genuine
+// "embedding.weight" tensor of shape [vocabSize, hiddenSize] that actually
+// covers this token and hidden size. Returns std::nullopt otherwise so the
+// caller can fall back to the deterministic synthetic path explicitly.
+std::optional<std::vector<float>>
+TryRealEmbeddingRow(const ModelAsset *asset, const std::size_t tokenId,
+                    const std::size_t hiddenSize) {
+  if (asset == nullptr || !asset->hasRealWeights) {
+    return std::nullopt;
+  }
+  const auto tensorIt = asset->realTensors.find("embedding.weight");
+  const auto shapeIt = asset->realTensorShapes.find("embedding.weight");
+  if (tensorIt == asset->realTensors.end() ||
+      shapeIt == asset->realTensorShapes.end() || shapeIt->second.size() != 2) {
+    return std::nullopt;
+  }
+  const std::size_t vocabSize = shapeIt->second[0];
+  const std::size_t rowWidth = shapeIt->second[1];
+  if (rowWidth != hiddenSize || tokenId >= vocabSize) {
+    return std::nullopt;
+  }
+  const std::vector<float> &table = tensorIt->second;
+  const std::size_t begin = tokenId * rowWidth;
+  if (begin + rowWidth > table.size()) {
+    return std::nullopt;
+  }
+  return std::vector<float>(table.begin() + static_cast<std::ptrdiff_t>(begin),
+                            table.begin() +
+                                static_cast<std::ptrdiff_t>(begin + rowWidth));
+}
+
+// Returns the real [hiddenSize x vocabulary.size()] projection matrix when
+// `asset` has a genuine "lm_head.weight" tensor. Real safetensors/HF
+// checkpoints store nn.Linear(hidden, vocab).weight as [vocab_size,
+// hidden_size] (out_features x in_features) -- the OPPOSITE layout from the
+// [hiddenSize x vocabulary.size()] buffer this runtime's matmul expects, so
+// the real tensor is transposed here rather than merely shape-checked.
+// Returns std::nullopt when the shape doesn't match (explicit fallback,
+// never silently mixed with the synthetic path for part of the matrix).
+std::optional<std::vector<float>>
+TryRealOutputProjection(const ModelAsset *asset,
+                        const std::vector<std::string> &vocabulary,
+                        const std::size_t hiddenSize) {
+  if (asset == nullptr || !asset->hasRealWeights) {
+    return std::nullopt;
+  }
+  const auto tensorIt = asset->realTensors.find("lm_head.weight");
+  const auto shapeIt = asset->realTensorShapes.find("lm_head.weight");
+  if (tensorIt == asset->realTensors.end() ||
+      shapeIt == asset->realTensorShapes.end() || shapeIt->second.size() != 2) {
+    return std::nullopt;
+  }
+  const std::size_t vocabSize = shapeIt->second[0];
+  const std::size_t rowWidth = shapeIt->second[1];
+  if (vocabSize != vocabulary.size() || rowWidth != hiddenSize ||
+      tensorIt->second.size() != vocabSize * rowWidth) {
+    return std::nullopt;
+  }
+  const std::vector<float> &realWeight = tensorIt->second;
+  std::vector<float> projection(hiddenSize * vocabSize, 0.0F);
+  for (std::size_t token = 0; token < vocabSize; ++token) {
+    for (std::size_t hidden = 0; hidden < hiddenSize; ++hidden) {
+      projection[hidden * vocabSize + token] =
+          realWeight[token * hiddenSize + hidden];
+    }
+  }
+  return projection;
+}
+
+} // namespace
+
+std::vector<float> DenseAdapterBase::BuildTokenEmbedding(
+    const std::size_t tokenId, const std::size_t hiddenSize,
+    const std::uint32_t seed, const ModelAsset *asset, bool *usedReal) const {
+  if (auto realRow = TryRealEmbeddingRow(asset, tokenId, hiddenSize);
+      realRow.has_value()) {
+    if (usedReal != nullptr) {
+      *usedReal = true;
+    }
+    return std::move(*realRow);
+  }
+  if (usedReal != nullptr) {
+    *usedReal = false;
+  }
   std::vector<float> embedding(hiddenSize, 0.0F);
   for (std::size_t hidden = 0; hidden < hiddenSize; ++hidden) {
     embedding[hidden] =
@@ -549,7 +666,18 @@ DenseAdapterBase::BuildTokenEmbedding(const std::size_t tokenId,
 
 std::vector<float> DenseAdapterBase::BuildOutputProjection(
     const std::vector<std::string> &vocabulary, const std::size_t hiddenSize,
-    const std::uint32_t seed) const {
+    const std::uint32_t seed, const ModelAsset *asset, bool *usedReal) const {
+  if (auto realProjection =
+          TryRealOutputProjection(asset, vocabulary, hiddenSize);
+      realProjection.has_value()) {
+    if (usedReal != nullptr) {
+      *usedReal = true;
+    }
+    return std::move(*realProjection);
+  }
+  if (usedReal != nullptr) {
+    *usedReal = false;
+  }
   std::vector<float> projection(hiddenSize * vocabulary.size(), 0.0F);
   for (std::size_t hidden = 0; hidden < hiddenSize; ++hidden) {
     for (std::size_t token = 0; token < vocabulary.size(); ++token) {
@@ -683,7 +811,7 @@ GenerationResult DenseAdapterBase::FinalizeGenerationResult(
     std::vector<std::string> generatedTokens, const bool kvCacheHit,
     const bool kvRestoredFromColdStore, const std::size_t kvSummaryRows,
     const std::size_t planHiddenSize, const bool usedRealBpeTokenizer,
-    std::string tokenizerFallbackReason) const {
+    std::string tokenizerFallbackReason, const bool usedRealWeights) const {
   RuntimeContext &mutableContext = const_cast<RuntimeContext &>(context);
 
   GenerationResult result;
@@ -742,6 +870,7 @@ GenerationResult DenseAdapterBase::FinalizeGenerationResult(
       request.asset != nullptr ? request.asset->moeLazyLoad : false;
   result.sharedTokenizer =
       request.asset != nullptr ? request.asset->sharedTokenizer : false;
+  result.usedRealWeights = usedRealWeights;
   result.usedRealBpeTokenizer = usedRealBpeTokenizer;
   result.tokenizerFallbackReason =
       usedRealBpeTokenizer ? ""

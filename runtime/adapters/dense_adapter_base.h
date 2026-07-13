@@ -47,12 +47,25 @@ protected:
   virtual std::string DefaultPromptToken() const = 0;
   std::size_t TokenIdFor(std::string_view token,
                          const std::vector<std::string> &vocabulary) const;
+  // When `asset` has a shape-compatible real "embedding.weight" /
+  // "lm_head.weight" tensor (see ModelAsset::hasRealWeights, populated by
+  // SafetensorsReader), these return the genuine row/matrix instead of the
+  // deterministic synthetic placeholder, and set `*usedReal` (when
+  // non-null) so callers can gate per-call synthetic perturbations
+  // precisely -- `asset->hasRealWeights` alone is NOT sufficient, since it
+  // only means at least one of the two tensors loaded, not that THIS call's
+  // shape matched. Absent real weights (or on shape mismatch), behavior is
+  // byte-for-byte identical to before (pure additive fallback).
   std::vector<float> BuildTokenEmbedding(std::size_t tokenId,
                                          std::size_t hiddenSize,
-                                         std::uint32_t seed) const;
+                                         std::uint32_t seed,
+                                         const ModelAsset *asset = nullptr,
+                                         bool *usedReal = nullptr) const;
   std::vector<float>
   BuildOutputProjection(const std::vector<std::string> &vocabulary,
-                        std::size_t hiddenSize, std::uint32_t seed) const;
+                        std::size_t hiddenSize, std::uint32_t seed,
+                        const ModelAsset *asset = nullptr,
+                        bool *usedReal = nullptr) const;
   std::string JoinTokens(const std::vector<std::string> &tokens) const;
   std::string BuildPromptCacheKeyForFamily(
       std::uint32_t seed, const std::vector<std::string> &promptTokens) const;
@@ -82,7 +95,8 @@ protected:
       std::vector<std::string> generatedTokens, bool kvCacheHit,
       bool kvRestoredFromColdStore, std::size_t kvSummaryRows,
       std::size_t planHiddenSize, bool usedRealBpeTokenizer = false,
-      std::string tokenizerFallbackReason = "") const;
+      std::string tokenizerFallbackReason = "",
+      bool usedRealWeights = false) const;
 
 private:
   std::string family_;

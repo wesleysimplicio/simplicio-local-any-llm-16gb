@@ -1,11 +1,28 @@
 #include "core/safetensors_reader.h"
 
+#include <cmath>
 #include <cstring>
 #include <fstream>
+#include <limits>
 
 #include "core/json_value.h"
 
 namespace us4 {
+
+namespace {
+// A JSON number is a double; safetensors offsets/shapes are logically
+// non-negative integers. Reject NaN/Inf/negative/out-of-range values here
+// instead of letting a malformed or adversarial header silently produce
+// undefined behavior at the static_cast<size_t> call site.
+bool SafeDoubleToSize(const double value, std::size_t *out) {
+  if (!std::isfinite(value) || value < 0.0 ||
+      value > static_cast<double>(std::numeric_limits<std::uint32_t>::max())) {
+    return false;
+  }
+  *out = static_cast<std::size_t>(value);
+  return true;
+}
+} // namespace
 
 std::optional<SafetensorsReader>
 SafetensorsReader::Open(const std::filesystem::path &path, std::string *error) {
@@ -65,17 +82,36 @@ SafetensorsReader::Open(const std::filesystem::path &path, std::string *error) {
     if (entry.Has("dtype") && entry["dtype"].IsString()) {
       info.dtype = entry["dtype"].AsString();
     }
+    bool shapeValid = true;
     if (entry.Has("shape") && entry["shape"].IsArray()) {
       for (const JsonValue &dim : entry["shape"].AsArray()) {
-        info.shape.push_back(static_cast<std::size_t>(dim.AsNumber()));
+        std::size_t dimValue = 0;
+        if (!SafeDoubleToSize(dim.AsNumber(), &dimValue)) {
+          shapeValid = false;
+          break;
+        }
+        info.shape.push_back(dimValue);
       }
     }
-    if (entry.Has("data_offsets") && entry["data_offsets"].IsArray() &&
+    bool offsetsValid = false;
+    if (shapeValid && entry.Has("data_offsets") &&
+        entry["data_offsets"].IsArray() &&
         entry["data_offsets"].AsArray().size() == 2) {
-      info.byteOffsetBegin = static_cast<std::size_t>(
-          entry["data_offsets"].AsArray()[0].AsNumber());
-      info.byteOffsetEnd = static_cast<std::size_t>(
-          entry["data_offsets"].AsArray()[1].AsNumber());
+      std::size_t begin = 0;
+      std::size_t end = 0;
+      if (SafeDoubleToSize(entry["data_offsets"].AsArray()[0].AsNumber(),
+                           &begin) &&
+          SafeDoubleToSize(entry["data_offsets"].AsArray()[1].AsNumber(),
+                           &end) &&
+          end >= begin) {
+        info.byteOffsetBegin = begin;
+        info.byteOffsetEnd = end;
+        offsetsValid = true;
+      }
+    }
+    if (!shapeValid || !offsetsValid) {
+      continue; // drop tensors with malformed/adversarial metadata instead
+                // of carrying invalid offsets forward into ReadFloat32.
     }
     reader.tensors_.emplace(name, std::move(info));
   }
@@ -110,6 +146,17 @@ std::vector<float> SafetensorsReader::ReadFloat32(const std::string &name,
   if (byteLength % sizeof(float) != 0) {
     if (error != nullptr) {
       *error = "tensor " + name + " byte length is not float32-aligned";
+    }
+    return {};
+  }
+
+  std::error_code fileSizeError;
+  const std::uintmax_t fileSize =
+      std::filesystem::file_size(path_, fileSizeError);
+  if (fileSizeError || dataSectionStart_ + info->byteOffsetEnd > fileSize) {
+    if (error != nullptr) {
+      *error =
+          "tensor " + name + " data_offsets extend past the end of the file";
     }
     return {};
   }

@@ -308,6 +308,9 @@ bool LoadModelAsset(const std::filesystem::path &path, ModelAsset &asset,
         std::string readError;
         std::vector<float> values = reader->ReadFloat32(tensorName, &readError);
         if (!values.empty()) {
+          if (const auto *info = reader->Find(tensorName); info != nullptr) {
+            asset.realTensorShapes[tensorName] = info->shape;
+          }
           asset.realTensors[tensorName] = std::move(values);
         }
       }

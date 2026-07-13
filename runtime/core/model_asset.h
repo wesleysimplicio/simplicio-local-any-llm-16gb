@@ -39,6 +39,7 @@ struct ModelAsset {
   // file (genuine header + tensor bytes) rather than a placeholder/manifest.
   // See SafetensorsReader; keys are tensor names as they appear in the file.
   std::unordered_map<std::string, std::vector<float>> realTensors;
+  std::unordered_map<std::string, std::vector<std::size_t>> realTensorShapes;
   bool hasRealWeights = false;
 };
 

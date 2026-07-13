@@ -100,6 +100,65 @@ Next:
 passo natural para levar esse mesmo padrao de oraculo para a geração
 ponta-a-ponta, não apenas para um matmul isolado.
 
+## Checkpoint seguinte (3)
+
+Status: done
+
+Task:
+#85 - Forward denso real (embedding/projeção a partir de pesos carregados,
+sem DeterministicValue)
+
+Result:
+`BuildTokenEmbedding`/`BuildOutputProjection` em `DenseAdapterBase` agora
+consultam `asset->realTensors` (populado por #83) e usam o lookup real de
+`embedding.weight`/`lm_head.weight` quando o shape bate exatamente com
+`hiddenSize`/`vocabulary.size()`, com fallback explícito e per-tensor (não
+mais um flag global `usingRealWeights`) para o caminho sintético
+determinístico anterior. Isso cobre qwen/gemma/bitnet/ternary/llama
+(caminho não-NEON)/deepseek/kimi/minimax/glm, já que todos passam pelo
+`DenseAdapterBase::Generate` compartilhado. O CLI expõe
+`used_real_weights` (texto/JSON).
+
+Duas rodadas de revisão adversarial (cpp-reviewer + security-reviewer via
+agents) encontraram e corrigiram, antes do merge:
+- shape check da projeção de saída estava transposto (não batia com a
+  convenção real HF/safetensors `[vocab_size, hidden_size]` para
+  `nn.Linear.weight`) — corrigido com transposição explícita em
+  `TryRealOutputProjection`;
+- a flag de "usando pesos reais" era global por asset em vez de por
+  chamada, o que suprimia ruído sintético mesmo quando o dado daquela
+  chamada específica ainda era sintético — corrigido com `usedReal`
+  per-call;
+- quantização int8/int4 podia ser aplicada por engano a pesos reais se o
+  manifesto irmão declarasse esse dtype — corrigido pulando quantização
+  quando a fonte é real;
+- recursão sem limite no parser JSON (`json_value.cpp`) permitia DoS por
+  stack overflow via `tokenizer.json`/header safetensors malicioso —
+  corrigido com limite de profundidade;
+- underflow de `size_t` em `data_offsets` malformado
+  (`safetensors_reader.cpp`) podia causar alocação absurda/crash —
+  corrigido com validação `end >= begin` e verificação contra o tamanho
+  real do arquivo;
+- cast de `double` fora de faixa/infinito para `size_t` (UB) — corrigido
+  com validação `std::isfinite`+faixa antes do cast.
+
+Evidência ponta-a-ponta: fixture `tests/fixtures/models/toy-dense-real/`
+(safetensors real + manifesto) faz o CLI gerar exatamente o token previsto
+por um oráculo externo (embedding one-hot, lm_head com margem clara),
+coberto por um novo teste Playwright.
+
+Validation:
+`cmake --build build`; `ctest --test-dir build --output-on-failure` (212/212,
+zero regressão nos testes pré-existentes); `npx playwright test --reporter=list`
+(26/26); `clang-format --dry-run --Werror` e `clang-tidy -p build` limpos nos
+arquivos tocados.
+
+Next:
+#81.7 (MoE real) e #81.9 (speculative real) podem reusar `realTensors`/
+`hasRealWeights` agora que o forward denso base os consome de fato. #81.6
+(KV cache) pode ganhar teste de paridade com/sem cache sobre este forward
+real.
+
 Status: done
 
 Task:

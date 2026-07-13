@@ -1,0 +1,9 @@
+# Sibling manifest for toy-dense-real.safetensors (issue #85: real dense
+# forward). Provides vocabulary/family metadata; the real embedding/lm_head
+# tensors themselves live in the .safetensors binary next to this file.
+family=qwen
+model_name=toy-dense-real
+weight_dtype=fp32
+seed=7
+vocabulary=alpha,beta,gamma,delta
+default_prompt_token=alpha

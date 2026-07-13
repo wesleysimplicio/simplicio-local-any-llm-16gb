@@ -364,6 +364,8 @@ void PrintRunText(const us4::GenerationResult &result) {
       << (result.usedRealBpeTokenizer ? "true" : "false") << "\n"
       << "tokenizer_fallback_reason: " << result.tokenizerFallbackReason
       << "\n"
+      << "used_real_weights: " << (result.usedRealWeights ? "true" : "false")
+      << "\n"
       << "speculative_accepted_tokens: " << result.speculativeAcceptedTokens
       << "\n"
       << "speculative_rejected_tokens: " << result.speculativeRejectedTokens
@@ -494,6 +496,8 @@ void PrintRunJson(const us4::GenerationResult &result) {
       << (result.usedRealBpeTokenizer ? "true" : "false") << ","
       << "\"tokenizer_fallback_reason\":\""
       << EscapeJson(result.tokenizerFallbackReason) << "\","
+      << "\"used_real_weights\":" << (result.usedRealWeights ? "true" : "false")
+      << ","
       << "\"speculative_accepted_tokens\":" << result.speculativeAcceptedTokens
       << ","
       << "\"speculative_rejected_tokens\":" << result.speculativeRejectedTokens

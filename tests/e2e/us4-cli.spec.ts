@@ -1260,4 +1260,65 @@ test.describe("Native CLI sprint 02 contract", () => {
                 4,
             );
       });
+
+  test(
+      "real safetensors weights drive the dense forward end to end (#85)",
+      async ({}, testInfo) => {
+        // See tests/fixtures/models/toy-dense-real/generate_toy_dense_real.py:
+        // embedding("alpha") is one-hot on hidden dim 0 and lm_head's first
+        // row is [0.1, 0.2, 0.3, 5.0], so the real forward must argmax to
+        // "delta" with a wide margin -- this is an external oracle
+        // prediction, not the runtime's own synthetic path.
+        const tensorPath = path.join(
+            repoRoot,
+            "tests",
+            "fixtures",
+            "models",
+            "toy-dense-real",
+            "toy-dense-real.safetensors",
+        );
+        const {stdout, stderr} = await execFileAsync(
+            nativeCliPath!,
+            [
+              "run",
+              "--model",
+              "qwen-0.5b",
+              "--model-path",
+              tensorPath,
+              "--prompt",
+              "alpha",
+              "--max-tokens",
+              "1",
+              "--json",
+            ],
+            {
+              cwd : repoRoot,
+              env : {
+                ...process.env,
+                NO_COLOR : "1",
+              },
+            },
+        );
+
+        await testInfo.attach("stdout-native-real-weights", {
+          body : stdout.trim() || "(empty)",
+          contentType : "text/plain",
+        });
+        await testInfo.attach("stderr-native-real-weights", {
+          body : stderr.trim() || "(empty)",
+          contentType : "text/plain",
+        });
+
+        expect(stderr.trim()).toBe("");
+        const payload = JSON.parse(stdout) as Record<string, unknown>;
+        expect(payload).toMatchObject({
+          family : "qwen",
+          model : "toy-dense-real",
+          asset_format : "safetensors",
+          used_real_weights : true,
+          prompt_tokens : [ "alpha" ],
+          generated_tokens : [ "delta" ],
+          text : "delta",
+        });
+      });
 });
