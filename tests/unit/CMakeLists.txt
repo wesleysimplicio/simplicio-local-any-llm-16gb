@@ -25,6 +25,7 @@ set(us4_runtime_contract_test_sources
   quantization_real_weights_contract_test.cpp
   speculative_real_draft_contract_test.cpp
   moe_real_expert_weights_contract_test.cpp
+  expert_ffn_contract_test.cpp
   openai_chat_handler_contract_test.cpp
   kv_contract_test.cpp
   eviction_policy_contract_test.cpp

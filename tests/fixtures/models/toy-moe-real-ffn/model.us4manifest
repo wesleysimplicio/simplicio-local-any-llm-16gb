@@ -1,0 +1,12 @@
+# Sibling manifest for toy-moe-real-ffn.safetensors (issue #81.7c: MoE
+# routes through the expert's real FFN layer, not just the output
+# projection). moe_expert_shards points at genuine per-expert safetensors
+# files; expert0's lm_head.weight AND gate_proj/up_proj/down_proj.weight are
+# real (see TryLoadExpertShardFfn / DeepSeekMoEAdapter::Generate).
+family=deepseek
+model_name=toy-moe-real-ffn
+weight_dtype=fp32
+seed=11
+vocabulary=alpha,beta,gamma,delta
+default_prompt_token=alpha
+moe_expert_shards=expert0.safetensors,expert1.safetensors

@@ -18,6 +18,7 @@
 #include "cpu/scalar_attention.h"
 #include "cpu/scalar_matmul.h"
 #include "metal/dense_dispatch.h"
+#include "moe/expert_ffn.h"
 #include "neon/dequant_int4.h"
 #include "neon/dequant_int8.h"
 #include "neon/kernel_profile.h"
@@ -316,6 +317,7 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
   // it is true when EITHER tensor loaded, not when THIS call's shape
   // matched.
   bool anyRealWeightUsed = false;
+  bool anyRealExpertFfnUsed = false;
 
   const std::string prefixKey =
       BuildPromptCacheKeyForFamily(activeSeed, promptTokens);
@@ -414,6 +416,23 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
       generatedTokens.push_back("attention-error");
       break;
     }
+
+    // Issue #81.7c: when the router selected an expert with real FFN
+    // weights, route the attention context through that expert's own
+    // gate/up/down_proj SwiGLU layer before the shared output projection,
+    // instead of projecting the raw attention context directly. Absent
+    // real FFN weights, this is a no-op -- explicit, visible fallback via
+    // GenerationResult::usedRealExpertFfn staying false.
+    if (request.expertFfn != nullptr) {
+      const float *contextData = contextTensor.DataAsFloat32();
+      const std::vector<float> contextVector(
+          contextData, contextData + contextTensor.ElementCount());
+      const std::vector<float> ffnOutput =
+          ApplyExpertFfnSwiglu(contextVector, *request.expertFfn);
+      CopyVectorToTensor(ffnOutput, contextTensor);
+      anyRealExpertFfnUsed = true;
+    }
+
     const bool matmulOk =
         backendSelection.selected == BackendType::kNeon
             ? NeonMatmul(contextTensor, projection, logits, &error)
@@ -456,11 +475,13 @@ DenseAdapterBase::Generate(const GenerationRequest &request,
     }
   }
 
-  return FinalizeGenerationResult(
+  GenerationResult result = FinalizeGenerationResult(
       request, context, backendSelection, std::move(promptTokens),
       std::move(generatedTokens), kvCacheHit, kvRestoredFromColdStore,
       kvSummaryRows, kHiddenSize, usedRealBpeTokenizer, tokenizerFallbackReason,
       anyRealWeightUsed);
+  result.usedRealExpertFfn = anyRealExpertFfnUsed;
+  return result;
 }
 
 std::size_t

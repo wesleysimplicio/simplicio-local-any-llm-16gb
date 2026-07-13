@@ -62,6 +62,10 @@ TEST(MoeRealExpertWeightsContractTest,
   ASSERT_TRUE(result.usedRealExpertWeights)
       << "expert 0's real lm_head.weight should have been loaded and "
          "applied to the forward";
+  // Issue #81.7c: this fixture's expert0 shard has no gate/up/down_proj
+  // tensors, so routing through a real FFN must be explicitly, visibly
+  // false here -- not silently true just because the lm_head swap worked.
+  EXPECT_FALSE(result.usedRealExpertFfn);
 
   // The base model's own lm_head.weight is a decoy tuned to argmax to
   // "alpha" (see generate_toy_moe_real.py); expert 0's real lm_head.weight
@@ -70,6 +74,45 @@ TEST(MoeRealExpertWeightsContractTest,
   // output.
   ASSERT_EQ(result.generatedTokens.size(), 1U);
   EXPECT_EQ(result.generatedTokens.front(), "beta");
+}
+
+// Issue #81.7c: beyond swapping the shared lm_head.weight (#81.7/#81.7b),
+// the routed expert's real FFN layer (gate/up/down_proj SwiGLU) must
+// transform the attention context before the output projection.
+TEST(MoeRealExpertWeightsContractTest,
+     RoutedExpertRealFfnTransformsContextBeforeProjection) {
+  const us4::IUS4V6Adapter *adapter =
+      us4::FindAdapterByModel("deepseek-v2-lite");
+  ASSERT_NE(adapter, nullptr);
+
+  us4::ModelAsset asset;
+  std::string error;
+  const std::filesystem::path tensorPath = RepoRoot() / "tests" / "fixtures" /
+                                           "models" / "toy-moe-real-ffn" /
+                                           "toy-moe-real-ffn.safetensors";
+  ASSERT_TRUE(us4::LoadModelAsset(tensorPath, asset, &error)) << error;
+  ASSERT_EQ(asset.expertShardPaths.size(), 2U);
+
+  us4::RuntimeContext context(MakeProbe());
+  adapter->ConfigureRuntime(context);
+
+  const us4::GenerationResult result = adapter->Generate(
+      {.prompt = "", .maxTokens = 1, .asset = &asset}, context);
+
+  ASSERT_TRUE(result.usedRealExpertWeights);
+  ASSERT_TRUE(result.usedRealExpertFfn)
+      << "expert 0's real gate/up/down_proj weights should have been "
+         "loaded and applied to the attention context";
+
+  // External oracle (see generate_toy_moe_real_ffn.py): the real,
+  // single-token attention context is a one-hot vector on hidden dim 0;
+  // expert 0's gate/up_proj zero out every FFN intermediate dim except
+  // index 0, and down_proj routes that one surviving value to hidden dim
+  // 3 -- so the FFN output is a positive scalar times one-hot(dim 3).
+  // lm_head's column 3 argmaxes to "gamma", and a positive scale can't
+  // flip that argmax.
+  ASSERT_EQ(result.generatedTokens.size(), 1U);
+  EXPECT_EQ(result.generatedTokens.front(), "gamma");
 }
 
 // Issue #81.7b: the deepseek-only wiring from #81.7/#88 must also cover the

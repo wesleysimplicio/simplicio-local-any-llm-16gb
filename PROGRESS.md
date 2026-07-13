@@ -957,6 +957,57 @@ Avaliar #104 [#81.7c] (MoE roteando pela FFN completa do expert), #106
 [#81.11] (validar contra checkpoint real), ou #107 [#81.12] (benchmarks
 reais).
 
+### Checkpoint 18
+
+Status: done
+
+Task:
+#104 [#81.7c] - #88/#81.7b so trocavam o `lm_head.weight` do expert
+roteado; um MoE real roteia a ativacao por uma camada FFN inteira
+especifica do expert (`gate_proj`/`up_proj`/`down_proj`), nao so pela
+projecao de saida compartilhada.
+
+Result:
+Novo `runtime/moe/expert_ffn.{h,cpp}` (`ApplyExpertFfnSwiglu`): forward
+SwiGLU puro e testavel isoladamente -- `down_proj(silu(gate_proj(x)) *
+up_proj(x))`. Novo `TryLoadExpertShardFfn` em `model_asset.{h,cpp}`, mesmo
+padrao do `TryLoadExpertShardLmHead` (le `gate_proj.weight`/
+`up_proj.weight`/`down_proj.weight` reais do shard do expert). Novo campo
+`GenerationRequest::expertFfn` (ponteiro opcional, default nullptr) e
+`GenerationResult::usedRealExpertFfn` (telemetria explicita, default
+false). `DenseAdapterBase::Generate` aplica a FFN real ao contexto da
+atencao ANTES da projecao de saida, só quando `request.expertFfn != nullptr`
+-- ausencia de peso real = fallback explicito e visivel (campo fica
+false), sem quebrar nenhum adapter existente (todos os outros continuam
+passando nullptr). `DeepSeekMoEAdapter::Generate` chama
+`TryLoadExpertShardFfn` alem do `TryLoadExpertShardLmHead` ja existente;
+demais familias MoE (kimi/minimax/glm) ficam fora do escopo desta issue
+(mesma decisao de escopo que #88 tomou originalmente pra lm_head, seguida
+por #81.7b depois).
+
+Fixture novo: `tests/fixtures/models/toy-moe-real-ffn/` com oraculo
+externo hand-computed (embedding one-hot -> RoPE/atencao trivial de 1
+kv-row -> gate/up_proj zeram todo dim intermediario exceto o 0 ->
+down_proj roteia esse unico valor sobrevivente pro dim 3 -> lm_head coluna
+3 argmaxa "gamma"). Testes novos: `expert_ffn_contract_test.cpp` (2
+testes, oraculo hand-computed de 2x3 dims, independente da fixture) e
+`MoeRealExpertWeightsContractTest.RoutedExpertRealFfnTransformsContextBeforeProjection`
+(fixture real). O teste original de #81.7 (`toy-moe-real`, sem tensors de
+FFN) ganhou `EXPECT_FALSE(result.usedRealExpertFfn)` pra fixar o
+fallback explicito exigido pelo DoD. Zero regressao: suite unitaria foi de
+233 para 236 testes verdes.
+
+Validation:
+`cmake --build build`; `clang-format --dry-run --Werror` nos arquivos
+tocados; `clang-tidy -p build` (sem warnings); `ctest --test-dir build
+--output-on-failure` (236/236 verde).
+
+Next:
+Avaliar #106 [#81.11] (validar contra checkpoint real -- rede confirmada
+disponivel nesta sandbox, mas escopo/tamanho do download incerto ate
+tentar) ou considerar a sessao concluida no estado atual (6 de 7 issues
+novas fechadas).
+
 ### Checkpoint 17
 
 Status: done

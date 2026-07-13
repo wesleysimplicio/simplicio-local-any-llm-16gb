@@ -61,4 +61,30 @@ bool TryLoadExpertShardLmHead(const ModelAsset &asset, std::size_t expertIndex,
                               std::vector<std::size_t> *outShape,
                               std::string *error = nullptr);
 
+// The real per-expert MLP ("FFN") weights for a Mixtral/DeepSeek-style MoE
+// expert: gate_proj/up_proj project hidden -> intermediate, down_proj
+// projects back intermediate -> hidden (see ApplyExpertFfnSwiglu in
+// runtime/moe/expert_ffn.h for how these combine into the SwiGLU forward).
+struct ExpertFfnWeights {
+  std::vector<float> gate;
+  std::vector<std::size_t> gateShape;
+  std::vector<float> up;
+  std::vector<std::size_t> upShape;
+  std::vector<float> down;
+  std::vector<std::size_t> downShape;
+};
+
+// Reads the real "gate_proj.weight"/"up_proj.weight"/"down_proj.weight"
+// tensors from the shard file at `asset.expertShardPaths[expertIndex]`, the
+// same shard TryLoadExpertShardLmHead reads "lm_head.weight" from. This is
+// what lets the router's selected expert route through its own FFN layer
+// (see #81.7c), not just swap the shared output projection (#81.7/#81.7b).
+// Returns false (with `error` set) when the shard is missing, unreadable,
+// or any of the three tensors is absent or shaped incompatibly with
+// `hiddenSize`/`intermediateSize`.
+bool TryLoadExpertShardFfn(const ModelAsset &asset, std::size_t expertIndex,
+                           std::size_t hiddenSize, std::size_t intermediateSize,
+                           ExpertFfnWeights *outWeights,
+                           std::string *error = nullptr);
+
 } // namespace us4

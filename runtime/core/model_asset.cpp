@@ -394,4 +394,74 @@ bool TryLoadExpertShardLmHead(const ModelAsset &asset,
   return true;
 }
 
+namespace {
+
+bool ReadExpertFfnTensor(const SafetensorsReader &reader,
+                         const std::string &tensorName,
+                         const std::size_t expectedRows,
+                         const std::size_t expectedCols,
+                         std::vector<float> *outWeights,
+                         std::vector<std::size_t> *outShape,
+                         std::string *error) {
+  const auto *info = reader.Find(tensorName);
+  if (info == nullptr || info->shape.size() != 2) {
+    return WriteError(error, "expert shard has no real " + tensorName);
+  }
+  if (info->shape[0] != expectedRows || info->shape[1] != expectedCols) {
+    return WriteError(error, "expert shard " + tensorName +
+                                 " shape does not match the requested "
+                                 "hidden/intermediate size");
+  }
+  std::vector<float> weights = reader.ReadFloat32(tensorName, error);
+  if (weights.empty()) {
+    return false;
+  }
+  if (outWeights != nullptr) {
+    *outWeights = std::move(weights);
+  }
+  if (outShape != nullptr) {
+    *outShape = info->shape;
+  }
+  return true;
+}
+
+} // namespace
+
+bool TryLoadExpertShardFfn(const ModelAsset &asset,
+                           const std::size_t expertIndex,
+                           const std::size_t hiddenSize,
+                           const std::size_t intermediateSize,
+                           ExpertFfnWeights *outWeights, std::string *error) {
+  if (expertIndex >= asset.expertShardPaths.size()) {
+    return WriteError(error, "expert index " + std::to_string(expertIndex) +
+                                 " has no shard path on this asset");
+  }
+
+  const auto reader =
+      SafetensorsReader::Open(asset.expertShardPaths[expertIndex], error);
+  if (!reader.has_value()) {
+    return false;
+  }
+
+  ExpertFfnWeights weights;
+  // HF/safetensors convention for nn.Linear.weight is [out_features,
+  // in_features] -- gate/up project hidden -> intermediate, down projects
+  // intermediate -> hidden.
+  if (!ReadExpertFfnTensor(*reader, "gate_proj.weight", intermediateSize,
+                           hiddenSize, &weights.gate, &weights.gateShape,
+                           error) ||
+      !ReadExpertFfnTensor(*reader, "up_proj.weight", intermediateSize,
+                           hiddenSize, &weights.up, &weights.upShape, error) ||
+      !ReadExpertFfnTensor(*reader, "down_proj.weight", hiddenSize,
+                           intermediateSize, &weights.down, &weights.downShape,
+                           error)) {
+    return false;
+  }
+
+  if (outWeights != nullptr) {
+    *outWeights = std::move(weights);
+  }
+  return true;
+}
+
 } // namespace us4

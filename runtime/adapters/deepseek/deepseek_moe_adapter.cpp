@@ -67,6 +67,7 @@ DeepSeekMoEAdapter::Generate(const GenerationRequest &request,
   // decision then really does change what the model computes, not just
   // what gets logged.
   ModelAsset expertAsset;
+  ExpertFfnWeights expertFfnWeights;
   bool usedRealExpertWeights = false;
   if (request.asset != nullptr && !routing.selected.empty()) {
     const std::vector<std::string> vocabulary =
@@ -83,6 +84,19 @@ DeepSeekMoEAdapter::Generate(const GenerationRequest &request,
       expertAsset.hasRealWeights = true;
       routedRequest.asset = &expertAsset;
       usedRealExpertWeights = true;
+    }
+
+    // Issue #81.7c: beyond swapping the shared lm_head.weight above, also
+    // try to route the attention context through the SAME expert's real
+    // FFN layer (gate/up/down_proj), not just the output projection.
+    // kExpertHiddenSize/kExpertIntermediateSize mirror the fixed toy
+    // scaffold hidden size DenseAdapterBase::Generate uses internally.
+    constexpr std::size_t kExpertHiddenSize = 8;
+    constexpr std::size_t kExpertIntermediateSize = 16;
+    if (TryLoadExpertShardFfn(*request.asset, routing.selected.front().expert,
+                              kExpertHiddenSize, kExpertIntermediateSize,
+                              &expertFfnWeights)) {
+      routedRequest.expertFfn = &expertFfnWeights;
     }
   }
 

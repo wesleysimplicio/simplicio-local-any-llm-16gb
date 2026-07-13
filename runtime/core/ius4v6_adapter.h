@@ -12,6 +12,7 @@
 namespace us4 {
 
 struct ModelAsset;
+struct ExpertFfnWeights;
 
 enum class ArchitectureType {
   kDense,
@@ -25,6 +26,11 @@ struct GenerationRequest {
   std::size_t maxTokens = 16;
   const ModelAsset *asset = nullptr;
   std::optional<BackendType> requestedBackend = std::nullopt;
+  // When set (see #81.7c), DenseAdapterBase::Generate routes the attention
+  // context through this expert's real FFN (SwiGLU: down(silu(gate(x)) *
+  // up(x))) before the output projection, instead of projecting the raw
+  // attention context directly.
+  const ExpertFfnWeights *expertFfn = nullptr;
 };
 
 struct GenerationResult {
@@ -95,6 +101,11 @@ struct GenerationResult {
   std::string speculativeFallbackToken;
   bool usedRealDraftModel = false;
   bool usedRealExpertWeights = false;
+  // Issue #81.7c: distinct from usedRealExpertWeights (which only covers
+  // the shared output projection) -- true only when the attention context
+  // was actually routed through the selected expert's real FFN layer
+  // (gate/up/down_proj), not just a swapped lm_head.
+  bool usedRealExpertFfn = false;
   std::string weightDType;
   std::string neonKernelFlavor;
   std::string dequantPath;
