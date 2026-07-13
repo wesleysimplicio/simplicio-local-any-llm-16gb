@@ -65,7 +65,34 @@ MiniMaxMoEAdapter::Generate(const GenerationRequest &request,
   routedRequest.prompt = request.prompt.empty()
                              ? routeSignature
                              : request.prompt + " " + routeSignature;
+
+  // When the routed expert has a genuine shard with a real lm_head.weight
+  // (see #81.7/#81.7b), apply that expert's ACTUAL weight to the forward
+  // instead of only recording the touch for pager telemetry -- the router
+  // decision then really does change what the model computes, not just
+  // what gets logged.
+  ModelAsset expertAsset;
+  bool usedRealExpertWeights = false;
+  if (request.asset != nullptr && !routing.selected.empty()) {
+    const std::vector<std::string> vocabulary =
+        !request.asset->vocabulary.empty() ? request.asset->vocabulary
+                                           : Vocabulary();
+    std::vector<float> expertLmHead;
+    std::vector<std::size_t> expertShape;
+    if (TryLoadExpertShardLmHead(
+            *request.asset, routing.selected.front().expert, vocabulary.size(),
+            &expertLmHead, &expertShape)) {
+      expertAsset = *request.asset;
+      expertAsset.realTensors["lm_head.weight"] = std::move(expertLmHead);
+      expertAsset.realTensorShapes["lm_head.weight"] = expertShape;
+      expertAsset.hasRealWeights = true;
+      routedRequest.asset = &expertAsset;
+      usedRealExpertWeights = true;
+    }
+  }
+
   GenerationResult result = DenseAdapterBase::Generate(routedRequest, context);
+  result.usedRealExpertWeights = usedRealExpertWeights;
   result.family = "minimax";
   result.text = routeSignature + " " + result.text;
   result.moeSelectedExperts = routing.selected.size();

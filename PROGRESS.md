@@ -757,3 +757,41 @@ Fechar issue #69 e seguir para Sprint 12.
 | `npx playwright test --reporter=list,html` | pass | 17 testes verdes com telemetria MoE expandida |
 | `npm run pack:dry` | pass | tarball `0.1.27` ok |
 | `build\\runtime\\benchmarks\\dense_baseline.exe` | pass | observabilidade MoE/low-bit ok |
+
+### Checkpoint 13
+
+Status: done
+
+Task:
+#103 [#81.7b] - Rewire kimi/minimax/glm MoE adapters to apply the routed
+expert's real lm_head.weight, the same way #81.7/#88 already wired
+DeepSeekMoEAdapter.
+
+Result:
+`KimiMoEAdapter`, `MiniMaxMoEAdapter` e `GlmMoEAdapter` agora chamam
+`TryLoadExpertShardLmHead` e substituem `lm_head.weight` pelo shard real do
+expert selecionado pelo router antes de delegar para
+`DenseAdapterBase::Generate`, igual ao padrao ja usado pelo DeepSeek em
+#88. Cada familia recebeu fixtures proprias (`toy-moe-real-kimi`,
+`toy-moe-real-minimax`, `toy-moe-real-glm`) com decoy na base e um expert
+shard cujo `lm_head.weight` argmaxa para um token diferente -- provando que
+o peso real do expert, e nao o decoy da base, dirigiu a saida observada.
+`embedding.weight` das fixtures usa a mesma linha one-hot em todas as
+posicoes do vocabulario (nao so na linha "alpha"), porque o texto de
+route-signature de cada familia ("kimi-route e1", etc.) tokeniza para
+palavras fora do vocabulario e cai no hash `TokenIdFor`, cujo indice
+resultante variava por familia -- sem essa normalizacao o teste ficava
+acoplado a um detalhe de hash em vez de provar a substituicao do peso do
+expert. `moe_real_expert_weights_contract_test.cpp` ganhou 3 testes novos
+(Kimi/MiniMax/Glm), cada um usando `FindAdapterByModel` para a familia
+correspondente. Zero regressao: suite unitaria foi de 222 para 225 testes
+verdes.
+
+Validation:
+`cmake --build build`; `clang-format --dry-run --Werror` nos arquivos
+tocados; `clang-tidy -p build` nos 3 adapters; `ctest --test-dir build
+--output-on-failure` (225/225 verde).
+
+Next:
+Avaliar #102 [#81.2b] (GGUF real parsing) ou #104 [#81.7c] (MoE roteando
+pela FFN completa do expert, nao so pela output projection).
