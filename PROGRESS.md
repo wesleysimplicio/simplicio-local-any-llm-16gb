@@ -1047,7 +1047,69 @@ build` em `real_forward_throughput.cpp` (sem warnings); `ctest
 pois este e um benchmark, nao um contract test); execucao real do
 benchmark com output capturado no README.
 
+### Checkpoint 19
+
+Status: done
+
+Task:
+#106 [#81.11] - toda evidencia de #82-#91/#102-#105/#108 usa fixtures
+minusculas construidas a mao (vocab de 4 tokens, hiddenSize 4/8); nenhuma
+foi validada contra um checkpoint de producao real baixado de verdade.
+
+Result:
+Rede confirmada disponivel; baixado `Qwen/Qwen2.5-0.5B` (Apache-2.0,
+`model.safetensors`, 988MB, 290 tensors, `hidden_size=896`,
+`vocab_size=151936`, BF16, embeddings tied) via `huggingface_hub`. NAO
+commitado no repo (988MB de peso nao tem lugar em historico git) --
+`tests/fixtures/real_checkpoint/generate_reference_from_real_checkpoint.py`
+e o script versionado, executavel por qualquer pessoa que baixe o
+checkpoint por conta propria.
+
+Achado 1 (corrigido): `SafetensorsReader::ReadFloat32` so aceitava
+`dtype=="F32"`; checkpoints reais armazenam pesos em BF16.
+Adicionado `Bf16ToFloat32` (widening exato: bf16 e os 16 bits superiores
+de um float32) + teste `ReadsRealBf16TensorBytesAsFloat32` com fixture e
+oraculo proprios (nao depende do checkpoint baixado).
+
+Validado meu proprio `SafetensorsReader::Open`/`ReadFloat32` contra o
+arquivo real baixado (programa C++ descartavel, nao commitado): parseia
+os 290 tensors reais, le `model.embed_tokens.weight` [151936,896] BF16
+corretamente, e os valores lidos batem byte-a-byte com um oraculo Python
+independente (`generate_reference_from_real_checkpoint.py`, parse manual
+do binario, sem torch/transformers) pra tokens 0 e 9707.
+
+Achado 2 (documentado como debito, nao corrigido): `LoadModelAsset` +
+`QwenAdapter::Generate` contra esse MESMO arquivo real dao
+`has_real_weights=false`/`used_real_weights=false` -- fallback correto e
+seguro (sem crash, sem mistura real/sintetico), mas expoe 3 limitacoes de
+escala reais: (1) `LoadModelAsset` só procura os nomes literais
+`embedding.weight`/`lm_head.weight`, nao os nomes reais por arquitetura
+(`model.embed_tokens.weight`, embeddings tied sem `lm_head.weight`
+separado); (2) `kHiddenSize=8` e uma constante fixa em
+`DenseAdapterBase::Generate`, nunca deriva do asset -- um `hidden_size=896`
+real nunca vai bater na checagem de shape; (3) `ModelAsset::vocabulary` e
+uma lista de strings CSV, incompativel com um vocabulario BPE real de
+~150k tokens. Detalhes completos + a leitura honesta de que corrigir isso
+exigiria implementar o stack completo de transformer (24 camadas reais,
+nao so 1 forward trivial) em
+`tests/fixtures/real_checkpoint/README.md`.
+
+Zero regressao: suite unitaria foi de 236 para 237 testes verdes (so o
+teste BF16, que nao depende do checkpoint baixado).
+
+Validation:
+`cmake --build build`; `clang-format --dry-run --Werror` e `clang-tidy -p
+build` em `safetensors_reader.cpp` (sem warnings); `ctest --test-dir
+build --output-on-failure` (237/237 verde); validacao manual contra o
+checkpoint real baixado (programa C++ descartavel + script Python
+versionado), resultado capturado em
+`tests/fixtures/real_checkpoint/README.md`.
+
 Next:
-Avaliar #104 [#81.7c] (MoE roteando pela FFN completa do expert) ou #106
-[#81.11] (validar contra checkpoint real -- feasibility incerta:
-requer download de rede e/ou compute significativo).
+Todas as 7 issues novas (#102-#108) fechadas. Sessao no estado final:
+epic #81 e #86 permanecem abertas (bloqueadas por hardware Apple
+Silicon/macOS real, decisao explicita do usuario de nao reativar CI).
+Debito tecnico de #106 (nomes de tensor por arquitetura, hiddenSize
+configuravel, vocabulario BPE real, stack de transformer completo)
+documentado mas nao perseguido nesta sessao -- proximo passo natural se a
+sessao continuar.

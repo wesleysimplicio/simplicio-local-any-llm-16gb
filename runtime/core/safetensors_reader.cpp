@@ -126,6 +126,21 @@ SafetensorsReader::Open(const std::filesystem::path &path, std::string *error) {
   return reader;
 }
 
+namespace {
+
+// bfloat16 is the upper 16 bits of an IEEE-754 float32 (sign + 8-bit
+// exponent + 7 mantissa bits, with the low 16 mantissa bits truncated).
+// Widening back to float32 is exact for the bits it kept -- just place
+// them in the high half and zero the rest.
+float Bf16ToFloat32(const std::uint16_t bits) {
+  std::uint32_t widened = static_cast<std::uint32_t>(bits) << 16U;
+  float value = 0.0F;
+  std::memcpy(&value, &widened, sizeof(value));
+  return value;
+}
+
+} // namespace
+
 std::vector<float> SafetensorsReader::ReadFloat32(const std::string &name,
                                                   std::string *error) const {
   const TensorInfo *info = Find(name);
@@ -135,17 +150,22 @@ std::vector<float> SafetensorsReader::ReadFloat32(const std::string &name,
     }
     return {};
   }
-  if (info->dtype != "F32") {
+  const bool isBf16 = info->dtype == "BF16";
+  if (info->dtype != "F32" && !isBf16) {
     if (error != nullptr) {
-      *error = "tensor " + name + " is not F32 (dtype=" + info->dtype + ")";
+      *error =
+          "tensor " + name + " is not F32/BF16 (dtype=" + info->dtype + ")";
     }
     return {};
   }
 
+  const std::size_t elementSize =
+      isBf16 ? sizeof(std::uint16_t) : sizeof(float);
   const std::size_t byteLength = info->byteOffsetEnd - info->byteOffsetBegin;
-  if (byteLength % sizeof(float) != 0) {
+  if (byteLength % elementSize != 0) {
     if (error != nullptr) {
-      *error = "tensor " + name + " byte length is not float32-aligned";
+      *error = "tensor " + name + " byte length is not " +
+               (isBf16 ? "bfloat16" : "float32") + "-aligned";
     }
     return {};
   }
@@ -171,14 +191,32 @@ std::vector<float> SafetensorsReader::ReadFloat32(const std::string &name,
   file.seekg(
       static_cast<std::streamoff>(dataSectionStart_ + info->byteOffsetBegin));
 
-  std::vector<float> values(byteLength / sizeof(float));
-  file.read(reinterpret_cast<char *>(values.data()),
+  const std::size_t elementCount = byteLength / elementSize;
+  if (!isBf16) {
+    std::vector<float> values(elementCount);
+    file.read(reinterpret_cast<char *>(values.data()),
+              static_cast<std::streamsize>(byteLength));
+    if (!file) {
+      if (error != nullptr) {
+        *error = "tensor " + name + " data is truncated in file body";
+      }
+      return {};
+    }
+    return values;
+  }
+
+  std::vector<std::uint16_t> rawBits(elementCount);
+  file.read(reinterpret_cast<char *>(rawBits.data()),
             static_cast<std::streamsize>(byteLength));
   if (!file) {
     if (error != nullptr) {
       *error = "tensor " + name + " data is truncated in file body";
     }
     return {};
+  }
+  std::vector<float> values(elementCount);
+  for (std::size_t index = 0; index < elementCount; ++index) {
+    values[index] = Bf16ToFloat32(rawBits[index]);
   }
   return values;
 }
