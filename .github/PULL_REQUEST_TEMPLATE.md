@@ -38,6 +38,25 @@
 - [ ] Versão bumped conforme SemVer (`package.json`)
 - [ ] ADR linkado se mudou `architecture/` (ADR-NNN)
 
+## Invariante + evidência (DOD.md)
+
+- **Qual invariante essa mudança preserva, em uma frase?** <!-- ex: "dequant_int8
+  produz saída dentro da tolerância 1e-4 vs o kernel escalar para qualquer bloco
+  quantizado de entrada, válido ou corrompido" -- não "o código builda". Se não
+  há invariante relevante (doc/typo), escreva "n/a" e diga por quê. -->
+- **Se a mudança toca `runtime/mlx/`, `runtime/metal/` ou `runtime/neon/`**:
+  os três backends concordam na mesma convenção de indexação/stride pra essa
+  estrutura de tensor? (ver `DOD.md` § "Cross-backend invariant review")
+  - [ ] Sim, verificado por `runtime/benchmarks/correctness/correctness_check.cpp`
+        (cite o caso específico)
+  - [ ] Sim, verificado por outro teste (cite)
+  - [ ] N/A -- mudança não toca handoff entre backends
+- **Evidência de resultado observável** (comando real + saída, não só "passou"):
+  ```
+  $ <comando realmente executado>
+  <saída real, resumida>
+  ```
+
 ## Evidências / Screenshots
 
 <!-- Anexe screenshots, gifs, traces do Playwright. Para cada cenário coberto, mostre estado final. -->
