@@ -8,6 +8,7 @@ add_library(us4_runtime_core
   core/gqa_attention.cpp
   core/bpe_tokenizer.cpp
   core/json_value.cpp
+  core/local_inference_policy.cpp
   core/model_asset.cpp
   core/gguf_reader.cpp
   core/safetensors_reader.cpp
