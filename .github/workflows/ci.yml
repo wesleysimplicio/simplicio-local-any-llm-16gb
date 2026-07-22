@@ -224,7 +224,9 @@ jobs:
   runtime-quick:
     name: Runtime quick (${{ matrix.label }})
     runs-on: ${{ matrix.runs_on }}
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    # Keep the quick build on PR/push; the longer benchmark/DoD jobs remain
+    # explicit gates elsewhere in dod.yml. Scheduled runs use the fuzz job.
+    if: ${{ github.event_name != 'schedule' }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -329,6 +331,10 @@ jobs:
             corpus: tests/fixtures/gguf
           - harness: us4_fuzz_bpe_tokenizer
             corpus: tests/fixtures/tokenizer
+          - harness: us4_fuzz_dequant_int8
+            corpus: runtime/fuzz/corpus/dequant_int8
+          - harness: us4_fuzz_dequant_int4
+            corpus: runtime/fuzz/corpus/dequant_int4
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -339,6 +345,9 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y ninja-build clang llvm make
+
+      - name: Generate real-weight quantization corpus
+        run: python3 scripts/seed_quant_fuzz_corpus.py
 
       - name: Configure fuzz build
         shell: bash
