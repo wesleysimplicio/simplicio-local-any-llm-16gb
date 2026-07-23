@@ -48,8 +48,11 @@ GenerationResult GlmMoEAdapter::Generate(const GenerationRequest &request,
   const SparsityCacheSnapshot cacheSnapshot =
       mutableContext.sparsityCache().Touch("glm", routing);
   for (const ExpertScore &expert : routing.selected) {
-    mutableContext.expertPager().Touch("glm-expert-" +
-                                       std::to_string(expert.expert));
+    const std::string expertId =
+        "glm-expert-" + std::to_string(expert.expert);
+    RecordExpertCacheLookup(mutableContext.adaptiveSpeculativeState(),
+                            mutableContext.expertPager().IsResident(expertId));
+    mutableContext.expertPager().Touch(expertId);
   }
   const ExpertPagerSnapshot pagerSnapshot =
       mutableContext.expertPager().Snapshot();

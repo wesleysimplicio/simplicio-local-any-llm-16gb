@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <stop_token>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -80,4 +81,41 @@ TEST(SpeculativeRealDraftContractTest,
   EXPECT_EQ(result.speculativeVerifyWindow, 1U);
   EXPECT_TRUE(result.speculativeWarmupActive);
   EXPECT_FALSE(result.speculativeMtpEnabled);
+  EXPECT_FALSE(result.speculativeCancelled);
+  EXPECT_EQ(result.speculativeRounds, 1U);
+  EXPECT_EQ(result.speculativeCommittedTokens, 1U);
+  EXPECT_EQ(result.speculativeStopReason, "token-limit");
+}
+
+TEST(SpeculativeRealDraftContractTest,
+     CancellationLeavesAuthoritativeGenerationUntouchedAndCommitsNoDraft) {
+  const us4::IUS4V6Adapter *adapter = us4::FindAdapterByModel("qwen-0.5b");
+  ASSERT_NE(adapter, nullptr);
+
+  us4::ModelAsset asset;
+  std::string error;
+  const std::filesystem::path tensorPath = RepoRoot() / "tests" / "fixtures" /
+                                           "models" / "toy-dense-real" /
+                                           "toy-dense-real.safetensors";
+  ASSERT_TRUE(us4::LoadModelAsset(tensorPath, asset, &error)) << error;
+
+  us4::RuntimeContext context(MakeProbe());
+  adapter->ConfigureRuntime(context);
+  std::stop_source stop;
+  stop.request_stop();
+
+  const us4::GenerationResult result = adapter->Generate(
+      {.prompt = "alpha",
+       .maxTokens = 1,
+       .asset = &asset,
+       .stopToken = stop.get_token()},
+      context);
+
+  EXPECT_EQ(result.text, "delta");
+  EXPECT_TRUE(result.speculativeCancelled);
+  EXPECT_EQ(result.speculativeRounds, 0U);
+  EXPECT_EQ(result.speculativeCommittedTokens, 0U);
+  EXPECT_EQ(result.speculativeAcceptedTokens, 0U);
+  EXPECT_EQ(result.speculativeRejectedTokens, 0U);
+  EXPECT_EQ(result.speculativeStopReason, "cancelled");
 }

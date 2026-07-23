@@ -22,6 +22,7 @@ struct AdaptiveSpeculativeConfig {
   std::size_t maxLookaheadTokens = 4;
   float minAcceptanceRateForMtp = 0.5F;
   float minAcceptanceRateForExpansion = 0.85F;
+  float minExpertCacheHitRateForMtp = 0.0F;
 };
 
 struct AdaptiveSpeculativeState {
@@ -29,6 +30,8 @@ struct AdaptiveSpeculativeState {
   std::size_t acceptedTokens = 0;
   std::size_t attemptedTokens = 0;
   std::size_t lookaheadTokens = 1;
+  std::size_t expertCacheHits = 0;
+  std::size_t expertCacheLookups = 0;
 };
 
 struct AdaptiveSpeculativePlan {
@@ -37,6 +40,7 @@ struct AdaptiveSpeculativePlan {
   bool mtpEnabled = false;
   bool warmupActive = true;
   float observedAcceptanceRate = 0.0F;
+  float observedExpertCacheHitRate = 0.0F;
 };
 
 SpeculativeTelemetry ComputeSpeculativeTelemetry(std::size_t draftAttempts,
@@ -48,5 +52,8 @@ PlanAdaptiveSpeculation(const AdaptiveSpeculativeState &state,
 void UpdateAdaptiveSpeculativeState(AdaptiveSpeculativeState &state,
                                     const SpeculativeTelemetry &telemetry,
                                     const AdaptiveSpeculativeConfig &config);
+void RecordExpertCacheLookup(AdaptiveSpeculativeState &state, bool hit);
+AdaptiveSpeculativeConfig Make16GbAdaptiveSpeculativeConfig(
+    std::size_t maxLookaheadTokens);
 
 }  // namespace us4

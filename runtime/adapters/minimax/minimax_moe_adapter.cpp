@@ -55,8 +55,11 @@ MiniMaxMoEAdapter::Generate(const GenerationRequest &request,
       mutableContext.multimodalCache().Touch("minimax",
                                              BuildModalityState(request));
   for (const ExpertScore &expert : routing.selected) {
-    mutableContext.expertPager().Touch("minimax-expert-" +
-                                       std::to_string(expert.expert));
+    const std::string expertId =
+        "minimax-expert-" + std::to_string(expert.expert);
+    RecordExpertCacheLookup(mutableContext.adaptiveSpeculativeState(),
+                            mutableContext.expertPager().IsResident(expertId));
+    mutableContext.expertPager().Touch(expertId);
   }
   const ExpertPagerSnapshot pagerSnapshot =
       mutableContext.expertPager().Snapshot();

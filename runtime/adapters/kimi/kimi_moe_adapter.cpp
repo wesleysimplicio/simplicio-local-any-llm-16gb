@@ -49,8 +49,11 @@ GenerationResult KimiMoEAdapter::Generate(const GenerationRequest &request,
   const SparsityCacheSnapshot cacheSnapshot =
       mutableContext.sparsityCache().Touch("kimi", routing);
   for (const ExpertScore &expert : routing.selected) {
-    mutableContext.expertPager().Touch("kimi-expert-" +
-                                       std::to_string(expert.expert));
+    const std::string expertId =
+        "kimi-expert-" + std::to_string(expert.expert);
+    RecordExpertCacheLookup(mutableContext.adaptiveSpeculativeState(),
+                            mutableContext.expertPager().IsResident(expertId));
+    mutableContext.expertPager().Touch(expertId);
   }
   const ExpertPagerSnapshot pagerSnapshot =
       mutableContext.expertPager().Snapshot();

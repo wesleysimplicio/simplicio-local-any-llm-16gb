@@ -76,7 +76,7 @@ private:
   // The runtime touches each selected expert once per generation. Two
   // consecutive generations are enough evidence for a context-local learned
   // pin; the standalone ExpertPager default remains conservative at three.
-  ExpertPager expertPager_{2, 2, 2};
+  ExpertPager expertPager_{2, 2, 2, 1024};
   SparsityAwareCache sparsityCache_;
   MultimodalCache multimodalCache_;
   SessionPool sessionPool_;

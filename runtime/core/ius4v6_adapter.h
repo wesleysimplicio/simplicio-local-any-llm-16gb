@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <stop_token>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -30,6 +31,9 @@ struct GenerationRequest {
   // OpenAI-compatible deterministic override. When absent, the adapter or
   // model asset seed remains authoritative.
   std::optional<std::uint32_t> seed = std::nullopt;
+  // Cooperative cancellation for speculative work. The authoritative
+  // non-speculative generation remains the caller's source of truth.
+  std::stop_token stopToken{};
   // When set (see #81.7c), DenseAdapterBase::Generate routes the attention
   // context through this expert's real FFN (SwiGLU: down(silu(gate(x)) *
   // up(x))) before the output projection, instead of projecting the raw
@@ -110,6 +114,10 @@ struct GenerationResult {
   std::string speculativeFallbackToken;
   bool speculativeWarmupActive = false;
   bool speculativeMtpEnabled = false;
+  bool speculativeCancelled = false;
+  std::size_t speculativeRounds = 0;
+  std::size_t speculativeCommittedTokens = 0;
+  std::string speculativeStopReason;
   bool usedRealDraftModel = false;
   bool usedRealExpertWeights = false;
   // Issue #81.7c: distinct from usedRealExpertWeights (which only covers

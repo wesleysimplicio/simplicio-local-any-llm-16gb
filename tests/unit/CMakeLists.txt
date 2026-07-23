@@ -15,6 +15,7 @@ set(us4_runtime_contract_test_sources
   static_asset_contract_test.cpp
   eagle3_contract_test.cpp
   speculative_contract_test.cpp
+  adaptive_cache_speculation_contract_test.cpp
   backend_selector_contract_test.cpp
   benchmark_observability_contract_test.cpp
   model_asset_contract_test.cpp

@@ -1,4 +1,4 @@
-#Speculative
+# Speculative
 
 Home do contrato de speculative decoding.
 
@@ -21,5 +21,29 @@ Home do contrato de speculative decoding.
     escolha do ramo com maior prefixo compartilhado -
     fallback explicito para manter equivalencia com o caminho autoritativo
 
-        O foco aqui ainda e corretude de superficie.Telemetria de acceptance e
-            loader do draft model entram nos proximos slices do Sprint 10.
+## Política adaptativa de 16 GB
+
+`Make16GbAdaptiveSpeculativeConfig()` limita o lookahead a dois tokens. O MTP
+só é liberado depois do warm-up quando:
+
+- acceptance acumulada é pelo menos 75%;
+- hit-rate do cache de experts é pelo menos 60%;
+- o lookahead saiu do mínimo conservador.
+
+As flags manuais do motor C continuam tendo precedência. Os limiares são
+defaults seguros de fixture e precisam ser recalibrados com o benchmark de
+hardware real.
+
+## Commit lossless, limites e cancelamento
+
+`LosslessSpeculativeSession` envolve o verify do `PEagleDecoder` e oferece:
+
+- limite de draft, rounds e tokens comitados;
+- cancelamento cooperativo por `std::stop_token`;
+- métricas de attempts, accepted/rejected, commits, cancelamentos e limites;
+- commit somente do prefixo validado contra a sequência autoritativa e do
+  fallback autoritativo no primeiro mismatch.
+
+Um cancelamento observado antes do round retorna zero tokens. Limites podem
+truncar um prefixo já verificado, mas nunca tornam um token de draft
+autoritativo.
