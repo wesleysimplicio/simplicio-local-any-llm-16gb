@@ -67,6 +67,7 @@ add_library(us4_runtime_core
   scheduler/session_pool.cpp
   speculative/draft_model_loader.cpp
   speculative/eagle3_decoder.cpp
+  speculative/lossless_speculative_session.cpp
   speculative/peagle_decoder.cpp
   speculative/speculative_telemetry.cpp
   telemetry/telemetry_types.cpp

@@ -442,6 +442,12 @@ void PrintRunText(const us4::GenerationResult &result) {
       << (result.speculativeWarmupActive ? "true" : "false") << "\n"
       << "speculative_mtp_enabled: "
       << (result.speculativeMtpEnabled ? "true" : "false") << "\n"
+      << "speculative_cancelled: "
+      << (result.speculativeCancelled ? "true" : "false") << "\n"
+      << "speculative_rounds: " << result.speculativeRounds << "\n"
+      << "speculative_committed_tokens: "
+      << result.speculativeCommittedTokens << "\n"
+      << "speculative_stop_reason: " << result.speculativeStopReason << "\n"
       << "speculative_acceptance_rate: " << result.speculativeAcceptanceRate
       << "\n"
       << "speculative_fallback_token: " << result.speculativeFallbackToken
@@ -591,6 +597,13 @@ void PrintRunJson(const us4::GenerationResult &result) {
       << (result.speculativeWarmupActive ? "true" : "false") << ","
       << "\"speculative_mtp_enabled\":"
       << (result.speculativeMtpEnabled ? "true" : "false") << ","
+      << "\"speculative_cancelled\":"
+      << (result.speculativeCancelled ? "true" : "false") << ","
+      << "\"speculative_rounds\":" << result.speculativeRounds << ","
+      << "\"speculative_committed_tokens\":"
+      << result.speculativeCommittedTokens << ","
+      << "\"speculative_stop_reason\":\""
+      << EscapeJson(result.speculativeStopReason) << "\","
       << "\"speculative_acceptance_rate\":" << result.speculativeAcceptanceRate
       << ","
       << "\"speculative_fallback_token\":\""

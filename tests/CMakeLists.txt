@@ -32,6 +32,14 @@ endif()
 
 add_subdirectory(unit)
 
+add_test(
+  NAME adaptive_cache_speculation_tiny
+  COMMAND ${CMAKE_SOURCE_DIR}/tests/tiny/run_adaptive_cache_speculation_tiny.sh
+)
+set_tests_properties(adaptive_cache_speculation_tiny PROPERTIES
+  LABELS "runtime;moe;speculative;tiny"
+)
+
 find_package(Python3 COMPONENTS Interpreter QUIET)
 find_program(US4_ENGINE_TEST_MAKE make)
 

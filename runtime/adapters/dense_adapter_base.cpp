@@ -24,6 +24,7 @@
 #include "neon/kernel_profile.h"
 #include "neon/neon_attention.h"
 #include "neon/neon_matmul.h"
+#include "speculative/lossless_speculative_session.h"
 #include "speculative/peagle_decoder.h"
 #include "speculative/speculative_telemetry.h"
 
@@ -925,40 +926,67 @@ GenerationResult DenseAdapterBase::FinalizeGenerationResult(
       }
     }
 
+    const std::size_t maxLookaheadTokens = std::max<std::size_t>(
+        1U, std::min<std::size_t>(4U, draftProposal.size()));
     AdaptiveSpeculativeConfig adaptiveConfig;
-    adaptiveConfig.maxLookaheadTokens =
-        std::max<std::size_t>(1U, std::min<std::size_t>(4U, draftProposal.size()));
+    adaptiveConfig.maxLookaheadTokens = maxLookaheadTokens;
     if (context.hardware().unifiedMemoryGiB > 0 &&
         context.hardware().unifiedMemoryGiB <= 16U) {
-      adaptiveConfig.maxLookaheadTokens =
-          std::min<std::size_t>(adaptiveConfig.maxLookaheadTokens, 2U);
-      adaptiveConfig.warmupDrafts = 3U;
-      adaptiveConfig.minAcceptanceRateForExpansion = 0.95F;
+      adaptiveConfig =
+          Make16GbAdaptiveSpeculativeConfig(maxLookaheadTokens);
     }
     AdaptiveSpeculativeState &adaptiveState =
         mutableContext.adaptiveSpeculativeState();
     const AdaptiveSpeculativePlan adaptivePlan =
         PlanAdaptiveSpeculation(adaptiveState, adaptiveConfig);
-    const PEagleDecoder decoder(adaptivePlan.lookaheadTokens);
-    const PEagleDraft draft = decoder.Draft(draftProposal);
-    const PEagleVerificationResult speculative =
-        decoder.Verify(authoritativeTokens, draft);
+    LosslessSpeculativeSession speculativeSession(
+        {.maxDraftTokens = adaptivePlan.lookaheadTokens,
+         .maxRounds = 1U,
+         .maxCommittedTokens = request.maxTokens});
+    const LosslessSpeculativeRound speculative = speculativeSession.RunRound(
+        authoritativeTokens, draftProposal, request.stopToken);
+    const LosslessSpeculativeMetrics &speculativeMetrics =
+        speculativeSession.Metrics();
     const SpeculativeTelemetry telemetry = ComputeSpeculativeTelemetry(
-        draft.tokens.size(), speculative.acceptedCount,
+        speculativeMetrics.attemptedTokens, speculativeMetrics.acceptedTokens,
         adaptivePlan.verifyWindow);
-    UpdateAdaptiveSpeculativeState(adaptiveState, telemetry, adaptiveConfig);
-    result.speculativeAcceptedTokens = speculative.acceptedCount;
-    result.speculativeRejectedTokens = speculative.rejectedCount;
-    result.speculativeAcceptanceRate = speculative.acceptanceRate;
+    if (speculativeMetrics.rounds > 0U) {
+      UpdateAdaptiveSpeculativeState(adaptiveState, telemetry, adaptiveConfig);
+    }
+    result.speculativeAcceptedTokens = speculativeMetrics.acceptedTokens;
+    result.speculativeRejectedTokens = speculativeMetrics.rejectedTokens;
+    result.speculativeAcceptanceRate = speculativeMetrics.acceptanceRate;
     result.speculativeLookaheadTokens = adaptivePlan.lookaheadTokens;
     result.speculativeVerifyWindow = adaptivePlan.verifyWindow;
     result.speculativeWarmupActive = adaptivePlan.warmupActive;
     result.speculativeMtpEnabled = adaptivePlan.mtpEnabled;
-    if (speculative.fallbackToken.has_value() &&
-        static_cast<std::size_t>(*speculative.fallbackToken) <
+    result.speculativeCancelled =
+        speculative.stopReason == SpeculativeStopReason::kCancelled;
+    result.speculativeRounds = speculativeMetrics.rounds;
+    result.speculativeCommittedTokens = speculativeMetrics.committedTokens;
+    switch (speculative.stopReason) {
+    case SpeculativeStopReason::kCancelled:
+      result.speculativeStopReason = "cancelled";
+      break;
+    case SpeculativeStopReason::kRoundLimit:
+      result.speculativeStopReason = "round-limit";
+      break;
+    case SpeculativeStopReason::kTokenLimit:
+      result.speculativeStopReason = "token-limit";
+      break;
+    case SpeculativeStopReason::kNone:
+      result.speculativeStopReason = "none";
+      break;
+    }
+    if (speculativeMetrics.rejectedTokens > 0U &&
+        speculative.committedTokens.size() >
+            speculativeMetrics.acceptedTokens &&
+        static_cast<std::size_t>(
+            speculative.committedTokens[speculativeMetrics.acceptedTokens]) <
             vocabulary.size()) {
       result.speculativeFallbackToken =
-          vocabulary[static_cast<std::size_t>(*speculative.fallbackToken)];
+          vocabulary[static_cast<std::size_t>(
+              speculative.committedTokens[speculativeMetrics.acceptedTokens])];
     }
   }
   result.dequantPath = ResolveDequantPathForAsset(request.asset);
