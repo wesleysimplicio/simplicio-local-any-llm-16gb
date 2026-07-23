@@ -7,6 +7,7 @@ namespace us4 {
 struct NativeServeOptions {
   std::string host = "127.0.0.1";
   int port = 8080;
+  std::string webRoot = "apps/web-chat/dist";
 };
 
 // Minimal single-threaded, blocking HTTP/1.1 server answering

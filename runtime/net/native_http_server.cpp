@@ -24,6 +24,7 @@
 
 #include "adapters/adapter_registry.h"
 #include "net/openai_chat_handler.h"
+#include "net/static_asset.h"
 
 namespace us4 {
 
@@ -148,10 +149,11 @@ bool ReadHttpRequest(const SocketHandle clientFd, ParsedRequest *request) {
 }
 
 void WriteHttpResponse(const SocketHandle clientFd, const int statusCode,
-                       const std::string &statusText, const std::string &body) {
+                       const std::string &statusText, const std::string &body,
+                       const std::string &contentType = "application/json") {
   std::ostringstream response;
   response << "HTTP/1.1 " << statusCode << " " << statusText << "\r\n"
-           << "Content-Type: application/json\r\n"
+           << "Content-Type: " << contentType << "\r\n"
            << "Access-Control-Allow-Origin: *\r\n"
            << "Access-Control-Allow-Headers: Content-Type, Authorization\r\n"
            << "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
@@ -250,7 +252,8 @@ std::string BuildModelsListJson() {
   return json.str();
 }
 
-void HandleClient(const SocketHandle clientFd, std::size_t requestCounter) {
+void HandleClient(const SocketHandle clientFd, std::size_t requestCounter,
+                  const NativeServeOptions &options) {
   ParsedRequest request;
   if (!ReadHttpRequest(clientFd, &request)) {
     WriteHttpResponse(clientFd, 400, "Bad Request",
@@ -266,6 +269,15 @@ void HandleClient(const SocketHandle clientFd, std::size_t requestCounter) {
   if (request.method == "GET" && request.path == "/v1/models") {
     WriteHttpResponse(clientFd, 200, "OK", BuildModelsListJson());
     return;
+  }
+
+  if (request.method == "GET" && request.path.rfind("/v1/", 0) != 0) {
+    const auto asset = LoadStaticAsset(options.webRoot, request.path);
+    if (asset.has_value()) {
+      WriteHttpResponse(clientFd, 200, "OK", asset->body,
+                        asset->contentType);
+      return;
+    }
   }
 
   if (request.method == "POST" && request.path == "/v1/chat/completions") {
@@ -355,7 +367,7 @@ int RunNativeHttpServer(const NativeServeOptions &options) {
       continue;
     }
     ++requestCounter;
-    HandleClient(clientFd, requestCounter);
+    HandleClient(clientFd, requestCounter, options);
     CloseSocket(clientFd);
   }
 }

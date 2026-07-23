@@ -48,6 +48,7 @@ add_library(us4_runtime_core
   mlx/mlx_bridge.cpp
   net/native_http_server.cpp
   net/openai_chat_handler.cpp
+  net/static_asset.cpp
   moe/expert_ffn.cpp
   moe/expert_pager.cpp
   moe/moe_telemetry.cpp
