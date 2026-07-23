@@ -31,6 +31,7 @@
 #endif
 #include "st.h"
 #include "tok.h"
+#include "chat_template.h"
 #include "tier.h"
 #include "moe_route.h"
 #ifdef COLI_CUDA
@@ -2158,6 +2159,28 @@ static void run_serve(Model *m, const char *snap){
     int ngen=getenv("NGEN")?atoi(getenv("NGEN")):256;
     int maxctx=getenv("CTX")?atoi(getenv("CTX")):4096;
     int templ=getenv("CHAT_TEMPLATE")?atoi(getenv("CHAT_TEMPLATE")):1;
+    ChatTemplate chat;
+    char chat_error_text[256];
+    if(templ){
+        const char *templates_path=getenv("COLI_CHAT_TEMPLATES");
+        if(!templates_path||!templates_path[0]) templates_path="chat_templates.json";
+        char family[32];
+        const char *family_override=getenv("COLI_CHAT_FAMILY");
+        if(family_override&&family_override[0]){
+            if(strlen(family_override)>=sizeof(family)){
+                fprintf(stderr,"chat template: family override too long\n"); exit(2);
+            }
+            strcpy(family,family_override);
+        } else if(!chat_detect_family(snap,templates_path,family,sizeof(family),
+                                      chat_error_text,sizeof(chat_error_text))){
+            fprintf(stderr,"chat template: %s\n",chat_error_text); exit(2);
+        }
+        if(!chat_template_load(&chat,templates_path,family,chat_error_text,
+                               sizeof(chat_error_text))){
+            fprintf(stderr,"chat template: %s\n",chat_error_text); exit(2);
+        }
+        fprintf(stderr,"[CHAT] family=%s template_schema=1\n",family);
+    }
     g_kvsave = getenv("KVSAVE")?atoi(getenv("KVSAVE")):1;
     int nctx=getenv("KV_SLOTS")?atoi(getenv("KV_SLOTS")):1;
     if(nctx<1||nctx>16){ fprintf(stderr,"KV_SLOTS deve essere tra 1 e 16\n"); exit(2); }
@@ -2224,10 +2247,7 @@ static void run_serve(Model *m, const char *snap){
                 g_rng=(uint64_t)seed ? (uint64_t)seed : 0x9E3779B97F4A7C15ULL;
         } else { active=0; sc=&ctx[0]; kv_bind(m,&sc->kv); }
         int bl=0, k=0;                           /* costruisce/tokenizza il turno */
-        /* template UFFICIALE GLM-5.2 (chat_template.jinja): niente \n dopo i ruoli, e dopo
-         * <|assistant|> serve SEMPRE il blocco think — <think></think> lo DISATTIVA (nothink):
-         * col template sbagliato il modello farfuglia e non emette mai lo stop. THINK=1 lo abilita. */
-        const char *tk = getenv("THINK")&&atoi(getenv("THINK"))? "<think>" : "<think></think>";
+        int thinking=getenv("THINK")&&atoi(getenv("THINK"));
         if(raw_mode){
             int *tmp=malloc(maxctx*sizeof(int)); if(!tmp){fprintf(stderr,"OOM raw tokens\n");exit(1);}
             prompt_tokens=tok_encode(&T,input,input_n,tmp,maxctx-8-g_draft);
@@ -2244,12 +2264,23 @@ static void run_serve(Model *m, const char *snap){
                 active,len,prompt_tokens,k);
             free(tmp);
         } else {
-            if(templ){ if(first) bl+=snprintf(buf+bl,(1<<16)-bl,"[gMASK]<sop>");
-                       bl+=snprintf(buf+bl,(1<<16)-bl,"<|user|>%s<|assistant|>%s",input,tk); }
+            if(templ){
+                if(!chat_render_user_turn(&chat,input,first,thinking,buf,1<<16,
+                                          chat_error_text,sizeof(chat_error_text))){
+                    fprintf(stderr,"chat template: %s\n",chat_error_text); exit(2);
+                }
+                bl=(int)strlen(buf);
+            }
             else bl+=snprintf(buf+bl,(1<<16)-bl,"%s",input);
             k=tok_encode(&T,buf,bl,hist+len,maxctx-len); prompt_tokens=k;
             if(len+k+8+g_draft>=maxctx){ len=0; first=1; kv_disk_reset(m);
-                bl=0; if(templ){ bl+=snprintf(buf+bl,(1<<16)-bl,"[gMASK]<sop><|user|>%s<|assistant|>%s",input,tk); }
+                bl=0; if(templ){
+                    if(!chat_render_user_turn(&chat,input,1,thinking,buf,1<<16,
+                                              chat_error_text,sizeof(chat_error_text))){
+                        fprintf(stderr,"chat template: %s\n",chat_error_text); exit(2);
+                    }
+                    bl=(int)strlen(buf);
+                }
                 else bl+=snprintf(buf+bl,(1<<16)-bl,"%s",input);
                 k=tok_encode(&T,buf,bl,hist,maxctx); if(k>maxctx-8-g_draft) k=maxctx-8-g_draft;
                 prompt_tokens=k;

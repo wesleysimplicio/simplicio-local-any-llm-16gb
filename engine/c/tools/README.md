@@ -10,6 +10,10 @@ not runtime dependencies of the C engine.
   deterministic fixtures
 - `benchmark_cuda_fixture.py`, `eval_glm.py`, `fetch_benchmarks.py`: benchmarks
 - `gen_unicode.py`: tokenizer table generation
+- `make_tokenizer_vectors.py`: real HF parity vectors from a local snapshot,
+  including tokenizer hashes and without network access
+- `make_contract_tokenizer_fixtures.py`: synthetic byte-BPE fixtures for the
+  offline suite; these are not HF parity evidence
 
 Run them from `c/`, for example:
 

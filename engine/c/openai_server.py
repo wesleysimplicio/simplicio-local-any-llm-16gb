@@ -19,6 +19,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+from chat_templates import ChatTemplateError, detect_model_family, render_family_chat
+
 
 HERE = Path(__file__).resolve().parent
 END = b"\x01\x01END\x01\x01\n"
@@ -151,31 +153,26 @@ def content_text(content, param):
     return "".join(parts)
 
 
-def render_chat(messages, enable_thinking=False, reasoning_effort=None):
-    """Render the text-only subset of the official GLM-5.2 chat template."""
+def render_chat(messages, family, enable_thinking=False, reasoning_effort=None,
+                add_generation_prompt=True):
+    """Render one supported family, rejecting unknown roles and content."""
     if not isinstance(messages, list) or not messages:
         raise APIError(400, "`messages` must be a non-empty array.", "messages")
-    prompt = ["[gMASK]<sop>"]
-    if enable_thinking:
-        effort = "High" if reasoning_effort == "high" else "Max"
-        prompt.append(f"<|system|>Reasoning Effort: {effort}")
+    normalized = []
     for index, message in enumerate(messages):
         if not isinstance(message, dict):
             raise APIError(400, "Each message must be an object.", f"messages.{index}")
         role = message.get("role")
         text = content_text(message.get("content"), f"messages.{index}.content")
-        if role in ("system", "developer"):
-            prompt.append(f"<|system|>{text}")
-        elif role == "user":
-            prompt.append(f"<|user|>{text}")
-        elif role == "assistant":
-            prompt.append(f"<|assistant|><think></think>{text.strip()}")
-        else:
+        if role not in ("system", "developer", "user", "assistant"):
             raise APIError(400, f"Unsupported message role: {role!r}.",
                            f"messages.{index}.role", "unsupported_role")
-    prompt.append("<|assistant|><think>" if enable_thinking else
-                  "<|assistant|><think></think>")
-    return "".join(prompt)
+        normalized.append({"role": role, "content": text})
+    try:
+        return render_family_chat(normalized, family, enable_thinking,
+                                  reasoning_effort, add_generation_prompt)
+    except ChatTemplateError as error:
+        raise APIError(400, str(error), "messages", "invalid_chat_template") from error
 
 
 def generation_options(body, limit):
@@ -290,10 +287,24 @@ def read_engine_turn(stream, sentinel, on_bytes):
     }
 
 
+class UTF8StreamDecoder:
+    """Hold incomplete UTF-8 codepoints until the next engine chunk arrives."""
+
+    def __init__(self, on_text):
+        self.decoder = codecs.getincrementaldecoder("utf-8")("strict")
+        self.on_text = on_text
+
+    def feed(self, data, final=False):
+        text = self.decoder.decode(data, final=final)
+        if text:
+            self.on_text(text)
+
+
 class Engine:
     def __init__(self, executable, model, cap=8, max_tokens=1024, env=None, kv_slots=1):
-        child_env = dict(env or os.environ, SNAP=str(model), SERVE="1", NGEN=str(max_tokens),
-                         KV_SLOTS=str(kv_slots))
+        child_env = dict(env or os.environ, SNAP=str(model), SERVE="1",
+                         NGEN=str(max_tokens), KV_SLOTS=str(kv_slots),
+                         COLI_CHAT_TEMPLATES=str(HERE / "chat_templates.json"))
         self.process = subprocess.Popen(
             [str(executable), str(cap)], env=child_env, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, bufsize=0,
@@ -309,12 +320,7 @@ class Engine:
         payload = prompt.encode("utf-8")
         if b"\0" in payload:
             raise APIError(400, "NUL bytes are not supported in prompts.", "messages")
-        decoder = codecs.getincrementaldecoder("utf-8")("replace")
-
-        def decode(data):
-            text = decoder.decode(data)
-            if text:
-                on_text(text)
+        decoder = UTF8StreamDecoder(on_text)
 
         with self.lock:
             if self.process.poll() is not None:
@@ -324,10 +330,8 @@ class Engine:
                       f"{top_p:.8g} {cache_slot} {request_seed}\n").encode()
             self.process.stdin.write(header + payload + b"\n")
             self.process.stdin.flush()
-            stats = read_engine_turn(self.process.stdout, END, decode)
-            tail = decoder.decode(b"", final=True)
-            if tail:
-                on_text(tail)
+            stats = read_engine_turn(self.process.stdout, END, decoder.feed)
+            decoder.feed(b"", final=True)
             return stats
 
     def close(self):
@@ -348,7 +352,9 @@ class APIServer(ThreadingHTTPServer):
 
     def __init__(self, address, engine, model_id, api_key=None, max_tokens=1024,
                  cors_origins=DEFAULT_CORS_ORIGINS, max_queue=8, queue_timeout=300,
-                 kv_slots=1):
+                 kv_slots=1, family=None):
+        if family is None:
+            raise ValueError("family is required")
         super().__init__(address, APIHandler)
         self.engine = engine
         self.model_id = model_id
@@ -356,6 +362,7 @@ class APIServer(ThreadingHTTPServer):
         self.max_tokens = max_tokens
         self.scheduler = GenerationScheduler(max_queue, queue_timeout)
         self.kv_slots = kv_slots
+        self.family = family
         self.cors_origins = tuple(cors_origins)
         self.created = int(time.time())
 
@@ -591,7 +598,8 @@ class APIHandler(BaseHTTPRequestHandler):
         enable_thinking = body.get("enable_thinking", reasoning_effort not in (None, "none"))
         if not isinstance(enable_thinking, bool):
             raise APIError(400, "`enable_thinking` must be a boolean.", "enable_thinking")
-        prompt = render_chat(body.get("messages"), enable_thinking, reasoning_effort)
+        prompt = render_chat(body.get("messages"), self.server.family,
+                             enable_thinking, reasoning_effort)
         self.generation(body, prompt, request_id, True)
 
     def completion(self, body, request_id):
@@ -616,10 +624,14 @@ def serve(model, host="127.0.0.1", port=8000, model_id="glm-5.2-colibri", api_ke
         raise ValueError("kv_slots must be between 1 and 16")
     if host not in ("127.0.0.1", "localhost", "::1") and not api_key:
         print("WARNING: API is listening beyond localhost without COLI_API_KEY", file=sys.stderr)
+    try:
+        family = detect_model_family(model)
+    except ChatTemplateError as error:
+        raise ValueError(str(error)) from error
     runtime = Engine(engine,model,cap,max_tokens,env,kv_slots)
     origins = DEFAULT_CORS_ORIGINS if cors_origins is None else tuple(cors_origins)
     server = APIServer((host, port), runtime, model_id, api_key, max_tokens, origins,
-                       max_queue, queue_timeout, kv_slots)
+                       max_queue, queue_timeout, kv_slots, family)
     print(f"OpenAI-compatible API listening on http://{host}:{port}/v1", file=sys.stderr)
     previous_sigterm = signal.getsignal(signal.SIGTERM)
     signal.signal(signal.SIGTERM, lambda *_: threading.Thread(target=server.shutdown, daemon=True).start())

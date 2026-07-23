@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "source": {
+    "glm": "GLM-5.2 tokenizer_config.json contract documented by issue #123",
+    "deepseek": "deepseek-ai/DeepSeek-R1-0528 tokenizer_config.json",
+    "kimi": "moonshotai/Kimi-K2-Instruct chat_template.jinja"
+  },
+  "cases": [
+    {
+      "name": "glm_single_turn",
+      "family": "glm",
+      "enable_thinking": false,
+      "reasoning_effort": null,
+      "add_generation_prompt": true,
+      "messages": [
+        {"role": "user", "content": "Hi"}
+      ],
+      "expected": "[gMASK]<sop><|user|>Hi<|assistant|><think></think>"
+    },
+    {
+      "name": "glm_multi_turn",
+      "family": "glm",
+      "enable_thinking": false,
+      "reasoning_effort": null,
+      "add_generation_prompt": true,
+      "messages": [
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": " Hello "},
+        {"role": "user", "content": "Again"}
+      ],
+      "expected": "[gMASK]<sop><|user|>Hi<|assistant|><think></think>Hello<|user|>Again<|assistant|><think></think>"
+    },
+    {
+      "name": "glm_system",
+      "family": "glm",
+      "enable_thinking": false,
+      "reasoning_effort": null,
+      "add_generation_prompt": true,
+      "messages": [
+        {"role": "system", "content": "System"},
+        {"role": "developer", "content": "Developer"},
+        {"role": "user", "content": "Olá"}
+      ],
+      "expected": "[gMASK]<sop><|system|>System<|system|>Developer<|user|>Olá<|assistant|><think></think>"
+    },
+    {
+      "name": "glm_reasoning",
+      "family": "glm",
+      "enable_thinking": true,
+      "reasoning_effort": "high",
+      "add_generation_prompt": true,
+      "messages": [
+        {"role": "user", "content": "Why?"}
+      ],
+      "expected": "[gMASK]<sop><|system|>Reasoning Effort: High<|user|>Why?<|assistant|><think>"
+    },
+    {
+      "name": "deepseek_single_turn",
+      "family": "deepseek",
+      "enable_thinking": false,
+      "reasoning_effort": null,
+      "add_generation_prompt": true,
+      "messages": [
+        {"role": "user", "content": "Hi"}
+      ],
+      "expected": "<｜begin▁of▁sentence｜><｜User｜>Hi<｜Assistant｜>"
+    },
+    {
+      "name": "deepseek_multi_turn",
+      "family": "deepseek",
+      "enable_thinking": false,
+      "reasoning_effort": null,
+      "add_generation_prompt": true,
+      "messages": [
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": "<think>hidden</think>Hello"},
+        {"role": "user", "content": "Again"}
+      ],
+      "expected": "<｜begin▁of▁sentence｜><｜User｜>Hi<｜Assistant｜>Hello<｜end▁of▁sentence｜><｜User｜>Again<｜Assistant｜>"
+    },
+    {
+      "name": "deepseek_system",
+      "family": "deepseek",
+      "enable_thinking": false,
+      "reasoning_effort": null,
+      "add_generation_prompt": true,
+      "messages": [
+        {"role": "system", "content": "System"},
+        {"role": "developer", "content": "Developer"},
+        {"role": "user", "content": "Olá"}
+      ],
+      "expected": "<｜begin▁of▁sentence｜>System\n\nDeveloper<｜User｜>Olá<｜Assistant｜>"
+    },
+    {
+      "name": "deepseek_reasoning",
+      "family": "deepseek",
+      "enable_thinking": true,
+      "reasoning_effort": "high",
+      "add_generation_prompt": true,
+      "messages": [
+        {"role": "user", "content": "Why?"}
+      ],
+      "expected": "<｜begin▁of▁sentence｜><｜User｜>Why?<｜Assistant｜><think>\n"
+    },
+    {
+      "name": "kimi_single_turn",
+      "family": "kimi",
+      "enable_thinking": false,
+      "reasoning_effort": null,
+      "add_generation_prompt": true,
+      "messages": [
+        {"role": "user", "content": "Hi"}
+      ],
+      "expected": "<|im_system|>system<|im_middle|>You are a helpful assistant<|im_end|><|im_user|>user<|im_middle|>Hi<|im_end|><|im_assistant|>assistant<|im_middle|>"
+    },
+    {
+      "name": "kimi_multi_turn",
+      "family": "kimi",
+      "enable_thinking": false,
+      "reasoning_effort": null,
+      "add_generation_prompt": true,
+      "messages": [
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": "Hello"},
+        {"role": "user", "content": "Again"}
+      ],
+      "expected": "<|im_system|>system<|im_middle|>You are a helpful assistant<|im_end|><|im_user|>user<|im_middle|>Hi<|im_end|><|im_assistant|>assistant<|im_middle|>Hello<|im_end|><|im_user|>user<|im_middle|>Again<|im_end|><|im_assistant|>assistant<|im_middle|>"
+    },
+    {
+      "name": "kimi_system",
+      "family": "kimi",
+      "enable_thinking": false,
+      "reasoning_effort": null,
+      "add_generation_prompt": true,
+      "messages": [
+        {"role": "system", "content": "System"},
+        {"role": "developer", "content": "Developer"},
+        {"role": "user", "content": "Olá"}
+      ],
+      "expected": "<|im_system|>system<|im_middle|>System<|im_end|><|im_system|>system<|im_middle|>Developer<|im_end|><|im_user|>user<|im_middle|>Olá<|im_end|><|im_assistant|>assistant<|im_middle|>"
+    },
+    {
+      "name": "kimi_without_generation_prompt",
+      "family": "kimi",
+      "enable_thinking": false,
+      "reasoning_effort": null,
+      "add_generation_prompt": false,
+      "messages": [
+        {"role": "system", "content": "System"},
+        {"role": "user", "content": "Hi"}
+      ],
+      "expected": "<|im_system|>system<|im_middle|>System<|im_end|><|im_user|>user<|im_middle|>Hi<|im_end|>"
+    }
+  ]
+}

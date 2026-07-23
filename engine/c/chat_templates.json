@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "families": {
+    "glm": {
+      "aliases": [
+        "chatglm",
+        "glm",
+        "glm4",
+        "glm_moe_dsa"
+      ],
+      "bos": "[gMASK]<sop>",
+      "default_system": "",
+      "system_mode": "role",
+      "system_separator": "",
+      "supports_thinking": true,
+      "reasoning_effort_format": "Reasoning Effort: {effort}",
+      "roles": {
+        "system": {
+          "prefix": "<|system|>",
+          "suffix": "",
+          "trim": false,
+          "strip_after": ""
+        },
+        "developer": {
+          "prefix": "<|system|>",
+          "suffix": "",
+          "trim": false,
+          "strip_after": ""
+        },
+        "user": {
+          "prefix": "<|user|>",
+          "suffix": "",
+          "trim": false,
+          "strip_after": ""
+        },
+        "assistant": {
+          "prefix": "<|assistant|><think></think>",
+          "suffix": "",
+          "trim": true,
+          "strip_after": ""
+        }
+      },
+      "generation_prompt": "<|assistant|><think></think>",
+      "thinking_generation_prompt": "<|assistant|><think>"
+    },
+    "deepseek": {
+      "aliases": [
+        "deepseek",
+        "deepseek_v3",
+        "deepseekv3"
+      ],
+      "bos": "<｜begin▁of▁sentence｜>",
+      "default_system": "",
+      "system_mode": "prefix",
+      "system_separator": "\n\n",
+      "supports_thinking": true,
+      "reasoning_effort_format": "",
+      "roles": {
+        "system": {
+          "prefix": "",
+          "suffix": "",
+          "trim": false,
+          "strip_after": ""
+        },
+        "developer": {
+          "prefix": "",
+          "suffix": "",
+          "trim": false,
+          "strip_after": ""
+        },
+        "user": {
+          "prefix": "<｜User｜>",
+          "suffix": "<｜Assistant｜>",
+          "trim": false,
+          "strip_after": ""
+        },
+        "assistant": {
+          "prefix": "",
+          "suffix": "<｜end▁of▁sentence｜>",
+          "trim": false,
+          "strip_after": "</think>"
+        }
+      },
+      "generation_prompt": "",
+      "thinking_generation_prompt": "<think>\n"
+    },
+    "kimi": {
+      "aliases": [
+        "kimi",
+        "kimi_k2",
+        "kimi-k2",
+        "moonshot"
+      ],
+      "bos": "",
+      "default_system": "You are a helpful assistant",
+      "system_mode": "role",
+      "system_separator": "",
+      "supports_thinking": false,
+      "reasoning_effort_format": "",
+      "roles": {
+        "system": {
+          "prefix": "<|im_system|>system<|im_middle|>",
+          "suffix": "<|im_end|>",
+          "trim": false,
+          "strip_after": ""
+        },
+        "developer": {
+          "prefix": "<|im_system|>system<|im_middle|>",
+          "suffix": "<|im_end|>",
+          "trim": false,
+          "strip_after": ""
+        },
+        "user": {
+          "prefix": "<|im_user|>user<|im_middle|>",
+          "suffix": "<|im_end|>",
+          "trim": false,
+          "strip_after": ""
+        },
+        "assistant": {
+          "prefix": "<|im_assistant|>assistant<|im_middle|>",
+          "suffix": "<|im_end|>",
+          "trim": false,
+          "strip_after": ""
+        }
+      },
+      "generation_prompt": "<|im_assistant|>assistant<|im_middle|>",
+      "thinking_generation_prompt": ""
+    }
+  }
+}

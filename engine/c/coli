@@ -127,6 +127,7 @@ def resource_request(a, env):
 
 def env_for(a):
     e = dict(os.environ, SNAP=a.model)
+    e.setdefault("COLI_CHAT_TEMPLATES", os.path.join(HERE, "chat_templates.json"))
     # perfil nomeado (issue #119): --profile 16gb -> COLI_PROFILE=16gb no ambiente do motor C.
     # Os defaults concretos (MTP/DSA/TEMP/TOPP/AUTOPIN/teto de RSS) vivem no motor (glm.c),
     # nao aqui, para que TAMBEM funcionem chamando o binario direto sem passar por esta CLI.
@@ -367,8 +368,13 @@ def cmd_run(a):
     need_model(a.model)
     prompt=" ".join(a.prompt) if a.prompt else sys.exit('uso: coli run "il tuo prompt"')
     banner("run")
-    # template ufficiale GLM-5.2: niente \n dopo i ruoli; <think></think> = risposta diretta (nothink)
-    e=env_for(a); e["PROMPT"]=f"[gMASK]<sop><|user|>{prompt}<|assistant|><think></think>"
+    from chat_templates import ChatTemplateError, detect_model_family, render_family_chat
+    try:
+        family=detect_model_family(a.model)
+        rendered=render_family_chat([{"role":"user","content":prompt}],family)
+    except ChatTemplateError as error:
+        sys.exit(f"{C.yel}chat template inválido:{C.r} {error}")
+    e=env_for(a); e["PROMPT"]=rendered; e["COLI_CHAT_FAMILY"]=family
     sys.exit(subprocess.call([GLM, str(a.cap)], env=e))
 
 def cmd_chat(a):

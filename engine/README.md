@@ -90,6 +90,18 @@ explícito. O procedimento e as seeds para regenerar os oráculos ficam em
 
 Mudança no forward sem atualizar/rodar esta suíte deve ser rejeitada.
 
+O motor seleciona o chat template a partir de `config.json` e
+`tokenizer_config.json`. GLM, DeepSeek e Kimi compartilham a definição
+versionada em `c/chat_templates.json`; família ausente ou ambígua interrompe
+o startup em vez de assumir GLM. `make test` executa os goldens de prompt, os
+vetores adversariais (44 por família), round-trip do tokenizer e streaming
+UTF-8 parcial.
+
+Os tokenizers de contrato commitados são pequenos e sintéticos para manter a
+suíte offline. Eles não substituem a prova contra checkpoints publicados.
+Regere os vetores reais com `c/tools/make_tokenizer_vectors.py`; o arquivo
+resultante inclui os hashes SHA-256 do snapshot de referência.
+
 Requisitos do motor (não confundir com os requisitos do runtime C++ em
 `runtime/`): compilador C (clang no macOS, gcc no Linux/Windows/MSYS2),
 `make`, Python 3 para os testes Python e as ferramentas em `c/tools/`.

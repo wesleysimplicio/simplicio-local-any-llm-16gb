@@ -55,6 +55,7 @@ PYTHON    ?= python3
 CUDA_OBJ  =
 TEST_BINS = tests/test_json$(EXE) tests/test_st$(EXE) tests/test_tier$(EXE) tests/test_quant$(EXE)
 TOKENIZER_TEST_BIN = tests/test_tok$(EXE)
+CHAT_TEMPLATE_TEST_BIN = tests/test_chat_template$(EXE)
 ifeq ($(CUDA),1)
 ifeq ($(UNAME_S),Darwin)
 $(error CUDA=1 is supported only on Linux)
@@ -79,7 +80,7 @@ all: glm$(EXE)
 glm: glm$(EXE)
 endif
 
-glm$(EXE): glm.c st.h json.h tok.h tok_unicode.h compat.h $(CUDA_OBJ)
+glm$(EXE): glm.c st.h json.h tok.h tok_unicode.h chat_template.h chat_templates.json compat.h $(CUDA_OBJ)
 	$(CC) $(CFLAGS) glm.c $(CUDA_OBJ) -o glm$(EXE) $(LDFLAGS)
 
 backend_cuda.o: backend_cuda.cu backend_cuda.h
@@ -116,6 +117,9 @@ tests/test_quant$(EXE): tests/test_quant.c glm.c st.h json.h tok.h tok_unicode.h
 $(TOKENIZER_TEST_BIN): tests/test_tok.c tok.h tok_unicode.h json.h
 	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
+$(CHAT_TEMPLATE_TEST_BIN): tests/test_chat_template.c chat_template.h chat_templates.json json.h
+	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+
 test-c: $(TEST_BINS)
 	@for test in $(TEST_BINS); do ./$$test || exit 1; done
 
@@ -125,8 +129,15 @@ test-python:
 test-tokenizer: $(TOKENIZER_TEST_BIN)
 	printf 'hi\t2\nhi!\t2,3\n<|special|>\t4\nhi<|special|>!\t2,4,3\n' \
 	  | ./$(TOKENIZER_TEST_BIN) ../../tests/fixtures/engine/tokenizer/minimal_tokenizer.json
+	@for family in glm deepseek kimi; do \
+	  ./$(TOKENIZER_TEST_BIN) tests/fixtures/tokenizer/contract_tokenizer_$$family.json \
+	    tests/fixtures/tokenizer/tok_vectors_$$family.json || exit 1; \
+	done
 
-test: test-c test-tokenizer test-python
+test-chat-template: $(CHAT_TEMPLATE_TEST_BIN)
+	./$(CHAT_TEMPLATE_TEST_BIN) chat_templates.json tests/fixtures/chat_vectors.json
+
+test: test-c test-tokenizer test-chat-template test-python
 
 # Local validation: one portable CPU build and dependency-free tests.
 check:
@@ -174,7 +185,8 @@ sanitize:
 clean:
 	rm -f olmoe$(EXE) glm$(EXE) iobench$(EXE) backend_cuda.o backend_cuda_test$(EXE) $(TEST_BINS)
 	rm -f $(TOKENIZER_TEST_BIN)
+	rm -f $(CHAT_TEMPLATE_TEST_BIN)
 	rm -f glm_asan tests/test_json_asan tests/test_st_asan tests/test_tier_asan
 	rm -rf tests/__pycache__
 
-.PHONY: all cuda-test portable test-c test-tokenizer test-python test check sanitize clean
+.PHONY: all cuda-test portable test-c test-tokenizer test-chat-template test-python test check sanitize clean

@@ -6,7 +6,8 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from openai_server import (APIError, APIServer, ClientCancelled, END, GenerationScheduler,
-                           StopFilter, generation_options, read_engine_turn, render_chat, serve)
+                           StopFilter, UTF8StreamDecoder, generation_options,
+                           read_engine_turn, render_chat, serve)
 
 
 class FakeEngine:
@@ -43,7 +44,7 @@ class TemplateTest(unittest.TestCase):
             {"role": "user", "content": [{"type": "text", "text": "Hi"}]},
             {"role": "assistant", "content": " Hello "},
             {"role": "user", "content": "Again"},
-        ])
+        ], "glm")
         self.assertEqual(
             prompt,
             "[gMASK]<sop><|system|>System<|system|>Developer<|user|>Hi"
@@ -55,11 +56,11 @@ class TemplateTest(unittest.TestCase):
         with self.assertRaisesRegex(APIError, "text message content only"):
             render_chat([{"role": "user", "content": [
                 {"type": "image_url", "image_url": {"url": "x"}}
-            ]}])
+            ]}], "glm")
 
     def test_renders_thinking_prefix(self):
         self.assertEqual(
-            render_chat([{"role": "user", "content": "Hi"}], True, "high"),
+            render_chat([{"role": "user", "content": "Hi"}], "glm", True, "high"),
             "[gMASK]<sop><|system|>Reasoning Effort: High<|user|>Hi<|assistant|><think>",
         )
 
@@ -96,6 +97,16 @@ class ProtocolTest(unittest.TestCase):
         self.assertEqual(b"".join(chunks), b"hello")
         self.assertEqual(stats["prompt_tokens"], 7)
         self.assertTrue(stats["length_limited"])
+
+    def test_utf8_decoder_holds_partial_codepoint(self):
+        chunks = []
+        decoder = UTF8StreamDecoder(chunks.append)
+        encoded = "A🙂ç".encode()
+        for byte in encoded:
+            decoder.feed(bytes([byte]))
+        decoder.feed(b"", final=True)
+        self.assertEqual("".join(chunks), "A🙂ç")
+        self.assertNotIn("\ufffd", "".join(chunks))
 
     def test_rejects_invalid_kv_pool_before_engine_start(self):
         with self.assertRaisesRegex(ValueError, "kv_slots"):
@@ -183,7 +194,8 @@ class HTTPTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.engine = FakeEngine()
-        cls.server = APIServer(("127.0.0.1", 0),cls.engine,"test-model","secret",16,kv_slots=2)
+        cls.server = APIServer(("127.0.0.1", 0),cls.engine,"test-model","secret",16,
+                               kv_slots=2, family="glm")
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
         cls.base = f"http://127.0.0.1:{cls.server.server_port}"
@@ -295,7 +307,7 @@ class SchedulerHTTPTest(unittest.TestCase):
     def setUp(self):
         self.engine = BlockingEngine()
         self.server = APIServer(("127.0.0.1", 0), self.engine, "test-model",
-                                max_tokens=16, max_queue=0)
+                                max_tokens=16, max_queue=0, family="glm")
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.url = f"http://127.0.0.1:{self.server.server_port}/v1/chat/completions"
