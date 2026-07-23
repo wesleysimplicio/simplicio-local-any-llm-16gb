@@ -438,6 +438,11 @@ Native mode now also emits OpenAI-style SSE frames when the request body sets
 preflight requests so `apps/web-chat/` can talk to the local endpoint from a
 different port without a custom reverse proxy.
 
+The engine endpoint also accepts OpenAI-compatible `seed` and `stop`
+controls. A non-negative 64-bit seed resets the sampler for that request,
+including speculative verification. One to four text stop sequences are
+suppressed even when they cross SSE chunk boundaries.
+
 ##### 6.2.2 Web chat operator flow
 
 The repo ships a React/Vite operator UI under `apps/web-chat/`:

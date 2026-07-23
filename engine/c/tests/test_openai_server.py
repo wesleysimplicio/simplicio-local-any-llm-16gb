@@ -6,15 +6,16 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from openai_server import (APIError, APIServer, ClientCancelled, END, GenerationScheduler,
-                           generation_options, read_engine_turn, render_chat, serve)
+                           StopFilter, generation_options, read_engine_turn, render_chat, serve)
 
 
 class FakeEngine:
     def __init__(self):
         self.calls = []
 
-    def generate(self, prompt, maximum, temperature, top_p, on_text, cache_slot=0):
-        self.calls.append((prompt, maximum, temperature, top_p, cache_slot))
+    def generate(self, prompt, maximum, temperature, top_p, on_text, cache_slot=0,
+                 seed=None):
+        self.calls.append((prompt, maximum, temperature, top_p, cache_slot, seed))
         on_text("Hé")
         on_text("llo")
         return {"prompt_tokens": 7, "completion_tokens": 2, "length_limited": False}
@@ -26,10 +27,12 @@ class BlockingEngine(FakeEngine):
         self.entered = threading.Event()
         self.release = threading.Event()
 
-    def generate(self, prompt, maximum, temperature, top_p, on_text, cache_slot=0):
+    def generate(self, prompt, maximum, temperature, top_p, on_text, cache_slot=0,
+                 seed=None):
         self.entered.set()
         self.release.wait(2)
-        return super().generate(prompt, maximum, temperature, top_p, on_text, cache_slot)
+        return super().generate(prompt, maximum, temperature, top_p, on_text,
+                                cache_slot, seed)
 
 
 class TemplateTest(unittest.TestCase):
@@ -62,11 +65,27 @@ class TemplateTest(unittest.TestCase):
 
     def test_validates_generation_limits(self):
         self.assertEqual(generation_options({"max_tokens": 4, "temperature": 0, "top_p": 1}, 8),
-                         (4, 0.0, 1.0))
+                         (4, 0.0, 1.0, (), None))
         with self.assertRaises(APIError):
             generation_options({"max_tokens": 9}, 8)
         self.assertEqual(generation_options({"temperature": None, "top_p": None}, 8),
-                         (8, 0.7, 0.9))
+                         (8, 0.7, 0.9, (), None))
+        self.assertEqual(generation_options({"stop": ["END"], "seed": 0}, 8),
+                         (8, 0.7, 0.9, ("END",), 0))
+        for invalid in ([], ["ok", ""], ["a"] * 5):
+            with self.assertRaises(APIError):
+                generation_options({"stop": invalid}, 8)
+        with self.assertRaises(APIError):
+            generation_options({"seed": -1}, 8)
+
+    def test_stop_filter_matches_across_chunks(self):
+        output = []
+        stop_filter = StopFilter(("STOP",), output.append)
+        for chunk in ("hello ST", "OP ignored"):
+            stop_filter.feed(chunk)
+        stop_filter.finish()
+        self.assertEqual("".join(output), "hello ")
+        self.assertTrue(stop_filter.matched)
 
 
 class ProtocolTest(unittest.TestCase):
@@ -223,6 +242,16 @@ class HTTPTest(unittest.TestCase):
         self.assertIsNotNone(queue_wait)
         self.assertIn("<|user|>Hi<|assistant|><think></think>", self.engine.calls[-1][0])
         self.assertEqual(self.engine.calls[-1][4], 1)
+
+    def test_seed_is_forwarded_and_stop_is_suppressed(self):
+        with self.request("/v1/chat/completions", {
+            "model": "test-model", "messages": [{"role": "user", "content": "Hi"}],
+            "seed": 42, "stop": "llo",
+        }) as response:
+            body = json.load(response)
+        self.assertEqual(body["choices"][0]["message"]["content"], "Hé")
+        self.assertEqual(body["choices"][0]["finish_reason"], "stop")
+        self.assertEqual(self.engine.calls[-1][5], 42)
 
     def test_rejects_invalid_cache_slot(self):
         with self.assertRaises(HTTPError) as caught:

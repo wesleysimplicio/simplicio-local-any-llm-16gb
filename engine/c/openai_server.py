@@ -184,14 +184,24 @@ def generation_options(body, limit):
     for name in ("tools", "functions"):
         if body.get(name):
             raise APIError(400, f"`{name}` is not supported yet.", name, "unsupported_parameter")
-    if body.get("stop") is not None:
-        raise APIError(400, "Custom stop sequences are not supported yet.", "stop", "unsupported_parameter")
+    stop = body.get("stop")
+    if isinstance(stop, str):
+        stop = [stop]
+    if stop is not None:
+        if (not isinstance(stop, list) or not 1 <= len(stop) <= 4
+                or any(not isinstance(item, str) or not item or len(item) > 256
+                       for item in stop)):
+            raise APIError(400, "`stop` must be a non-empty string or an array of 1 to 4 "
+                           "non-empty strings (maximum 256 characters each).", "stop")
     if body.get("logprobs"):
         raise APIError(400, "Log probabilities are not supported yet.", "logprobs", "unsupported_parameter")
     if body.get("frequency_penalty", 0) or body.get("presence_penalty", 0):
         raise APIError(400, "Token penalties are not supported yet.", None, "unsupported_parameter")
-    if body.get("seed") is not None:
-        raise APIError(400, "Per-request seeds are not supported yet.", "seed", "unsupported_parameter")
+    seed = body.get("seed")
+    if (seed is not None and
+            (isinstance(seed, bool) or not isinstance(seed, int)
+             or not 0 <= seed <= 0x7fffffffffffffff)):
+        raise APIError(400, "`seed` must be an integer between 0 and 2^63-1.", "seed")
     response_format = body.get("response_format")
     if response_format not in (None, {"type": "text"}):
         raise APIError(400, "Only the default text response format is supported.",
@@ -214,7 +224,41 @@ def generation_options(body, limit):
         raise APIError(400, "`temperature` must be between 0 and 2.", "temperature")
     if isinstance(top_p, bool) or not isinstance(top_p, (int, float)) or not 0 < top_p <= 1:
         raise APIError(400, "`top_p` must be greater than 0 and at most 1.", "top_p")
-    return maximum, float(temperature), float(top_p)
+    return maximum, float(temperature), float(top_p), tuple(stop or ()), seed
+
+
+class StopFilter:
+    """Suppress configured text stop sequences across streamed chunk boundaries."""
+
+    def __init__(self, stops, emit):
+        self.stops = tuple(stops)
+        self.emit = emit
+        self.pending = ""
+        self.matched = False
+        self.keep = max(0, max((len(value) for value in self.stops), default=0) - 1)
+
+    def feed(self, text):
+        if self.matched:
+            return
+        self.pending += text
+        matches = [self.pending.find(value) for value in self.stops]
+        matches = [index for index in matches if index >= 0]
+        if matches:
+            index = min(matches)
+            if index:
+                self.emit(self.pending[:index])
+            self.pending = ""
+            self.matched = True
+            return
+        safe = len(self.pending) - self.keep
+        if safe > 0:
+            self.emit(self.pending[:safe])
+            self.pending = self.pending[safe:]
+
+    def finish(self):
+        if not self.matched and self.pending:
+            self.emit(self.pending)
+        self.pending = ""
 
 
 def read_engine_turn(stream, sentinel, on_bytes):
@@ -258,7 +302,8 @@ class Engine:
         self.kv_slots = kv_slots
         read_engine_turn(self.process.stdout, READY, lambda _: None)
 
-    def generate(self, prompt, max_tokens, temperature, top_p, on_text, cache_slot=0):
+    def generate(self, prompt, max_tokens, temperature, top_p, on_text, cache_slot=0,
+                 seed=None):
         if isinstance(cache_slot, bool) or not isinstance(cache_slot, int) or not 0 <= cache_slot < self.kv_slots:
             raise APIError(400, "Invalid cache slot.", "cache_slot")
         payload = prompt.encode("utf-8")
@@ -274,8 +319,9 @@ class Engine:
         with self.lock:
             if self.process.poll() is not None:
                 raise RuntimeError("colibri engine is not running")
+            request_seed = -1 if seed is None else seed
             header = (f"\x02PROMPT {len(payload)} {max_tokens} {temperature:.8g} "
-                      f"{top_p:.8g} {cache_slot}\n").encode()
+                      f"{top_p:.8g} {cache_slot} {request_seed}\n").encode()
             self.process.stdin.write(header + payload + b"\n")
             self.process.stdin.flush()
             stats = read_engine_turn(self.process.stdout, END, decode)
@@ -426,7 +472,8 @@ class APIHandler(BaseHTTPRequestHandler):
                 pass
 
     def generation(self, body, prompt, request_id, chat):
-        maximum, temperature, top_p = generation_options(body, self.server.max_tokens)
+        maximum, temperature, top_p, stops, seed = generation_options(
+            body, self.server.max_tokens)
         cache_slot = body.get("cache_slot", 0)
         if isinstance(cache_slot, bool) or not isinstance(cache_slot, int) or not 0 <= cache_slot < self.server.kv_slots:
             raise APIError(400, f"`cache_slot` must be an integer between 0 and {self.server.kv_slots - 1}.",
@@ -447,10 +494,13 @@ class APIHandler(BaseHTTPRequestHandler):
             queue_headers = {"x-colibri-queue-wait-ms": str(round(queue_wait * 1000))}
             if not stream:
                 output = []
+                stop_filter = StopFilter(stops, output.append)
                 stats = self.server.engine.generate(
-                    prompt, maximum, temperature, top_p, output.append, cache_slot)
+                    prompt, maximum, temperature, top_p, stop_filter.feed, cache_slot, seed)
+                stop_filter.finish()
                 text = "".join(output)
-                finish = "length" if stats["length_limited"] else "stop"
+                finish = ("stop" if stop_filter.matched else
+                          ("length" if stats["length_limited"] else "stop"))
                 choice = ({"index": 0, "message": {"role": "assistant", "content": text,
                            "refusal": None}, "logprobs": None, "finish_reason": finish} if chat else
                           {"index": 0, "text": text, "logprobs": None, "finish_reason": finish})
@@ -495,9 +545,12 @@ class APIHandler(BaseHTTPRequestHandler):
                           {"index": 0, "text": text, "logprobs": None, "finish_reason": None})
                 event([choice])
 
+            stop_filter = StopFilter(stops, emit)
             stats = self.server.engine.generate(
-                prompt, maximum, temperature, top_p, emit, cache_slot)
-            finish = "length" if stats["length_limited"] else "stop"
+                prompt, maximum, temperature, top_p, stop_filter.feed, cache_slot, seed)
+            stop_filter.finish()
+            finish = ("stop" if stop_filter.matched else
+                      ("length" if stats["length_limited"] else "stop"))
             final_choice = ({"index": 0, "delta": {}, "logprobs": None, "finish_reason": finish}
                             if chat else {"index": 0, "text": "", "logprobs": None,
                                           "finish_reason": finish})

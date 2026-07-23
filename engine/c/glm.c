@@ -2186,13 +2186,16 @@ static void run_serve(Model *m, const char *snap){
          * line protocol this accepts newlines. The tokenized prompt is matched
          * against hist so the common KV prefix survives stateless HTTP turns.
          * Per-request generation controls follow the byte count:
-         *   \x02PROMPT <bytes> <max_tokens> <temperature> <top_p> [kv_slot]\n<prompt>\n */
+         *   \x02PROMPT <bytes> <max_tokens> <temperature> <top_p>
+         *              [kv_slot] [seed]\n<prompt>\n */
         char *raw=NULL, *input=line;
         int input_n=(int)nr, raw_mode=0, req_ngen=ngen, prompt_tokens=0;
         float base_temp=g_temp, base_nuc=g_nuc;
         if(!strncmp(line,"\x02PROMPT ",8)){
             unsigned long long nb=0; double rt=0, rp=0; int slot=0;
-            int nf=sscanf(line+8,"%llu %d %lf %lf %d",&nb,&req_ngen,&rt,&rp,&slot);
+            long long seed=-1;
+            int nf=sscanf(line+8,"%llu %d %lf %lf %d %lld",
+                          &nb,&req_ngen,&rt,&rp,&slot,&seed);
             if(nf<4 || nb>(16u<<20) || req_ngen<1 || rt<0 || rt>2 || rp<=0 || rp>1 ||
                slot<0 || slot>=nctx){
                 printf("\x01\x01" "END" "\x01\x01\n"); printf("STAT 0 0.00 0.0 %.2f 0 0\n",rss_gb()); fflush(stdout); continue;
@@ -2206,6 +2209,8 @@ static void run_serve(Model *m, const char *snap){
             raw[nb]=0; input=raw; input_n=(int)nb; raw_mode=1;
             if(req_ngen>ngen) req_ngen=ngen;
             g_temp=(float)rt; g_nuc=(float)rp;
+            if(nf>=6 && seed>=0)
+                g_rng=(uint64_t)seed ? (uint64_t)seed : 0x9E3779B97F4A7C15ULL;
         } else { active=0; sc=&ctx[0]; kv_bind(m,&sc->kv); }
         int bl=0, k=0;                           /* costruisce/tokenizza il turno */
         /* template UFFICIALE GLM-5.2 (chat_template.jinja): niente \n dopo i ruoli, e dopo
