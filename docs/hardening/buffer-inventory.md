@@ -13,9 +13,9 @@ is independent of tensor dimensions.
 | `engine/c/glm.c`, `forward_all` final norm row | `hidden_size` | Reuse one heap row sized by `hidden_size` | **Fixed and verified**; the old `row[8192]` was not consistent with the config limit. |
 | `engine/c/olmoe.c`, attention scores | context length | Allocate one bulk score buffer (`H*S*Tk`) before the parallel loop, sliced per `(hh,s)` | **Fixed and verified**; same bulk-allocation revision as above (was per-iteration `falloc(qpos+1)`/`free`). The old `sc[4096]` was an implicit context ceiling. |
 | `engine/c/glm.c`, `rope_interleave` reading the **caller's** vector (not just its own internal copy) | `index_head_dim` vs `qk_rope_head_dim` when the DSA indexer calls `rope_interleave` on its `index_head_dim`-sized `k_idx` buffer | New `CKR`-adjacent invariant: reject configs where `index_head_dim < qk_rope_head_dim` | **New finding, fixed and verified.** Heap-allocating `rope_interleave`'s own `in[]` copy (sized by `qk_rope_head_dim`) does not fix this: the function still `memcpy`s/writes `qk_rope_head_dim` floats into/from the **caller's** vector, which is only `index_head_dim` floats wide when called from the DSA indexer path. If `index_head_dim < qk_rope_head_dim`, that is still an out-of-bounds read/write on the caller's buffer regardless of `in[]`'s own sizing. Caught during merge reconciliation of this patch with an earlier follow-up that only fixed `rope_interleave`'s internal buffer. |
-| `engine/c/glm.c`, `stop_ids[8]` and `g_stop[9]` | configured EOS/stop list | Keep fixed, validate and cap the parsed list | The parser stores at most eight configured IDs and reserves one slot for the explicit EOS; adversarial-config test coverage remains a follow-up. |
-| `engine/c/glm.c`, `draft[64]`/`batch[64]` | speculative window | Keep fixed, clamp `g_draft` to 63 before use | The decode path clamps the user-controlled draft window; regression test remains a follow-up. |
-| `engine/c/glm.c`, `ws[64]` and `missk[64]` | active experts per batch | Keep fixed, validate `topk`/working-set limits | These are routing work buffers, not tensor-dimension buffers; a complete adversarial-config test is still pending. |
+| `engine/c/glm.c`, `stop_ids[8]` and `g_stop[9]` | configured EOS/stop list | Keep fixed, validate and cap the parsed list | The parser stores at most eight configured IDs and reserves one slot for the explicit EOS; adversarial-config regression coverage now exercises the config choke point. |
+| `engine/c/glm.c`, `draft[64]`/`batch[64]` | speculative window | Keep fixed, clamp `g_draft` to 63 before use | The decode path clamps the user-controlled draft window; adversarial dimension cases are covered by `test_adversarial_config.py`. |
+| `engine/c/glm.c`, `ws[64]` and `missk[64]` | active experts per batch | Keep fixed, validate `topk`/working-set limits | These are routing work buffers, not tensor-dimension buffers; `num_experts_per_tok` is now covered by the adversarial config gate. |
 | `engine/c/tok.h`, byte maps and UTF-8 scratch | byte alphabet and token encoding | Keep fixed by the byte-level tokenizer contract | The dimensions are protocol constants, independent of vocabulary size. |
 
 ## Verification boundary
@@ -43,8 +43,11 @@ toolchain and closed the gap the previous receipt flagged as required:
   run + both TF oracles afterward, not assumed correct from either side.
 
 **Still open** (tracked by issue #122, not closed by this patch): the four
-libFuzzer harnesses (`json.h`, `st.h`, `tok.h`, server line protocol) and the
-adversarial-config test suite. `make sanitize` proves the buffers found by
+libFuzzer harnesses (`json.h`, `st.h`, `tok.h`, server line protocol) and
+full generated-oracle sanitizer run. The adversarial-config suite is now
+committed as `engine/c/tests/test_adversarial_config.py`; it executes the real
+engine binary against hostile dimensions and asserts an ordinary, actionable
+rejection before tensor loading. `make sanitize` proves the buffers found by
 manual audit are safe under the inputs exercised by the existing test/oracle
 suite; it does not replace coverage-guided fuzzing for inputs outside that
 set.
