@@ -32,6 +32,10 @@
         "null"
       ]
     },
+    "template_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "dry_run": {
       "type": "boolean"
     },
@@ -92,6 +96,10 @@
               "string",
               "null"
             ]
+          },
+          "command_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
           },
           "cwd": {
             "type": "string"

@@ -24,11 +24,17 @@ O script `runtime/benchmarks/repro_harness.py`:
 
 - detecta facts do host via stdlib;
 - verifica se o host realmente parece 16 GB dentro da tolerância declarada;
+- valida IDs, comandos e placeholders antes de executar qualquer processo;
 - roda os comandos do template quando o host atende aos requisitos;
 - captura stdout/stderr/exit code/duração;
 - faz parse simples de linhas `chave=valor`;
-- grava um JSON auditável;
+- grava um JSON auditável com `template_sha256` e `command_sha256` para
+  reproduzir a mesma entrada;
 - valida o formato sem depender de biblioteca externa.
+
+Templates inválidos falham com código 2 antes de qualquer comando ser iniciado.
+Isso inclui IDs duplicados, comandos ausentes e placeholders `${...}` sem uma
+variável declarada.
 
 ## Fluxos recomendados
 
