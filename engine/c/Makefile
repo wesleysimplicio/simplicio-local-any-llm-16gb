@@ -68,10 +68,16 @@ LDFLAGS  += -L$(CUDA_HOME)/lib64 -Wl,-rpath,$(CUDA_HOME)/lib64 -lcudart -lstdc++
 CUDA_OBJ  = backend_cuda.o
 endif
 
+ifeq ($(EXE),)
+# On POSIX, glm is the real binary target.  Do not add a glm -> glm alias:
+# GNU make treats that as a circular dependency and silently drops it.
+all: glm
+else
+# On Windows, keep the friendly `make glm` alias for the .exe target.
 all: glm$(EXE)
-
-# phony 'glm' → 'glm.exe' on Windows (so 'make glm' and 'coli build' work on every platform)
+.PHONY: glm
 glm: glm$(EXE)
+endif
 
 glm$(EXE): glm.c st.h json.h tok.h tok_unicode.h compat.h $(CUDA_OBJ)
 	$(CC) $(CFLAGS) glm.c $(CUDA_OBJ) -o glm$(EXE) $(LDFLAGS)
@@ -168,4 +174,5 @@ clean:
 	rm -f glm_asan tests/test_json_asan tests/test_st_asan tests/test_tier_asan
 	rm -rf tests/__pycache__
 
-.PHONY: all glm cuda-test portable test-c test-tokenizer test-python test check sanitize clean
+.PHONY: all cuda-test portable test-c test-tokenizer test-python test check sanitize clean
+
