@@ -128,7 +128,8 @@ void PrintHelp() {
                "[--chat-upstream <url>] "
                "[--chat-model <id>] [--embed-model <id>] "
                "[--no-chat] [--no-embed]\n"
-            << "  us4-cli serve --native [--host <addr>] [--port <n>]\n"
+            << "  us4-cli serve --native [--host <addr>] [--port <n>] "
+               "[--web-root <dir>]\n"
             << "      --native answers /v1/chat/completions from this "
                "runtime's own\n"
             << "      adapters directly (no external process); without "
@@ -705,6 +706,7 @@ int main(int argc, char **argv) {
   std::optional<std::string> serveChatUpstream;
   std::optional<std::string> serveChatModel;
   std::optional<std::string> serveEmbedModel;
+  std::optional<std::string> serveWebRoot;
   std::size_t maxTokens = 16;
 
   for (int index = 1; index < argc; ++index) {
@@ -729,6 +731,8 @@ int main(int argc, char **argv) {
       serveChatModel = argv[++index];
     } else if (arg == "--embed-model" && index + 1 < argc) {
       serveEmbedModel = argv[++index];
+    } else if (arg == "--web-root" && index + 1 < argc) {
+      serveWebRoot = argv[++index];
     } else if (arg == "--no-chat") {
       serveDisableChat = true;
     } else if (arg == "--no-embed") {
@@ -797,6 +801,9 @@ int main(int argc, char **argv) {
       }
       if (servePort.has_value()) {
         nativeOptions.port = std::atoi(servePort->c_str());
+      }
+      if (serveWebRoot.has_value()) {
+        nativeOptions.webRoot = *serveWebRoot;
       }
       return us4::RunNativeHttpServer(nativeOptions);
     }

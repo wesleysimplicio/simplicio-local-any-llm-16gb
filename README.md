@@ -451,6 +451,11 @@ The repo ships a React/Vite operator UI under `apps/web-chat/`:
 node bin/us4-cli.js chat
 ```
 
+After `node bin/us4-cli.js chat --build`, native serve exposes that build at
+`http://127.0.0.1:8080/` by default. Use `--web-root <dir>` to select another
+prebuilt directory. Static resolution rejects traversal/encoded paths and
+files larger than 8 MiB; `/v1/*` remains reserved for the API.
+
 Point it at `http://127.0.0.1:8080/v1` after starting either:
 
 ```bash
