@@ -32,6 +32,7 @@
 #include "st.h"
 #include "tok.h"
 #include "tier.h"
+#include "moe_route.h"
 #ifdef COLI_CUDA
 #include <omp.h>
 #include "backend_cuda.h"
@@ -54,6 +55,8 @@ typedef struct {
     int hidden, n_layers, n_heads, n_experts, topk, moe_inter, dense_inter;
     int first_dense, q_lora, kv_lora, qk_nope, qk_rope, qk_head, v_head, n_shared, vocab;
     int n_group, topk_group, norm_topk;
+    int is_kimi_k2;
+    char model_type[32];
     int stop_ids[8], n_stop;                     /* eos_token_id dal config (GLM-5.2 ne ha 3!) */
     int index_topk, index_nh, index_hd;          /* DSA lightning indexer */
     int8_t idx_type[128];                        /* per layer: 1=full (calcola), 0=shared (riusa) */
@@ -710,8 +713,14 @@ static jval* cfg_root(const char *snap, char **arena){
     return json_parse(b,arena);
 }
 static int gi(jval*r,const char*k){ jval*v=json_get(r,k); return v?(int)v->num:0; }
+static const char *gs(jval*r,const char*k){
+    jval*v=json_get(r,k); return (v&&v->t==J_STR)?v->str:NULL;
+}
 static void load_cfg(Cfg *c, const char *snap){
     char *ar=NULL; jval *r=cfg_root(snap,&ar);
+    const char *model_type=gs(r,"model_type");
+    snprintf(c->model_type,sizeof(c->model_type),"%s",model_type?model_type:"unknown");
+    c->is_kimi_k2=!strcmp(c->model_type,"kimi_k2");
     c->hidden=gi(r,"hidden_size"); c->n_layers=gi(r,"num_hidden_layers");
     c->n_heads=gi(r,"num_attention_heads"); c->n_experts=gi(r,"n_routed_experts");
     c->topk=gi(r,"num_experts_per_tok"); c->moe_inter=gi(r,"moe_intermediate_size");
@@ -724,6 +733,7 @@ static void load_cfg(Cfg *c, const char *snap){
     jval *ep=json_get(r,"rms_norm_eps"); c->eps=ep?(float)ep->num:1e-5f;
     jval *rs=json_get(r,"routed_scaling_factor"); c->routed_scale=rs?(float)rs->num:1.f;
     jval *rp=json_get(r,"rope_parameters"); jval *th=rp?json_get(rp,"rope_theta"):NULL;
+    if(!th) th=json_get(r,"rope_theta");             /* Kimi K2 publishes theta at config root */
     c->theta = th?(float)th->num:10000.f;
     /* token di stop: GLM-5.2 ne ha TRE (endoftext, user, observation). Fermarsi solo sul
      * primo = generare spazzatura invisibile dopo la fine del turno (5-10x token sprecati). */
@@ -772,9 +782,33 @@ static void load_cfg(Cfg *c, const char *snap){
      * com um unico grupo == todos os experts). */
     CKR("n_group",c->n_group,1,c->n_experts)     CKR("topk_group",c->topk_group,1,c->n_group)
     #undef CKR
+    if(c->topk>c->n_experts){
+        fprintf(stderr,"config: num_experts_per_tok=%d excede n_routed_experts=%d\n",
+            c->topk,c->n_experts); exit(1);
+    }
     if(c->n_experts % c->n_group != 0){
         fprintf(stderr,"config: n_routed_experts=%d nao e' divisivel por n_group=%d\n",
             c->n_experts,c->n_group); exit(1);
+    }
+    if(c->topk>c->topk_group*(c->n_experts/c->n_group)){
+        fprintf(stderr,"config: num_experts_per_tok=%d excede os %d experts disponiveis "
+            "nos topk_group=%d grupos\n",c->topk,
+            c->topk_group*(c->n_experts/c->n_group),c->topk_group); exit(1);
+    }
+    if(!isfinite(c->theta) || c->theta<=0.f){
+        fprintf(stderr,"config: rope_theta deve ser finito e positivo\n"); exit(1);
+    }
+    if(c->is_kimi_k2){
+        const char *scoring=gs(r,"scoring_func"), *method=gs(r,"topk_method");
+        if(!scoring || strcmp(scoring,"sigmoid")){
+            fprintf(stderr,"config: kimi_k2 requer scoring_func=sigmoid\n"); exit(1);
+        }
+        if(!method || strcmp(method,"noaux_tc")){
+            fprintf(stderr,"config: kimi_k2 requer topk_method=noaux_tc\n"); exit(1);
+        }
+        if(c->n_group!=1 || c->topk_group!=1){
+            fprintf(stderr,"config: Kimi K2 publicado requer n_group=1 e topk_group=1\n"); exit(1);
+        }
     }
     /* rope_interleave() applica sempre qk_rope_head_dim al vettore che riceve, anche quando
      * chiamato sul k_idx dell'indexer DSA (dimensione index_head_dim). Se index_head_dim <
@@ -1298,7 +1332,6 @@ static void moe(Model *m, Layer *l, int layer, float *x, int S, float *out){
     float *logit=falloc(E), *choice=falloc(E);
     /* DeepSeek-V3/R1 group-limited routing (issue #120): buffer de score por grupo, so'
      * alocado quando n_group>1 (GLM-5.2 usa n_group=1 -> NULL, zero custo/regressao). */
-    int gsz = c->n_group>1 ? E/c->n_group : 0;
     float *gscore = c->n_group>1 ? falloc(c->n_group) : NULL;
     unsigned char *gsel = c->n_group>1 ? malloc((size_t)c->n_group) : NULL;
     int sI=c->moe_inter*c->n_shared;
@@ -1308,38 +1341,16 @@ static void moe(Model *m, Layer *l, int layer, float *x, int S, float *out){
     for(int s=0;s<S;s++){
         const float *xs=x+(int64_t)s*D;
         matmul(logit, xs, l->router, 1, D, E);
-        for(int e=0;e<E;e++){ logit[e]=sigmoidf(logit[e]); choice[e]=logit[e]+l->router_bias[e]; }
         /* group-limiting: score de grupo = soma dos top-2 `choice` do grupo (bias incluso,
          * exatamente DeepseekV3TopkRouter.forward em transformers); seleciona topk_group
          * grupos, mascara `choice` para -inf fora deles ANTES da selecao top-k abaixo. O
          * peso do gate (`w[kk]=logit[best]`, poucas linhas abaixo) usa sigmoid puro SEM bias
          * -- o bias so' filtra a selecao, nunca entra no peso. n_group==1 e' um no-op
          * bit-identico ao comportamento legado (GLM-5.2). */
-        if(c->n_group>1){
-            for(int g=0;g<c->n_group;g++){
-                float top1=-1e30f, top2=-1e30f;
-                for(int j=0;j<gsz;j++){
-                    float v=choice[g*gsz+j];
-                    if(v>top1){ top2=top1; top1=v; } else if(v>top2) top2=v;
-                }
-                gscore[g]=top1+top2;
-            }
-            memset(gsel,0,(size_t)c->n_group);
-            for(int gk=0;gk<c->topk_group;gk++){
-                int best=-1; float bv=-1e30f;
-                for(int g=0;g<c->n_group;g++) if(!gsel[g] && gscore[g]>bv){ bv=gscore[g]; best=g; }
-                if(best>=0) gsel[best]=1;
-            }
-            for(int g=0;g<c->n_group;g++) if(!gsel[g])
-                for(int j=0;j<gsz;j++) choice[g*gsz+j] = -INFINITY;
-        }
         int *idx=idxs+(int64_t)s*K; float *w=ws+(int64_t)s*K;
         int Ksel = g_topk>0 ? (g_topk<K?g_topk:K) : K;
-        for(int kk=0;kk<Ksel;kk++){ int best=-1; float bv=-1e30f;
-            for(int e=0;e<E;e++){ int tk=0; for(int j=0;j<kk;j++) if(idx[j]==e){tk=1;break;}
-                if(!tk && choice[e]>bv){bv=choice[e];best=e;} }
-            idx[kk]=best; w[kk]=logit[best];
-        }
+        coli_moe_select(logit,l->router_bias,E,Ksel,c->n_group,c->topk_group,
+                        logit,choice,gscore,gsel,idx,w);
         int Ke=Ksel;
         if(g_topp>0 && g_topp<1.f){
             for(int a=1;a<Ksel;a++){ int ii=idx[a]; float ww=w[a]; int b=a-1;
@@ -2687,6 +2698,14 @@ int main(int argc, char **argv){
     }
 #endif
     printf("== Motore C GLM (glm_moe_dsa), cache=%d expert/layer | expert@%d-bit densa@%d-bit | idot: " IDOT_KERNEL " ==\n", cap, ebits, dbits);
+    if(getenv("CONFIG_ONLY") && atoi(getenv("CONFIG_ONLY"))){
+        Cfg cfg={0}; load_cfg(&cfg,snap);
+        printf("CONFIG family=%s layers=%d hidden=%d routed_experts=%d topk=%d "
+               "groups=%d topk_groups=%d theta=%.0f\n",
+               cfg.model_type,cfg.n_layers,cfg.hidden,cfg.n_experts,cfg.topk,
+               cfg.n_group,cfg.topk_group,cfg.theta);
+        return 0;
+    }
     g_mem_avail_boot = mem_available_gb();
     Model m; double t0=now_s(); model_init(&m,snap,cap,ebits,dbits);
     if(g_draft<0) g_draft = m.has_mtp ? 3 : 0;

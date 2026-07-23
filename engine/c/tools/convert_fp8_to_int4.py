@@ -161,6 +161,31 @@ def convert_shard(path, out_dict, n_layers, ebits, io_bits, xbits, keep_mtp=Fals
 
 def free_gb(p): return shutil.disk_usage(p).free / 1e9
 
+def resolve_model_config(model_dir, requested_layers=None):
+    """Return (n_layers, model_type) from config.json, preserving the legacy fallback."""
+    config_path = os.path.join(model_dir, "config.json")
+    config = {}
+    if os.path.exists(config_path):
+        with open(config_path) as f:
+            config = json.load(f)
+    n_layers = requested_layers if requested_layers is not None else config.get("num_hidden_layers", 78)
+    model_type = config.get("model_type", "unknown")
+    if model_type == "kimi_k2":
+        required = {
+            "scoring_func": "sigmoid",
+            "topk_method": "noaux_tc",
+        }
+        for key, expected in required.items():
+            if config.get(key) != expected:
+                raise ValueError(f"kimi_k2 requer {key}={expected}")
+    return int(n_layers), model_type
+
+def save_file_atomic(save_file, tensors, output_path):
+    """A completed output is the resume marker; partial shards never look complete."""
+    partial_path = output_path + ".partial"
+    save_file(tensors, partial_path)
+    os.replace(partial_path, output_path)
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", default=None)
@@ -169,7 +194,8 @@ def main():
     ap.add_argument("--ebits", type=int, default=None)   # bit residenti (default 4; 8 per --mtp/--indexer)
     ap.add_argument("--io-bits", type=int, default=8)    # bit di embed/lm_head
     ap.add_argument("--xbits", type=int, default=None)   # bit degli expert ROUTED (streaming); default=ebits
-    ap.add_argument("--n-layers", type=int, default=78)
+    ap.add_argument("--n-layers", type=int, default=None,
+        help="numero de layers principais; por default le config.json (fallback legado: 78)")
     ap.add_argument("--min-free-gb", type=float, default=20.0)
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--mtp", action="store_true",
@@ -209,14 +235,24 @@ def main():
     os.makedirs(a.outdir, exist_ok=True)
     dtype_map = load_dtype_map(a.dtype_map)
     if a.indir:    # conversione locale (test)
+        a.n_layers, model_type = resolve_model_config(a.indir, a.n_layers)
+        print(f"config: family={model_type} n_layers={a.n_layers}")
         shards = sorted(glob.glob(os.path.join(a.indir, "*.safetensors")))
         from safetensors.numpy import save_file
+        manifest_path = os.path.join(a.outdir, "container_manifest.json")
         manifest = {}
+        if dtype_map is not None and os.path.exists(manifest_path):
+            with open(manifest_path) as f:
+                manifest = json.load(f).get("tensors", {})
         for i, sp in enumerate(shards):
+            output_path = os.path.join(a.outdir, f"out-{i:05d}.safetensors")
+            if os.path.exists(output_path):
+                print(f"[{i+1}/{len(shards)}] {output_path} gia' fatto; resume")
+                continue
             out = {}
             convert_shard(sp, out, a.n_layers, a.ebits, a.io_bits, a.xbits,
                           dtype_map=dtype_map, manifest=manifest)
-            save_file(out, os.path.join(a.outdir, f"out-{i:05d}.safetensors"))
+            save_file_atomic(save_file, out, output_path)
         # copia config + tokenizer
         for fn in ["config.json"]:
             src = os.path.join(a.indir, fn)
@@ -225,7 +261,6 @@ def main():
         # quantization real). Sem --dtype-map o container e' v1 uniforme e o loader C
         # continua a inferir o dtype pelo tamanho em bytes, como sempre fez.
         if dtype_map is not None:
-            manifest_path = os.path.join(a.outdir, "container_manifest.json")
             with open(manifest_path, "w") as f:
                 json.dump({"container_version": 2, "tensors": manifest}, f, indent=2)
             print(f"container v2: manifesto escrito em {manifest_path} ({len(manifest)} tensores)")
@@ -436,6 +471,11 @@ def main():
     for fn in ["config.json", "tokenizer.json", "tokenizer_config.json", "generation_config.json"]:
         try: shutil.copy(hf_hub_download(a.repo, fn, local_dir=a.outdir+"/_meta"), a.outdir)
         except Exception: pass
+    if a.n_layers is None and not os.path.exists(os.path.join(a.outdir, "config.json")):
+        raise RuntimeError("config.json indisponivel: nao e' seguro inferir a contagem de layers; "
+                           "restaure o download ou passe --n-layers explicitamente")
+    a.n_layers, model_type = resolve_model_config(a.outdir, a.n_layers)
+    print(f"config: family={model_type} n_layers={a.n_layers}")
     tmp = os.path.join(a.outdir, "_inflight"); os.makedirs(tmp, exist_ok=True)
     if a.mtp:
         import urllib.request
@@ -450,7 +490,7 @@ def main():
             print(f"[MTP {i+1}/{len(mtp_shards)}] scarico {sh}...", flush=True)
             p = download_retry(a.repo, sh, tmp)
             out = {}; convert_shard(p, out, a.n_layers, a.ebits, a.io_bits, a.xbits, keep_mtp=True, dtype_map=dtype_map)
-            save_file(out, outp)
+            save_file_atomic(save_file, out, outp)
             os.remove(p)
             for blob in glob.glob(os.path.join(tmp, "**", "*"), recursive=True):
                 if os.path.isfile(blob): os.remove(blob)
@@ -470,7 +510,7 @@ def main():
             print(f"[IDX {i+1}/{len(idx_shards)}] scarico {sh}...", flush=True)
             p = download_retry(a.repo, sh, tmp)
             out = {}; convert_shard(p, out, a.n_layers, a.ebits, a.io_bits, a.xbits, keep_idx=True, dtype_map=dtype_map)
-            if out: save_file(out, outp)
+            if out: save_file_atomic(save_file, out, outp)
             os.remove(p)
             for blob in glob.glob(os.path.join(tmp, "**", "*"), recursive=True):
                 if os.path.isfile(blob): os.remove(blob)
@@ -484,7 +524,7 @@ def main():
         print(f"[{i+1}/{len(shards)}] scarico {sh} (libero {free_gb(a.outdir):.0f} GB)...", flush=True)
         p = download_retry(a.repo, sh, tmp)
         out = {}; convert_shard(p, out, a.n_layers, a.ebits, a.io_bits, a.xbits, dtype_map=dtype_map)
-        save_file(out, outp)
+        save_file_atomic(save_file, out, outp)
         os.remove(p)                                       # <-- cancella subito lo shard fp8
         for blob in glob.glob(os.path.join(tmp, "**", "*"), recursive=True):
             if os.path.isfile(blob): os.remove(blob)
