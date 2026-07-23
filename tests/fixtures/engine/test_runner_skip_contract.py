@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import contextlib
 import importlib.util
-import io
 from pathlib import Path
+import tempfile
 import unittest
 from unittest import mock
 
@@ -22,81 +21,38 @@ def load_runner(name: str):
 
 
 class RunnerSkipContractTest(unittest.TestCase):
-    def test_forward_runner_skips_without_compiling(self) -> None:
+    def test_forward_runner_fails_without_make(self) -> None:
         runner = load_runner("run_engine_forward_oracles.py")
-        output = io.StringIO()
-        with (
-            mock.patch.dict(runner.os.environ, {"CI": ""}, clear=False),
-            mock.patch.object(runner, "require"),
-            mock.patch.object(runner.shutil, "which", return_value=None),
-            mock.patch.object(runner, "run") as compile_runner,
-            contextlib.redirect_stdout(output),
-        ):
-            result = runner.main()
+        with mock.patch.object(runner.shutil, "which", return_value=None):
+            with self.assertRaisesRegex(SystemExit, "'make' is required"):
+                runner.build_engine()
 
-        self.assertEqual(runner.SKIP_RETURN_CODE, 77)
-        self.assertEqual(result, 77)
-        self.assertIn("SKIP", output.getvalue())
-        compile_runner.assert_not_called()
-
-    def test_forward_runner_fails_in_ci_without_compiling(self) -> None:
-        runner = load_runner("run_engine_forward_oracles.py")
-        output = io.StringIO()
-        with (
-            mock.patch.dict(runner.os.environ, {"CI": "1"}, clear=False),
-            mock.patch.object(runner, "require"),
-            mock.patch.object(runner.shutil, "which", return_value=None),
-            mock.patch.object(runner, "run") as compile_runner,
-            contextlib.redirect_stdout(output),
-        ):
-            result = runner.main()
-
-        self.assertEqual(result, 1)
-        self.assertNotEqual(result, runner.SKIP_RETURN_CODE)
-        self.assertIn("ERROR", output.getvalue())
-        self.assertNotIn("SKIP", output.getvalue())
-        compile_runner.assert_not_called()
-
-    def test_tokenizer_runner_skips_without_compiling(self) -> None:
+    def test_tokenizer_runner_fails_without_compiler(self) -> None:
         runner = load_runner("run_engine_tokenizer_contract.py")
-        output = io.StringIO()
         with (
-            mock.patch.dict(
-                runner.os.environ,
-                {"CC": "missing-compiler", "CI": ""},
-                clear=False,
-            ),
+            mock.patch.dict(runner.os.environ, {"CC": "missing-compiler"}, clear=False),
             mock.patch.object(runner.shutil, "which", return_value=None),
             mock.patch.object(runner.subprocess, "run") as compiler,
-            contextlib.redirect_stdout(output),
         ):
-            result = runner.main()
-
-        self.assertEqual(runner.SKIP_RETURN_CODE, 77)
-        self.assertEqual(result, 77)
-        self.assertIn("SKIP", output.getvalue())
+            with self.assertRaisesRegex(SystemExit, "compiler is required"):
+                runner.main()
         compiler.assert_not_called()
 
-    def test_tokenizer_runner_fails_in_ci_without_compiling(self) -> None:
-        runner = load_runner("run_engine_tokenizer_contract.py")
-        output = io.StringIO()
-        with (
-            mock.patch.dict(
-                runner.os.environ,
-                {"CC": "missing-compiler", "CI": "1"},
-                clear=False,
-            ),
-            mock.patch.object(runner.shutil, "which", return_value=None),
-            mock.patch.object(runner.subprocess, "run") as compiler,
-            contextlib.redirect_stdout(output),
-        ):
-            result = runner.main()
+    def test_only_missing_checkpoint_is_optional(self) -> None:
+        runner = load_runner("run_engine_forward_oracles.py")
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            self.assertFalse(
+                runner.optional_checkpoint("missing", root / "snap", root / "ref.json")
+            )
 
-        self.assertEqual(result, 1)
-        self.assertNotEqual(result, runner.SKIP_RETURN_CODE)
-        self.assertIn("ERROR", output.getvalue())
-        self.assertNotIn("SKIP", output.getvalue())
-        compiler.assert_not_called()
+            snap = root / "snap"
+            snap.mkdir()
+            (snap / "config.json").write_text("{}", encoding="utf-8")
+            (snap / "model.safetensors").write_bytes(b"fixture")
+            ref = root / "ref.json"
+            ref.write_text("{}", encoding="utf-8")
+            self.assertTrue(runner.optional_checkpoint("present", snap, ref))
 
 
 if __name__ == "__main__":

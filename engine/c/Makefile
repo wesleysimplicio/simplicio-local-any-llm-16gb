@@ -53,7 +53,7 @@ CUDA_ARCH ?= native
 NVCCFLAGS ?= -O3 -std=c++17 -arch=$(CUDA_ARCH) -Xcompiler=-Wall,-Wextra
 PYTHON    ?= python3
 CUDA_OBJ  =
-TEST_BINS = tests/test_json$(EXE) tests/test_st$(EXE) tests/test_tier$(EXE)
+TEST_BINS = tests/test_json$(EXE) tests/test_st$(EXE) tests/test_tier$(EXE) tests/test_quant$(EXE)
 TOKENIZER_TEST_BIN = tests/test_tok$(EXE)
 ifeq ($(CUDA),1)
 ifeq ($(UNAME_S),Darwin)
@@ -108,6 +108,9 @@ tests/test_st$(EXE): tests/test_st.c st.h json.h compat.h
 	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
 tests/test_tier$(EXE): tests/test_tier.c tier.h
+	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+
+tests/test_quant$(EXE): tests/test_quant.c glm.c st.h json.h tok.h tok_unicode.h compat.h
 	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
 $(TOKENIZER_TEST_BIN): tests/test_tok.c tok.h tok_unicode.h json.h
@@ -175,4 +178,3 @@ clean:
 	rm -rf tests/__pycache__
 
 .PHONY: all cuda-test portable test-c test-tokenizer test-python test check sanitize clean
-

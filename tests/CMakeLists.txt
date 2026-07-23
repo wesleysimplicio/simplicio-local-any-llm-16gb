@@ -33,6 +33,20 @@ endif()
 add_subdirectory(unit)
 
 find_package(Python3 COMPONENTS Interpreter QUIET)
+find_program(US4_ENGINE_TEST_MAKE make)
+
+if(US4_ENGINE_TEST_MAKE)
+  add_test(
+    NAME engine_colibri_make_test
+    COMMAND ${US4_ENGINE_TEST_MAKE} test
+  )
+  set_tests_properties(engine_colibri_make_test PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/engine/c
+    LABELS "engine;unit;quantization;tokenizer"
+  )
+else()
+  message(WARNING "make not found: engine_colibri_make_test cannot be registered")
+endif()
 
 if(Python3_Interpreter_FOUND)
   add_test(
@@ -43,7 +57,6 @@ if(Python3_Interpreter_FOUND)
   set_tests_properties(engine_colibri_forward_oracles PROPERTIES
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     LABELS "engine;oracle;forward"
-    SKIP_RETURN_CODE 77
   )
 
   add_test(
@@ -54,7 +67,6 @@ if(Python3_Interpreter_FOUND)
   set_tests_properties(engine_colibri_tokenizer_contract PROPERTIES
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     LABELS "engine;tokenizer"
-    SKIP_RETURN_CODE 77
   )
 
   add_test(

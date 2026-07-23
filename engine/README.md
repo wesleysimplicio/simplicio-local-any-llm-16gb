@@ -73,6 +73,23 @@ make test           # testes C + Python do motor
 make check           # clean + build portável + testes
 ```
 
+`make test` inclui tokenizer e regressões dos quantizadores/kernels
+int8/int4/int2 sem dependências Python externas. A suíte de oráculos de
+forward commitados também integra o CTest do repositório:
+
+```bash
+ctest --test-dir build -L engine --output-on-failure
+```
+
+Ela valida teacher-forcing, geração greedy e paridade dos caminhos
+absorption, DSA-full e speculative decoding. Ausência de ferramenta,
+fixture commitada inválida ou mismatch são falhas. Apenas checkpoint de
+família ainda não disponível pode produzir um `SKIP checkpoint ...`
+explícito. O procedimento e as seeds para regenerar os oráculos ficam em
+[`tests/fixtures/engine/README.md`](../tests/fixtures/engine/README.md).
+
+Mudança no forward sem atualizar/rodar esta suíte deve ser rejeitada.
+
 Requisitos do motor (não confundir com os requisitos do runtime C++ em
 `runtime/`): compilador C (clang no macOS, gcc no Linux/Windows/MSYS2),
 `make`, Python 3 para os testes Python e as ferramentas em `c/tools/`.

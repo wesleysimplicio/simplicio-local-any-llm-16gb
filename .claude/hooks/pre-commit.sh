@@ -23,5 +23,17 @@ if ! npm test --silent; then
   exit 1
 fi
 
+if ! command -v make >/dev/null 2>&1; then
+  echo "[pre-commit] FALHOU: 'make' é obrigatório para validar o motor colibri."
+  exit 1
+fi
+
+if ! make -C engine/c test; then
+  echo ""
+  echo "[pre-commit] FALHOU: suíte local do motor colibri vermelha."
+  echo "[pre-commit] Corrija antes de commitar: make -C engine/c test"
+  exit 1
+fi
+
 echo "[pre-commit] Testes verdes. Seguindo com o commit."
 exit 0
