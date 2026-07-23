@@ -32,6 +32,7 @@
 #include "st.h"
 #include "tok.h"
 #include "chat_template.h"
+#include "serve_protocol.h"
 #include "tier.h"
 #include "moe_route.h"
 #ifdef COLI_CUDA
@@ -2197,10 +2198,12 @@ static void run_serve(Model *m, const char *snap){
     printf("\x01\x01" "READY" "\x01\x01\n"); printf("STAT 0 0.00 0.0 %.2f\n", rss_gb()); fflush(stdout);
     while((nr=getline(&line,&cap,stdin))>0){
         if(nr>0 && line[nr-1]=='\n') line[--nr]=0;
-        if(!strcmp(line,"\x02RESET")){ len=0; first=1; if(m->has_mtp) m->kv_start[m->c.n_layers]=-1;
+        serve_line request;
+        int parsed=serve_parse_line(line,(size_t)nr,nctx,&request);
+        if(parsed && request.kind==SERVE_LINE_RESET){ len=0; first=1; if(m->has_mtp) m->kv_start[m->c.n_layers]=-1;
             kv_disk_reset(m);
             printf("\x01\x01" "END" "\x01\x01\n"); printf("STAT 0 0.00 0.0 %.2f\n", rss_gb()); fflush(stdout); continue; }
-        if(!strcmp(line,"\x02MORE")){                /* continua la risposta troncata da NGEN:
+        if(parsed && request.kind==SERVE_LINE_MORE){ /* continua la risposta troncata da NGEN:
             la storia e' gia' in KV, basta ri-forwardare l'ULTIMO token per riavere i logits */
             if(len<1){ printf("\x01\x01" "END" "\x01\x01\n"); printf("STAT 0 0.00 0.0 %.2f\n", rss_gb()); fflush(stdout); continue; }
             int cur=ngen; if(len+cur+g_draft+2>=maxctx) cur=maxctx-len-g_draft-2;
@@ -2215,7 +2218,7 @@ static void run_serve(Model *m, const char *snap){
             printf("\n\x01\x01" "END" "\x01\x01\n");
             printf("STAT %d %.2f %.1f %.2f\n", prod, prod/tdt, (dh+dm)>0?100.0*dh/(dh+dm):0.0, rss_gb());
             fflush(stdout); kv_disk_append(m,hist,len); repin_pass(m); continue; }   /* RFC: re-pin a caldo tra i turni / live re-pin between turns */
-        if(nr<1){ printf("\x01\x01" "END" "\x01\x01\n"); printf("STAT 0 0.00 0.0 %.2f\n", rss_gb()); fflush(stdout); continue; }
+        if(parsed && request.kind==SERVE_LINE_EMPTY){ printf("\x01\x01" "END" "\x01\x01\n"); printf("STAT 0 0.00 0.0 %.2f\n", rss_gb()); fflush(stdout); continue; }
         /* API mode: an exact, length-prefixed prompt. Unlike the interactive
          * line protocol this accepts newlines. The tokenized prompt is matched
          * against hist so the common KV prefix survives stateless HTTP turns.
@@ -2225,25 +2228,27 @@ static void run_serve(Model *m, const char *snap){
         char *raw=NULL, *input=line;
         int input_n=(int)nr, raw_mode=0, req_ngen=ngen, prompt_tokens=0;
         float base_temp=g_temp, base_nuc=g_nuc;
-        if(!strncmp(line,"\x02PROMPT ",8)){
-            unsigned long long nb=0; double rt=0, rp=0; int slot=0;
-            long long seed=-1;
-            int nf=sscanf(line+8,"%llu %d %lf %lf %d %lld",
-                          &nb,&req_ngen,&rt,&rp,&slot,&seed);
-            if(nf<4 || nb>(16u<<20) || req_ngen<1 || rt<0 || rt>2 || rp<=0 || rp>1 ||
-               slot<0 || slot>=nctx){
+        if(!parsed && !strncmp(line,"\x02PROMPT ",8)){
+            printf("\x01\x01" "END" "\x01\x01\n"); printf("STAT 0 0.00 0.0 %.2f 0 0\n",rss_gb()); fflush(stdout); continue;
+        }
+        if(parsed && request.kind==SERVE_LINE_PROMPT){
+            size_t nb=request.prompt_bytes;
+            req_ngen=request.max_tokens;
+            int slot=request.kv_slot;
+            long long seed=request.seed;
+            if(nb>(16u<<20)){
                 printf("\x01\x01" "END" "\x01\x01\n"); printf("STAT 0 0.00 0.0 %.2f 0 0\n",rss_gb()); fflush(stdout); continue;
             }
             active=slot; sc=&ctx[active]; kv_bind(m,&sc->kv);
-            raw=malloc((size_t)nb+1); if(!raw){fprintf(stderr,"OOM raw prompt\n");exit(1);}
-            if(fread(raw,1,(size_t)nb,stdin)!=(size_t)nb){free(raw);break;}
+            raw=malloc(nb+1); if(!raw){fprintf(stderr,"OOM raw prompt\n");exit(1);}
+            if(fread(raw,1,nb,stdin)!=nb){free(raw);break;}
             int delim=fgetc(stdin); if(delim!='\n' && delim!=EOF) ungetc(delim,stdin);
-            if(memchr(raw,0,(size_t)nb)){free(raw); printf("\x01\x01" "END" "\x01\x01\n");
+            if(memchr(raw,0,nb)){free(raw); printf("\x01\x01" "END" "\x01\x01\n");
                 printf("STAT 0 0.00 0.0 %.2f 0 0\n",rss_gb()); fflush(stdout); continue;}
             raw[nb]=0; input=raw; input_n=(int)nb; raw_mode=1;
             if(req_ngen>ngen) req_ngen=ngen;
-            g_temp=(float)rt; g_nuc=(float)rp;
-            if(nf>=6 && seed>=0)
+            g_temp=(float)request.temperature; g_nuc=(float)request.top_p;
+            if(seed>=0)
                 g_rng=(uint64_t)seed ? (uint64_t)seed : 0x9E3779B97F4A7C15ULL;
         } else { active=0; sc=&ctx[0]; kv_bind(m,&sc->kv); }
         int bl=0, k=0;                           /* costruisce/tokenizza il turno */

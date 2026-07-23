@@ -42,9 +42,18 @@ toolchain and closed the gap the previous receipt flagged as required:
   during a rebase; the merge was re-validated with a full clean build + test
   run + both TF oracles afterward, not assumed correct from either side.
 
-**Still open** (tracked by issue #122, not closed by this patch): the four
-libFuzzer harnesses (`json.h`, `st.h`, `tok.h`, server line protocol) and
-full generated-oracle sanitizer run. The adversarial-config suite is now
+The four engine-C fuzz entry points are now versioned in `engine/c/fuzz/` for
+`json.h`, safetensors metadata in `st.h`, arbitrary-byte tokenizer
+encode/decode in `tok.h`, and the extracted server line protocol parser.
+`make fuzz-smoke` compiles those exact entry points with GCC ASan+UBSan and
+replays the committed valid/malformed seed corpus on Linux; `make sanitize`
+includes that bounded replay. `make fuzz-libfuzzer` builds the coverage-guided
+Clang variants without introducing a dependency into the default build.
+
+**Still open as external evidence:** the requested one-hour campaign for each
+target and a full generated-oracle sanitizer run when the optional tiny model
+fixtures are present. No campaign statistics are inferred from the smoke
+replay. The adversarial-config suite is
 committed as `engine/c/tests/test_adversarial_config.py`; it executes the real
 engine binary against hostile dimensions and asserts an ordinary, actionable
 rejection before tensor loading. `make sanitize` proves the buffers found by

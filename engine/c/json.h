@@ -8,6 +8,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <errno.h>
+#include <limits.h>
+#include <math.h>
+#include <stdint.h>
 
 typedef enum { J_NULL, J_BOOL, J_NUM, J_STR, J_ARR, J_OBJ } jtype;
 
@@ -24,38 +28,53 @@ typedef struct jval {
 
 typedef struct {
     const char *s;
+    const char *end;
     char       *arena;     /* buffer per le stringhe smontate */
     size_t      acap, aoff;
+    unsigned    depth;
+    int         error;
 } jparser;
 
-static char *j_dup(jparser *p, const char *b, int n) {
-    /* ogni stringa ha la sua allocazione: un'arena con realloc sposterebbe il
-     * buffer invalidando i puntatori gia' emessi (use-after-free). */
-    (void)p;
-    char *d = (char *)malloc(n + 1);
-    memcpy(d, b, n); d[n] = 0;
-    return d;
-}
+enum { JSON_MAX_DEPTH = 128 };
 
-static void j_ws(jparser *p) { while (*p->s && isspace((unsigned char)*p->s)) p->s++; }
+static void j_ws(jparser *p) {
+    while (p->s < p->end && isspace((unsigned char)*p->s)) p->s++;
+}
 
 static jval *j_new(jtype t) {
     jval *v = (jval *)calloc(1, sizeof(jval));
-    v->t = t; return v;
+    if (v) v->t = t;
+    return v;
 }
 
 static jval *j_parse_val(jparser *p);
+static void json_free(jval *v);
 
 static char *j_parse_str_raw(jparser *p) {
-    /* assume *p->s == '"' */
+    if (p->s >= p->end || *p->s != '"') {
+        p->error = 1;
+        return NULL;
+    }
     p->s++;
-    const char *start = p->s;
-    /* trova la fine gestendo gli escape, poi copia decodificando i casi base */
-    char tmp[1 << 16]; int n = 0;
-    #define J_PUT(ch) do{ if (n < (int)sizeof(tmp)-1) tmp[n++] = (char)(ch); }while(0)
-    while (*p->s && *p->s != '"') {
+    size_t cap = (size_t)(p->end - p->s) + 1;
+    char *tmp = (char *)malloc(cap);
+    size_t n = 0;
+    if (!tmp) {
+        p->error = 1;
+        return NULL;
+    }
+    #define J_PUT(ch) do { tmp[n++] = (char)(ch); } while (0)
+    while (p->s < p->end && *p->s != '"') {
         char c = *p->s++;
-        if (c == '\\' && *p->s) {
+        if ((unsigned char)c < 0x20) {
+            p->error = 1;
+            break;
+        }
+        if (c == '\\') {
+            if (p->s >= p->end) {
+                p->error = 1;
+                break;
+            }
             char e = *p->s++;
             switch (e) {
                 case 'n': c = '\n'; break; case 't': c = '\t'; break;
@@ -63,11 +82,35 @@ static char *j_parse_str_raw(jparser *p) {
                 case 'f': c = '\f'; break; case '/': c = '/'; break;
                 case '\\': c = '\\'; break; case '"': c = '"'; break;
                 case 'u': {  /* \uXXXX -> codepoint UTF-8 (con coppie surrogate) */
+                    if ((size_t)(p->end - p->s) < 4) {
+                        p->error = 1;
+                        break;
+                    }
+                    for (int i = 0; i < 4; i++) {
+                        if (!isxdigit((unsigned char)p->s[i])) {
+                            p->error = 1;
+                            break;
+                        }
+                    }
+                    if (p->error) break;
                     unsigned cp = (unsigned)strtoul((char[]){p->s[0],p->s[1],p->s[2],p->s[3],0}, NULL, 16);
                     p->s += 4;
-                    if (cp >= 0xD800 && cp <= 0xDBFF && p->s[0]=='\\' && p->s[1]=='u') {
+                    if (cp >= 0xD800 && cp <= 0xDBFF &&
+                        (size_t)(p->end - p->s) >= 6 &&
+                        p->s[0]=='\\' && p->s[1]=='u') {
+                        for (int i = 2; i < 6; i++) {
+                            if (!isxdigit((unsigned char)p->s[i])) {
+                                p->error = 1;
+                                break;
+                            }
+                        }
+                        if (p->error) break;
                         unsigned lo = (unsigned)strtoul((char[]){p->s[2],p->s[3],p->s[4],p->s[5],0}, NULL, 16);
                         if (lo >= 0xDC00 && lo <= 0xDFFF) { cp = 0x10000 + ((cp-0xD800)<<10) + (lo-0xDC00); p->s += 6; }
+                    }
+                    if ((cp >= 0xD800 && cp <= 0xDFFF) || cp > 0x10FFFF) {
+                        p->error = 1;
+                        break;
                     }
                     if (cp < 0x80) { J_PUT(cp); }
                     else if (cp < 0x800) { J_PUT(0xC0|(cp>>6)); J_PUT(0x80|(cp&0x3F)); }
@@ -75,69 +118,175 @@ static char *j_parse_str_raw(jparser *p) {
                     else { J_PUT(0xF0|(cp>>18)); J_PUT(0x80|((cp>>12)&0x3F)); J_PUT(0x80|((cp>>6)&0x3F)); J_PUT(0x80|(cp&0x3F)); }
                     continue;
                 }
-                default: c = e; break;
+                default: p->error = 1; break;
             }
+            if (p->error) break;
         }
         J_PUT(c);
     }
     #undef J_PUT
-    if (*p->s == '"') p->s++;
-    (void)start;
-    return j_dup(p, tmp, n);
+    if (p->s >= p->end || *p->s != '"') p->error = 1;
+    else p->s++;
+    if (p->error) {
+        free(tmp);
+        return NULL;
+    }
+    tmp[n] = 0;
+    return tmp;
 }
 
 static jval *j_parse_val(jparser *p) {
     j_ws(p);
+    if (p->error || p->s >= p->end || p->depth >= JSON_MAX_DEPTH) {
+        p->error = 1;
+        return NULL;
+    }
+    p->depth++;
     char c = *p->s;
-    if (c == '"') { jval *v = j_new(J_STR); v->str = j_parse_str_raw(p); return v; }
+    jval *result = NULL;
+    if (c == '"') {
+        result = j_new(J_STR);
+        if (result) result->str = j_parse_str_raw(p);
+        if (!result || !result->str) p->error = 1;
+        goto done;
+    }
     if (c == '{') {
         p->s++; jval *v = j_new(J_OBJ);
-        int cap = 8; v->keys = malloc(cap * sizeof(char*)); v->kids = malloc(cap * sizeof(jval*));
+        int cap = 8;
+        if (!v) { p->error = 1; goto done; }
+        v->keys = malloc((size_t)cap * sizeof(char*));
+        v->kids = malloc((size_t)cap * sizeof(jval*));
+        if (!v->keys || !v->kids) { p->error = 1; result = v; goto done; }
         j_ws(p);
-        if (*p->s == '}') { p->s++; return v; }
+        if (p->s < p->end && *p->s == '}') { p->s++; result = v; goto done; }
         for (;;) {
             j_ws(p);
             char *key = j_parse_str_raw(p);
-            j_ws(p); if (*p->s == ':') p->s++;
+            j_ws(p);
+            if (!key || p->s >= p->end || *p->s != ':') {
+                free(key); p->error = 1; break;
+            }
+            p->s++;
             jval *val = j_parse_val(p);
-            if (v->len == cap) { cap *= 2; v->keys = realloc(v->keys, cap*sizeof(char*)); v->kids = realloc(v->kids, cap*sizeof(jval*)); }
+            if (!val || p->error) { free(key); json_free(val); break; }
+            if (v->len == cap) {
+                if (cap > INT_MAX / 2) { free(key); p->error = 1; break; }
+                cap *= 2;
+                char **keys = realloc(v->keys, (size_t)cap*sizeof(char*));
+                if (!keys) { free(key); p->error = 1; break; }
+                v->keys = keys;
+                jval **kids = realloc(v->kids, (size_t)cap*sizeof(jval*));
+                if (!kids) { free(key); p->error = 1; break; }
+                v->kids = kids;
+            }
             v->keys[v->len] = key; v->kids[v->len] = val; v->len++;
             j_ws(p);
-            if (*p->s == ',') { p->s++; continue; }
-            if (*p->s == '}') { p->s++; break; }
+            if (p->s < p->end && *p->s == ',') { p->s++; continue; }
+            if (p->s < p->end && *p->s == '}') { p->s++; break; }
+            p->error = 1;
             break;
         }
-        return v;
+        result = v;
+        goto done;
     }
     if (c == '[') {
         p->s++; jval *v = j_new(J_ARR);
-        int cap = 8; v->kids = malloc(cap * sizeof(jval*));
+        int cap = 8;
+        if (!v) { p->error = 1; goto done; }
+        v->kids = malloc((size_t)cap * sizeof(jval*));
+        if (!v->kids) { p->error = 1; result = v; goto done; }
         j_ws(p);
-        if (*p->s == ']') { p->s++; return v; }
+        if (p->s < p->end && *p->s == ']') { p->s++; result = v; goto done; }
         for (;;) {
             jval *val = j_parse_val(p);
-            if (v->len == cap) { cap *= 2; v->kids = realloc(v->kids, cap*sizeof(jval*)); }
+            if (!val || p->error) { json_free(val); break; }
+            if (v->len == cap) {
+                if (cap > INT_MAX / 2) { p->error = 1; break; }
+                cap *= 2;
+                jval **kids = realloc(v->kids, (size_t)cap*sizeof(jval*));
+                if (!kids) { p->error = 1; break; }
+                v->kids = kids;
+            }
             v->kids[v->len++] = val;
             j_ws(p);
-            if (*p->s == ',') { p->s++; continue; }
-            if (*p->s == ']') { p->s++; break; }
+            if (p->s < p->end && *p->s == ',') { p->s++; continue; }
+            if (p->s < p->end && *p->s == ']') { p->s++; break; }
+            p->error = 1;
             break;
         }
-        return v;
+        result = v;
+        goto done;
     }
-    if (c == 't') { p->s += 4; jval *v = j_new(J_BOOL); v->boolean = 1; return v; }
-    if (c == 'f') { p->s += 5; jval *v = j_new(J_BOOL); v->boolean = 0; return v; }
-    if (c == 'n') { p->s += 4; return j_new(J_NULL); }
+    if ((size_t)(p->end-p->s) >= 4 && !memcmp(p->s,"true",4)) {
+        p->s += 4; result = j_new(J_BOOL);
+        if (result) result->boolean = 1; else p->error = 1;
+        goto done;
+    }
+    if ((size_t)(p->end-p->s) >= 5 && !memcmp(p->s,"false",5)) {
+        p->s += 5; result = j_new(J_BOOL);
+        if (result) result->boolean = 0; else p->error = 1;
+        goto done;
+    }
+    if ((size_t)(p->end-p->s) >= 4 && !memcmp(p->s,"null",4)) {
+        p->s += 4; result = j_new(J_NULL);
+        if (!result) p->error = 1;
+        goto done;
+    }
     /* numero */
-    { char *end; double d = strtod(p->s, &end); p->s = end; jval *v = j_new(J_NUM); v->num = d; return v; }
+    {
+        if (c != '-' && (c < '0' || c > '9')) {
+            p->error = 1;
+            goto done;
+        }
+        char *end = NULL;
+        errno = 0;
+        double d = strtod(p->s, &end);
+        if (end == p->s || end > p->end || errno == ERANGE || !isfinite(d)) {
+            p->error = 1;
+            goto done;
+        }
+        p->s = end;
+        result = j_new(J_NUM);
+        if (result) result->num = d; else p->error = 1;
+    }
+done:
+    p->depth--;
+    return result;
 }
 
 /* API */
-static jval *json_parse(const char *text, char **arena_out) {
-    jparser p = { text, NULL, 0, 0 };
+static void json_free(jval *v) {
+    if (!v) return;
+    if (v->t == J_OBJ) {
+        for (int i = 0; i < v->len; i++) free(v->keys[i]);
+    }
+    if (v->t == J_STR) free(v->str);
+    for (int i = 0; i < v->len; i++) json_free(v->kids[i]);
+    free(v->keys);
+    free(v->kids);
+    free(v);
+}
+
+static jval *json_parse_n(const char *text, size_t text_len, char **arena_out) {
+    if (arena_out) *arena_out = NULL;
+    if (!text || text_len == SIZE_MAX) return NULL;
+    char *copy = (char *)malloc(text_len + 1);
+    if (!copy) return NULL;
+    memcpy(copy, text, text_len);
+    copy[text_len] = 0;
+    jparser p = { copy, copy + text_len, NULL, 0, 0, 0, 0 };
     jval *v = j_parse_val(&p);
-    if (arena_out) *arena_out = p.arena; else free(p.arena);
+    j_ws(&p);
+    if (p.error || p.s != p.end) {
+        json_free(v);
+        v = NULL;
+    }
+    free(copy);
     return v;
+}
+
+static jval *json_parse(const char *text, char **arena_out) {
+    return text ? json_parse_n(text, strlen(text), arena_out) : NULL;
 }
 
 static jval *json_get(jval *o, const char *key) {

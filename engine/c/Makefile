@@ -53,9 +53,13 @@ CUDA_ARCH ?= native
 NVCCFLAGS ?= -O3 -std=c++17 -arch=$(CUDA_ARCH) -Xcompiler=-Wall,-Wextra
 PYTHON    ?= python3
 CUDA_OBJ  =
-TEST_BINS = tests/test_json$(EXE) tests/test_st$(EXE) tests/test_tier$(EXE) tests/test_quant$(EXE)
+TEST_BINS = tests/test_json$(EXE) tests/test_st$(EXE) tests/test_tier$(EXE) tests/test_quant$(EXE) tests/test_serve_protocol$(EXE)
 TOKENIZER_TEST_BIN = tests/test_tok$(EXE)
 CHAT_TEMPLATE_TEST_BIN = tests/test_chat_template$(EXE)
+FUZZ_NAMES = json safetensors tokenizer serve_protocol
+FUZZ_REPLAY_BINS = $(addprefix fuzz/bin/fuzz_,$(addsuffix _replay,$(FUZZ_NAMES)))
+FUZZ_SANFLAGS = -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all
+FUZZ_CLANG ?= clang
 ifeq ($(CUDA),1)
 ifeq ($(UNAME_S),Darwin)
 $(error CUDA=1 is supported only on Linux)
@@ -80,7 +84,7 @@ all: glm$(EXE)
 glm: glm$(EXE)
 endif
 
-glm$(EXE): glm.c moe_route.h st.h json.h tok.h tok_unicode.h chat_template.h chat_templates.json compat.h $(CUDA_OBJ)
+glm$(EXE): glm.c moe_route.h st.h json.h tok.h tok_unicode.h chat_template.h chat_templates.json serve_protocol.h compat.h $(CUDA_OBJ)
 	$(CC) $(CFLAGS) glm.c $(CUDA_OBJ) -o glm$(EXE) $(LDFLAGS)
 
 backend_cuda.o: backend_cuda.cu backend_cuda.h
@@ -111,7 +115,10 @@ tests/test_st$(EXE): tests/test_st.c st.h json.h compat.h
 tests/test_tier$(EXE): tests/test_tier.c tier.h
 	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
-tests/test_quant$(EXE): tests/test_quant.c glm.c moe_route.h st.h json.h tok.h tok_unicode.h compat.h
+tests/test_quant$(EXE): tests/test_quant.c glm.c moe_route.h st.h json.h tok.h tok_unicode.h serve_protocol.h compat.h
+	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+
+tests/test_serve_protocol$(EXE): tests/test_serve_protocol.c serve_protocol.h
 	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
 $(TOKENIZER_TEST_BIN): tests/test_tok.c tok.h tok_unicode.h json.h
@@ -161,15 +168,22 @@ check:
 # actually exists to catch.
 SANFLAGS = -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all
 SANITIZE_REQUIRE_ORACLES ?= 0
-sanitize:
-	rm -f glm_asan tests/test_json_asan tests/test_st_asan tests/test_tier_asan
+sanitize: fuzz-smoke
+	rm -f glm_asan tests/test_json_asan tests/test_st_asan tests/test_tier_asan tests/test_quant_asan tests/test_serve_protocol_asan tests/test_tok_asan
 	$(CC) $(SANFLAGS) -Wall -Wextra -Wno-unused-parameter -Wno-misleading-indentation -Wno-unused-function glm.c -o glm_asan -lm
 	$(CC) $(SANFLAGS) tests/test_json.c -o tests/test_json_asan -lm
 	$(CC) $(SANFLAGS) tests/test_st.c -o tests/test_st_asan -lm
 	$(CC) $(SANFLAGS) tests/test_tier.c -o tests/test_tier_asan -lm
+	$(CC) $(SANFLAGS) tests/test_quant.c -o tests/test_quant_asan -lm
+	$(CC) $(SANFLAGS) tests/test_serve_protocol.c -o tests/test_serve_protocol_asan -lm
+	$(CC) $(SANFLAGS) tests/test_tok.c -o tests/test_tok_asan -lm
 	ASAN_OPTIONS=detect_leaks=0 ./tests/test_json_asan
 	ASAN_OPTIONS=detect_leaks=0 ./tests/test_st_asan
 	ASAN_OPTIONS=detect_leaks=0 ./tests/test_tier_asan
+	ASAN_OPTIONS=detect_leaks=0 ./tests/test_quant_asan
+	ASAN_OPTIONS=detect_leaks=0 ./tests/test_serve_protocol_asan
+	printf 'hi\t2\nhi!\t2,3\n<|special|>\t4\nhi<|special|>!\t2,4,3\n' \
+	  | ASAN_OPTIONS=detect_leaks=0 ./tests/test_tok_asan ../../tests/fixtures/engine/tokenizer/minimal_tokenizer.json
 	if test -f ./glm_tiny/config.json && test -f ./glm_tiny/model.safetensors && \
 	   test -f ./deepseek_tiny/config.json && test -f ./deepseek_tiny/model.safetensors; then \
 	  SNAP=./glm_tiny TF=1 REF=ref_glm.json ASAN_OPTIONS=detect_leaks=0 ./glm_asan 64 16 16; \
@@ -182,13 +196,34 @@ sanitize:
 	fi
 	SNAP=./fixtures/kimi_k2_tiny TF=1 REF=ref_kimi.json \
 	  ASAN_OPTIONS=detect_leaks=0 ./glm_asan 64 16 16
-	 rm -f glm_asan tests/test_json_asan tests/test_st_asan tests/test_tier_asan
+	rm -f glm_asan tests/test_json_asan tests/test_st_asan tests/test_tier_asan tests/test_quant_asan tests/test_serve_protocol_asan tests/test_tok_asan
+
+fuzz/bin:
+	mkdir -p $@
+
+fuzz/bin/fuzz_%_replay: fuzz/fuzz_%.c fuzz/fuzz_replay.c | fuzz/bin
+	$(CC) $(FUZZ_SANFLAGS) -Wall -Wextra -Werror -Wno-unused-function $^ -o $@ -lm
+
+# Dependency-light, deterministic sanitizer replay. This is a bounded smoke
+# gate over the committed corpus, not a claim of a coverage-guided campaign.
+fuzz-smoke: $(FUZZ_REPLAY_BINS)
+	ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1 sh ./fuzz/run_smoke.sh
+
+# Optional coverage-guided targets. A real campaign controls duration and
+# corpus directories externally; CI activation remains out of scope for #122.
+fuzz-libfuzzer: | fuzz/bin
+	@command -v $(FUZZ_CLANG) >/dev/null 2>&1 || { echo "clang not found: set FUZZ_CLANG" >&2; exit 1; }
+	@for name in $(FUZZ_NAMES); do \
+	  $(FUZZ_CLANG) $(FUZZ_SANFLAGS) -fsanitize=fuzzer -Wall -Wextra -Werror -Wno-unused-function \
+	    fuzz/fuzz_$$name.c -o fuzz/bin/fuzz_$$name -lm || exit 1; \
+	done
 
 clean:
 	rm -f olmoe$(EXE) glm$(EXE) iobench$(EXE) backend_cuda.o backend_cuda_test$(EXE) $(TEST_BINS)
 	rm -f $(TOKENIZER_TEST_BIN)
 	rm -f $(CHAT_TEMPLATE_TEST_BIN)
-	rm -f glm_asan tests/test_json_asan tests/test_st_asan tests/test_tier_asan
+	rm -f glm_asan tests/test_json_asan tests/test_st_asan tests/test_tier_asan tests/test_quant_asan tests/test_serve_protocol_asan tests/test_tok_asan
+	rm -f $(FUZZ_REPLAY_BINS) $(addprefix fuzz/bin/fuzz_,$(FUZZ_NAMES))
 	rm -rf tests/__pycache__
 
-.PHONY: all cuda-test portable test-c test-tokenizer test-chat-template test-python test check sanitize clean
+.PHONY: all cuda-test portable test-c test-tokenizer test-chat-template test-python test check sanitize fuzz-smoke fuzz-libfuzzer clean

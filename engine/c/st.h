@@ -11,9 +11,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <limits.h>
+#include <math.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <sys/stat.h>
 #include "json.h"
 #include "compat.h"
 
@@ -39,6 +42,7 @@ typedef struct {
     int        hcap;
 } shards;
 #define ST_MAX_SHARDS 512
+#define ST_MAX_HEADER_BYTES (256u * 1024u * 1024u)
 
 static uint64_t st_hash(const char *s){
     uint64_t h=1469598103934665603ULL;
@@ -53,6 +57,62 @@ static int st_dtype_code(const char *s) {
     if (!strcmp(s, "U8"))   return 3;   /* dati quantizzati (int4 packed / int8) */
     if (!strcmp(s, "I8"))   return 3;
     fprintf(stderr, "dtype non gestito: %s\n", s); exit(1);
+}
+
+static int st_json_nonnegative_i64(const jval *v, int64_t *out) {
+    if (!v || v->t != J_NUM || !isfinite(v->num) || v->num < 0 ||
+        v->num >= 9223372036854775808.0 || floor(v->num) != v->num) return 0;
+    *out = (int64_t)v->num;
+    return 1;
+}
+
+/* Non-fatal safetensors trust-boundary parser used by both st_init and the
+ * fuzz harness. It validates every field before st_init dereferences it. */
+static int st_validate_header_json(const void *data, size_t len, int *tensor_count) {
+    if (tensor_count) *tensor_count = 0;
+    if (!data || len == 0 || len > ST_MAX_HEADER_BYTES) return 0;
+    jval *root = json_parse_n((const char *)data, len, NULL);
+    if (!root || root->t != J_OBJ) {
+        json_free(root);
+        return 0;
+    }
+    int count = 0;
+    for (int i = 0; i < root->len; i++) {
+        if (!strcmp(root->keys[i], "__metadata__")) continue;
+        jval *m = root->kids[i];
+        jval *dt = json_get(m, "dtype");
+        jval *off = json_get(m, "data_offsets");
+        jval *shp = json_get(m, "shape");
+        int dtype_ok = dt && dt->t == J_STR &&
+            (!strcmp(dt->str, "BF16") || !strcmp(dt->str, "F16") ||
+             !strcmp(dt->str, "F32") || !strcmp(dt->str, "U8") ||
+             !strcmp(dt->str, "I8"));
+        if (!m || m->t != J_OBJ || !dtype_ok || !off || off->t != J_ARR ||
+            off->len != 2 || !shp || shp->t != J_ARR) {
+            json_free(root);
+            return 0;
+        }
+        int64_t begin = 0, end = 0, numel = 1;
+        if (!st_json_nonnegative_i64(off->kids[0], &begin) ||
+            !st_json_nonnegative_i64(off->kids[1], &end) || end < begin) {
+            json_free(root);
+            return 0;
+        }
+        for (int k = 0; k < shp->len; k++) {
+            int64_t dim = 0;
+            if (!st_json_nonnegative_i64(shp->kids[k], &dim) ||
+                (dim != 0 && numel > INT64_MAX / dim)) {
+                json_free(root);
+                return 0;
+            }
+            numel *= dim;
+        }
+        (void)numel;
+        count++;
+    }
+    if (tensor_count) *tensor_count = count;
+    json_free(root);
+    return 1;
 }
 
 static inline float bf16_to_f32(uint16_t h) {
@@ -118,11 +178,27 @@ static void st_init(shards *S, const char *snap_dir) {
 
     for (int fi = 0; fi < nf; fi++) {
         int fd = st_open_fd(S, files[fi]);
+        struct stat file_stat;
+        if (fstat(fd, &file_stat) != 0 || file_stat.st_size < 8) {
+            fprintf(stderr, "safetensors invalido (arquivo menor que header): %s\n", files[fi]);
+            exit(1);
+        }
         uint64_t hlen;
         if (pread(fd, &hlen, 8, 0) != 8) { perror("pread hlen"); exit(1); }
+        if (hlen == 0 || hlen > ST_MAX_HEADER_BYTES ||
+            hlen > (uint64_t)file_stat.st_size - 8u) {
+            fprintf(stderr, "safetensors invalido (header fora do arquivo): %s\n", files[fi]);
+            exit(1);
+        }
         char *hdr = malloc(hlen + 1);
+        if (!hdr) { fprintf(stderr, "OOM safetensors header\n"); exit(1); }
         if (pread(fd, hdr, hlen, 8) != (ssize_t)hlen) { perror("pread hdr"); exit(1); }
         hdr[hlen] = 0;
+        if (!st_validate_header_json(hdr, (size_t)hlen, NULL)) {
+            fprintf(stderr, "safetensors invalido (metadados malformados): %s\n", files[fi]);
+            free(hdr);
+            exit(1);
+        }
         int64_t data_start = 8 + (int64_t)hlen;
         char *arena = NULL;
         jval *root = json_parse(hdr, &arena);

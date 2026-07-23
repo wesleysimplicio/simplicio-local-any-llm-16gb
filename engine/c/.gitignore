@@ -5,9 +5,13 @@ olmoe_hf/
 olmoe_i4/
 /glm
 /olmoe
+/*_asan
+/fuzz/bin/
 tests/test_json
 tests/test_st
 tests/test_tier
 tests/test_tok
 tests/test_quant
+tests/test_serve_protocol
+tests/*_asan
 tests/audit_win_shims

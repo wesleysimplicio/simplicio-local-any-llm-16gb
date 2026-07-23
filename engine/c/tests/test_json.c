@@ -30,6 +30,12 @@ int main(void) {
     CHECK(values->kids[1]->num == -2.5);
     CHECK(values->kids[2]->num == 300.0);
     CHECK(strcmp(json_get(root, "unicode")->str, "λ 🚀") == 0);
+    json_free(root);
+
+    CHECK(json_parse("{\"broken\":\"\\uD800\"}", NULL) == NULL);
+    CHECK(json_parse("{\"unterminated\":[1,2,3", NULL) == NULL);
+    CHECK(json_parse("true trailing", NULL) == NULL);
+    CHECK(json_parse("nan", NULL) == NULL);
 
     puts("json tests: ok");
     return 0;
