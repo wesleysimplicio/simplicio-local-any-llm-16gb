@@ -106,6 +106,8 @@ Usage:
   us4-cli local-inference-status [--json]
   us4-cli backend probe [--json]
   us4-cli backend estimate [...]
+  us4-cli prototype doctor [--json]
+  us4-cli prototype generate|critic|judge|summarize [...]
   us4-cli list-models [--json]
   us4-cli run ...
   us4-cli serve [--native] [...]
@@ -117,6 +119,7 @@ Usage:
 Product commands:
   probe        delegate to the native runtime probe
   backend      read-only capability and admission contract for Runtime/Loop
+  prototype    offline Prototype-First worker contract
   list-models  delegate to the native adapter registry
   run          delegate to the native single-shot runtime
   serve        delegate to the native runtime when built; otherwise
@@ -226,6 +229,9 @@ switch (command) {
     break;
   case 'backend':
     runPythonScript('engine/c/backend.py', rest);
+    break;
+  case 'prototype':
+    runPythonScript('engine/c/prototype.py', rest);
     break;
   case 'doctor':
     runPythonScript('engine/c/doctor.py', rest);

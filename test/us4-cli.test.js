@@ -27,6 +27,7 @@ test('prints product help and version', () => {
   assert.match(help.stdout, /chat/);
   assert.match(help.stdout, /serve/);
   assert.match(help.stdout, /backend/);
+  assert.match(help.stdout, /prototype/);
 
   const version = runCli(['--version']);
   assert.equal(version.status, 0, version.stderr);
@@ -70,6 +71,26 @@ test('backend probe is read-only and versioned', () => {
   assert.equal(report.read_only, true);
   assert.equal(report.model_payload_read, false);
   assert.equal(report.capabilities.tool_execution, 'forbidden');
+});
+
+test('prototype doctor preserves offline and no-effect policy', () => {
+  const result = runCli(['prototype', 'doctor', '--json']);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.protocol, 'simplicio.prototype-worker/v1');
+  assert.equal(report.offline, true);
+  assert.equal(report.prompt_logging, false);
+  assert.equal(report.effect_authority, 'none');
+});
+
+test('prototype generate escalates without a Runtime inference lease', () => {
+  const result = runCli([
+    'prototype', 'generate', '--artifact-type', 'plan', '--json',
+  ]);
+  assert.equal(result.status, 78, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.status, 'escalate_remote');
+  assert.equal(report.reason, 'runtime-inference-lease-required');
 });
 
 test('chat fails clearly when npm is unavailable', () => {
